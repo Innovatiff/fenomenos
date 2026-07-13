@@ -236,18 +236,51 @@
       </div>
     </div>
 
+    <div class="read-progress" id="read-progress" aria-hidden="true"></div>
+
     <main id="contenido" class="post-page">
-      <article class="post">
+      <div class="post-shell">
         <a href="articulos.html" class="post__back">
           <ion-icon name="arrow-back-outline"></ion-icon>
           Todos los artículos
         </a>
 
-        <div id="post-root">
-          <div class="post-state" id="post-loading">
-            <ion-icon name="hourglass-outline"></ion-icon>
-            <strong>Cargando artículo…</strong>
-          </div>
+        <div class="post-layout">
+          <article class="post">
+            <div id="post-root">
+              <div class="post-state" id="post-loading">
+                <ion-icon name="hourglass-outline"></ion-icon>
+                <strong>Cargando artículo…</strong>
+              </div>
+            </div>
+          </article>
+
+          <!-- Barra lateral: cajas fijas que acompañan el scroll -->
+          <aside class="post-aside" id="post-aside" hidden>
+            <div class="post-aside__sticky">
+              <nav class="aside-box" id="toc-box" hidden aria-label="Índice del artículo">
+                <h2 class="aside-box__title">
+                  <ion-icon name="list-outline"></ion-icon> En este artículo
+                </h2>
+                <ol class="toc" id="toc-list"></ol>
+              </nav>
+
+              <div class="aside-box" id="share-box" hidden>
+                <h2 class="aside-box__title">
+                  <ion-icon name="share-social-outline"></ion-icon> Comparte este
+                  artículo
+                </h2>
+                <div class="share" id="share-buttons"></div>
+              </div>
+
+              <div class="aside-box" id="more-box" hidden>
+                <h2 class="aside-box__title">
+                  <ion-icon name="newspaper-outline"></ion-icon> Más artículos
+                </h2>
+                <div class="aside-more" id="more-list"></div>
+              </div>
+            </div>
+          </aside>
         </div>
 
         <div class="post__more">
@@ -255,7 +288,7 @@
             >Ver todos los artículos</a
           >
         </div>
-      </article>
+      </div>
     </main>
 
     <!-- ══════════════════════════════ FOOTER ═════════════════════════════ -->

@@ -4,10 +4,76 @@
    artículo (articulo.html) y la vista previa del Estudio (estudio.html),
    así que lo que el dueño ve al editar es exactamente lo que se publica.
 
-   Todo el contenido se inserta como NODOS DE TEXTO (nunca innerHTML con
-   datos del documento), así que el contenido almacenado no puede inyectar
-   marcado en la página.
+   El contenido se inserta como nodos de texto, salvo los párrafos con
+   formato (negrita, cursiva, alineación, marcador…), que se guardan como
+   HTML y SIEMPRE pasan por sanitizeHtml() —una lista blanca estricta de
+   etiquetas y estilos— tanto al guardar como al renderizar.
    ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sanitizador de HTML enriquecido ─────────────────────────────────────
+   Solo sobreviven las etiquetas y estilos que produce la barra de formato
+   del Estudio. Cualquier otra cosa (scripts, atributos, iframes…) se
+   elimina conservando el texto. */
+
+const RICH_TAGS = new Set([
+  "P",
+  "DIV",
+  "BR",
+  "B",
+  "STRONG",
+  "I",
+  "EM",
+  "U",
+  "MARK",
+  "SPAN",
+]);
+const RICH_STYLES = new Set(["text-align", "background-color"]);
+
+function cleanNode(node, doc) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return doc.createTextNode(node.nodeValue);
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+
+  const keepTag = RICH_TAGS.has(node.tagName);
+  const target = keepTag
+    ? doc.createElement(node.tagName.toLowerCase())
+    : doc.createDocumentFragment();
+
+  if (keepTag && node.getAttribute && node.getAttribute("style")) {
+    const styles = [];
+    for (const prop of RICH_STYLES) {
+      const value = node.style.getPropertyValue(prop);
+      if (value) styles.push(prop + ": " + value);
+    }
+    if (styles.length) target.setAttribute("style", styles.join("; "));
+  }
+
+  node.childNodes.forEach((child) => {
+    const cleaned = cleanNode(child, doc);
+    if (cleaned) target.appendChild(cleaned);
+  });
+  return target;
+}
+
+export function sanitizeHtml(html) {
+  const doc = new DOMParser().parseFromString(
+    "<div>" + String(html || "") + "</div>",
+    "text/html"
+  );
+  const out = document.createElement("div");
+  doc.body.firstChild.childNodes.forEach((child) => {
+    const cleaned = cleanNode(child, document);
+    if (cleaned) out.appendChild(cleaned);
+  });
+  return out.innerHTML;
+}
+
+export function htmlToPlainText(html) {
+  const div = document.createElement("div");
+  div.innerHTML = sanitizeHtml(html);
+  return div.textContent || "";
+}
 
 /* ── Utilidades ──────────────────────────────────────────────────────────── */
 
@@ -36,7 +102,7 @@ export function articleWordCount(article) {
   count(article.title);
   count(article.excerpt);
   (article.sections || []).forEach((s) => {
-    count(s.text);
+    count(s.html ? htmlToPlainText(s.html) : s.text);
     count(s.caption);
     count(s.cite);
     (s.items || []).forEach(count);
@@ -77,14 +143,30 @@ function paragraphs(text, className) {
 
 /* ── Secciones ───────────────────────────────────────────────────────────── */
 
+/* Tamaños disponibles para los subtítulos (elegibles en el Estudio) */
+export const HEADING_SIZES = [
+  { key: "sm", label: "Pequeño" },
+  { key: "md", label: "Normal" },
+  { key: "lg", label: "Grande" },
+  { key: "xl", label: "Extra grande" },
+];
+
 const RENDERERS = {
   heading(section) {
-    return el("h2", "post__heading", section.text || "");
+    const h = el("h2", "post__heading", section.text || "");
+    if (section.size && section.size !== "md") {
+      h.classList.add("post__heading--" + section.size);
+    }
+    return h;
   },
 
   text(section) {
     const wrap = el("div", "post__text");
-    wrap.appendChild(paragraphs(section.text));
+    if (section.html) {
+      wrap.innerHTML = sanitizeHtml(section.html); // lista blanca estricta
+    } else {
+      wrap.appendChild(paragraphs(section.text));
+    }
     return wrap;
   },
 
@@ -158,6 +240,10 @@ export function renderArticle(root, article) {
 
   const body = el("div", "post__body");
   body.appendChild(renderSections(article.sections));
+  /* anclas para el índice («En este artículo») */
+  body.querySelectorAll(".post__heading").forEach((h, i) => {
+    h.id = "seccion-" + (i + 1);
+  });
   root.appendChild(body);
 
   if (article.footer) {

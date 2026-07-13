@@ -218,7 +218,8 @@
 .studio__topbar {
   position: sticky;
   top: 0;
-  z-index: 50;
+  /* por encima de los paneles: style.css da z-index:100 a todas las <section> */
+  z-index: 800;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -293,51 +294,54 @@
   }
 }
 
-/* Pestañas */
+/* Pestañas: control segmentado dentro del topbar */
 
-.studio__tabs {
+.seg {
   display: flex;
-  gap: 0.4rem;
-  padding: 1.2rem clamp(1.6rem, 4vw, 3.2rem) 0;
-  border-bottom: 0.1rem solid var(--line);
-  background-color: var(--surface);
-  overflow-x: auto;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border: 0.1rem solid var(--line);
+  border-radius: var(--r-pill);
+  background-color: rgba(5, 7, 17, 0.6);
 }
 
-.studio__tab {
+.seg__btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 1.1rem 1.8rem;
+  gap: 0.7rem;
+  padding: 0.8rem 1.6rem;
   font-size: 1.4rem;
   font-weight: 500;
   color: var(--text-4);
-  border: 0.1rem solid transparent;
-  border-bottom: none;
-  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  border-radius: var(--r-pill);
   white-space: nowrap;
   transition: color 0.2s var(--ease), background-color 0.2s var(--ease);
 }
-.studio__tab:hover {
+.seg__btn:hover {
   color: #fff;
 }
-.studio__tab.is-active {
-  color: #fff;
-  background-color: var(--bg);
-  border-color: var(--line);
-  position: relative;
+.seg__btn.is-active {
+  color: var(--ink);
+  background-color: #dfe3ee;
+  font-weight: 600;
 }
-.studio__tab.is-active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.1rem;
-  height: 0.1rem;
-  background-color: var(--bg);
+.seg__btn ion-icon {
+  font-size: 1.6rem;
 }
-.studio__tab ion-icon {
-  font-size: 1.7rem;
+
+@media (max-width: 48em) {
+  .studio__topbar {
+    flex-wrap: wrap;
+  }
+  .seg {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .seg__btn {
+    flex: 1;
+    justify-content: center;
+  }
 }
 
 .studio__main {
@@ -535,6 +539,74 @@
 }
 
 /* ───────────────────────────  EDITOR  ────────────────────────────────── */
+
+/* Formulario + caja de revisión (vista previa en vivo) */
+
+.editor-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.4rem;
+  align-items: start;
+}
+
+.editor-live {
+  display: none;
+}
+
+@media (min-width: 90em) {
+  .panel--wide .editor-wrap,
+  .editor-wrap {
+    grid-template-columns: minmax(0, 1fr) 46rem;
+  }
+
+  .editor-live {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 8.4rem; /* debajo del topbar fijo */
+    max-height: calc(100vh - 10.8rem);
+    border: 0.1rem solid var(--line);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+    background-color: var(--surface);
+  }
+
+  .editor-live__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1.1rem 1.6rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.1rem;
+    text-transform: uppercase;
+    color: var(--alert);
+    border-bottom: 0.1rem solid rgba(255, 176, 32, 0.35);
+    background-color: rgba(255, 176, 32, 0.06);
+  }
+  .editor-live__bar ion-icon {
+    font-size: 1.6rem;
+  }
+
+  .editor-live__scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2.4rem 2rem 4rem;
+  }
+
+  /* el artículo se dibuja a escala reducida dentro de la caja */
+  .post--live {
+    width: 100%;
+    zoom: 0.72;
+  }
+}
+
+/* ancho mayor para el editor cuando hay vista previa al lado */
+@media (min-width: 90em) {
+  .studio__main:has(#panel-editor:not([hidden])) {
+    width: min(100%, 160rem);
+  }
+}
 
 .editor__meta {
   padding: 2.4rem;
@@ -781,6 +853,117 @@
   margin-bottom: 0;
 }
 
+.scard__row {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 48em) {
+  .scard__row {
+    grid-template-columns: minmax(0, 1fr) 18rem;
+  }
+}
+
+/* ── Barra de formato (texto enriquecido) ── */
+
+.rtb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.4rem;
+  border: 0.1rem solid var(--line);
+  border-bottom: none;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background-color: rgba(9, 15, 34, 0.9);
+}
+
+.rtb__btn {
+  display: grid;
+  place-items: center;
+  min-width: 3.2rem;
+  height: 3.2rem;
+  padding: 0 0.6rem;
+  font-size: 1.4rem;
+  color: var(--text-3);
+  border-radius: 0.6rem;
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+.rtb__btn:hover {
+  color: #fff;
+  background-color: rgba(93, 102, 135, 0.22);
+}
+.rtb__btn svg {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.rtb__btn b {
+  font-weight: 800;
+}
+.rtb__btn u {
+  text-underline-offset: 0.25rem;
+}
+
+.rtb__mark {
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.4rem;
+  background-color: rgba(255, 176, 32, 0.4);
+  color: #fff;
+  font-weight: 600;
+}
+
+.rtb__clear {
+  font-weight: 600;
+}
+.rtb__clear small {
+  font-size: 1rem;
+  vertical-align: super;
+}
+
+.rtb__sep {
+  width: 0.1rem;
+  height: 2rem;
+  margin: 0 0.5rem;
+  background-color: var(--line-2);
+}
+
+/* ── Editable enriquecido ── */
+
+.rich-editor {
+  min-height: 12rem;
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+  line-height: 1.7;
+  cursor: text;
+  overflow-y: auto;
+  max-height: 42rem;
+}
+.rich-editor:focus {
+  outline: none;
+  border-color: var(--text-4);
+}
+.rich-editor p {
+  margin: 0 0 1em;
+}
+.rich-editor p:last-child {
+  margin-bottom: 0;
+}
+.rich-editor:empty::before,
+.rich-editor:has(> p:only-child > br:only-child)::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  color: var(--text-5);
+  pointer-events: none;
+}
+.rich-editor {
+  position: relative;
+}
+.rich-editor mark,
+.rich-editor span[style*="background"] {
+  color: inherit;
+  border-radius: 0.3rem;
+  padding: 0 0.2rem;
+}
+
 .scard__img-preview {
   max-width: 32rem;
 }
@@ -807,7 +990,7 @@
 .editor__actions {
   position: sticky;
   bottom: 0;
-  z-index: 40;
+  z-index: 300;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -973,6 +1156,10 @@
 }
 .preview .post-page {
   padding-top: 4.8rem;
+}
+.preview .post {
+  width: min(100% - 4.8rem, 82rem);
+  margin-inline: auto;
 }
 
 /* ─────────────────────────────  TOASTS  ──────────────────────────────── */

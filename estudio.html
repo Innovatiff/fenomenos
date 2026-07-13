@@ -91,6 +91,18 @@
           </div>
         </div>
 
+        <nav class="seg" aria-label="Secciones del estudio">
+          <button class="seg__btn is-active" data-panel="panel-list">
+            <ion-icon name="documents-outline"></ion-icon> Artículos
+          </button>
+          <button class="seg__btn" data-panel="panel-tags">
+            <ion-icon name="pricetags-outline"></ion-icon> Etiquetas
+          </button>
+          <button class="seg__btn" data-panel="panel-editor" id="tab-editor" hidden>
+            <ion-icon name="create-outline"></ion-icon> Editor
+          </button>
+        </nav>
+
         <div class="studio__topbar-right">
           <a href="articulos.html" target="_blank" rel="noopener" class="studio__site-link">
             <ion-icon name="open-outline"></ion-icon>
@@ -103,18 +115,6 @@
           </button>
         </div>
       </header>
-
-      <nav class="studio__tabs" aria-label="Secciones del estudio">
-        <button class="studio__tab is-active" data-panel="panel-list">
-          <ion-icon name="documents-outline"></ion-icon> Artículos
-        </button>
-        <button class="studio__tab" data-panel="panel-editor" id="tab-editor">
-          <ion-icon name="create-outline"></ion-icon> Editor
-        </button>
-        <button class="studio__tab" data-panel="panel-tags">
-          <ion-icon name="pricetags-outline"></ion-icon> Etiquetas
-        </button>
-      </nav>
 
       <main class="studio__main">
         <!-- ── LISTADO ─────────────────────────────────────────────── -->
@@ -150,6 +150,8 @@
             </button>
           </div>
 
+          <div class="editor-wrap">
+            <div class="editor-col">
           <div class="editor">
             <div class="editor__meta">
               <label class="field field--wide">
@@ -278,6 +280,19 @@
                 Publicar
               </button>
             </div>
+          </div>
+            </div>
+
+            <!-- Caja de revisión: vista previa en vivo, fija al hacer scroll -->
+            <aside class="editor-live" aria-label="Vista previa en vivo">
+              <div class="editor-live__bar">
+                <ion-icon name="eye-outline"></ion-icon>
+                Vista previa en vivo
+              </div>
+              <div class="editor-live__scroll">
+                <article class="post post--live" id="live-root"></article>
+              </div>
+            </aside>
           </div>
         </section>
 

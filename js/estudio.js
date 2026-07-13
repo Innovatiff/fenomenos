@@ -27,7 +27,14 @@ import {
   orderBy,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { renderArticle, formatDate, toDateValue } from "./render-article.js";
+import {
+  renderArticle,
+  formatDate,
+  toDateValue,
+  sanitizeHtml,
+  htmlToPlainText,
+  HEADING_SIZES,
+} from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
@@ -145,6 +152,126 @@ function kb(dataUrl) {
   return Math.round((dataUrl.length * 3) / 4 / 1024);
 }
 
+/* ── Texto enriquecido ───────────────────────────────────────────────── */
+
+const MARK_COLOR = "rgba(255, 176, 32, 0.32)";
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/* texto plano heredado → HTML de párrafos */
+function textToHtml(text) {
+  const blocks = String(text || "")
+    .split(/\n{2,}/)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  if (!blocks.length) return "<p><br></p>";
+  return blocks
+    .map((b) => "<p>" + escapeHtml(b).replace(/\n/g, "<br>") + "</p>")
+    .join("");
+}
+
+function exec(cmd, value = null) {
+  document.execCommand("styleWithCSS", false, cmd === "hiliteColor");
+  document.execCommand(cmd, false, value);
+}
+
+const ALIGN_ICONS = {
+  justifyLeft:
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3.5h12M2 8h8M2 12.5h10"/></svg>',
+  justifyCenter:
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3.5h12M4 8h8M3 12.5h10"/></svg>',
+  justifyRight:
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 3.5h12M6 8h8M4 12.5h10"/></svg>',
+};
+
+/* Barra de formato: actúa sobre el texto seleccionado del editable */
+function buildRichToolbar(editable) {
+  const bar = document.createElement("div");
+  bar.className = "rtb";
+  bar.setAttribute("role", "toolbar");
+  bar.setAttribute("aria-label", "Formato de texto");
+
+  /* que los clics no roben la selección del editable */
+  bar.addEventListener("mousedown", (e) => e.preventDefault());
+
+  const groups = [
+    [
+      { label: "<b>B</b>", title: "Negrita", run: () => exec("bold") },
+      { label: "<i>I</i>", title: "Cursiva", run: () => exec("italic") },
+      { label: "<u>U</u>", title: "Subrayado", run: () => exec("underline") },
+      {
+        label: '<span class="rtb__mark">A</span>',
+        title: "Marcador",
+        run: () => exec("hiliteColor", MARK_COLOR),
+      },
+    ],
+    [
+      { label: ALIGN_ICONS.justifyLeft, title: "Alinear al inicio", run: () => exec("justifyLeft") },
+      { label: ALIGN_ICONS.justifyCenter, title: "Centrar", run: () => exec("justifyCenter") },
+      { label: ALIGN_ICONS.justifyRight, title: "Alinear al final", run: () => exec("justifyRight") },
+    ],
+    [
+      {
+        label: '<span class="rtb__clear">T<small>×</small></span>',
+        title: "Quitar formato",
+        run: () => exec("removeFormat"),
+      },
+    ],
+  ];
+
+  groups.forEach((group, gi) => {
+    if (gi) {
+      const sep = document.createElement("span");
+      sep.className = "rtb__sep";
+      bar.appendChild(sep);
+    }
+    group.forEach((btn) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "rtb__btn";
+      b.title = btn.title;
+      b.innerHTML = btn.label; // etiquetas propias, no datos del artículo
+      b.addEventListener("click", () => {
+        editable.focus();
+        btn.run();
+        editable.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      bar.appendChild(b);
+    });
+  });
+
+  return bar;
+}
+
+function buildRichEditable(section) {
+  const ed = document.createElement("div");
+  ed.className = "field__input rich-editor";
+  ed.contentEditable = "true";
+  ed.dataset.field = "html";
+  ed.dataset.placeholder = "Escribe el contenido…";
+  ed.innerHTML = sanitizeHtml(
+    section.html != null ? section.html : textToHtml(section.text)
+  );
+
+  /* pegar siempre limpio */
+  ed.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData("text/html");
+    const text = e.clipboardData.getData("text/plain");
+    const clean = html
+      ? sanitizeHtml(html)
+      : escapeHtml(text).replace(/\n/g, "<br>");
+    document.execCommand("insertHTML", false, clean);
+  });
+
+  return ed;
+}
+
 /* ── Autenticación ───────────────────────────────────────────────────── */
 
 onAuthStateChanged(auth, (user) => {
@@ -191,8 +318,11 @@ $("btn-signout").addEventListener("click", () => signOut(auth));
 
 /* ── Pestañas ────────────────────────────────────────────────────────── */
 
-const tabs = document.querySelectorAll(".studio__tab");
+/* Dos pestañas fijas (Artículos, Etiquetas). La de Editor está oculta y
+   solo aparece cuando se abre un artículo (editar o nuevo). */
+const tabs = document.querySelectorAll(".seg__btn");
 function showPanel(panelId) {
+  if (panelId === "panel-editor") $("tab-editor").hidden = false;
   tabs.forEach((t) =>
     t.classList.toggle("is-active", t.dataset.panel === panelId)
   );
@@ -533,7 +663,20 @@ function openEditor(article) {
   showPanel("panel-editor");
 }
 
+/* Caja de revisión: vista previa en vivo junto al formulario */
+let liveTimer;
+function updateLivePreview() {
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(() => {
+    renderArticle($("live-root"), {
+      ...collectArticle(),
+      publishedAt: (editing && toDateValue(editing.publishedAt)) || new Date(),
+    });
+  }, 250);
+}
+
 function updateEditorStatus() {
+  updateLivePreview();
   const el = $("editor-status");
   if (!editing) {
     el.textContent = "Borrador sin guardar";
@@ -614,8 +757,9 @@ $("section-adders").addEventListener("click", (e) => {
   if (!btn) return;
   const type = btn.dataset.type;
   const base = { uid: uid(), type };
-  if (type === "heading" || type === "text" || type === "quote") base.text = "";
-  if (type === "quote") base.cite = "";
+  if (type === "heading") Object.assign(base, { text: "", size: "md" });
+  if (type === "text") base.html = "";
+  if (type === "quote") Object.assign(base, { text: "", cite: "" });
   if (type === "image") Object.assign(base, { src: "", caption: "" });
   if (type === "list") base.items = [];
   sections.push(base);
@@ -702,18 +846,44 @@ function buildSectionCard(section, index) {
   body.className = "scard__body";
 
   if (section.type === "heading") {
-    body.appendChild(
+    const row = document.createElement("div");
+    row.className = "scard__row";
+    row.appendChild(
       fieldBlock("Texto del subtítulo", makeInput(section, "text", "Ej.: ¿Qué hacer durante el evento?"))
     );
+
+    const sizeWrap = document.createElement("div");
+    sizeWrap.className = "field__select-wrap";
+    const sizeSelect = document.createElement("select");
+    sizeSelect.className = "field__input";
+    sizeSelect.dataset.field = "size";
+    HEADING_SIZES.forEach(({ key, label }) => {
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = label;
+      sizeSelect.appendChild(opt);
+    });
+    sizeSelect.value = section.size || "md";
+    sizeWrap.appendChild(sizeSelect);
+    const chevron = document.createElement("ion-icon");
+    chevron.setAttribute("name", "chevron-down-outline");
+    sizeWrap.appendChild(chevron);
+    row.appendChild(fieldBlock("Tamaño", sizeWrap));
+
+    body.appendChild(row);
   }
 
   if (section.type === "text") {
-    body.appendChild(
-      fieldBlock(
-        "Texto (separa párrafos con una línea en blanco)",
-        makeInput(section, "text", "Escribe el contenido…", "textarea", 6)
-      )
-    );
+    const editable = buildRichEditable(section);
+    const block = document.createElement("div");
+    block.className = "field";
+    const label = document.createElement("span");
+    label.className = "field__label";
+    label.textContent = "Texto — selecciona y aplica formato";
+    block.appendChild(label);
+    block.appendChild(buildRichToolbar(editable));
+    block.appendChild(editable);
+    body.appendChild(block);
   }
 
   if (section.type === "quote") {
@@ -869,19 +1039,22 @@ function syncOrderFromDom() {
 
 /* cambios en los campos de las secciones (delegado) */
 sectionsList.addEventListener("input", (e) => {
+  const fieldEl = e.target.closest("[data-field]");
   const card = e.target.closest(".scard");
-  const field = e.target.dataset.field;
-  if (!card || !field) return;
+  if (!card || !fieldEl) return;
+  const field = fieldEl.dataset.field;
   const section = sections.find((s) => s.uid === card.dataset.uid);
   if (!section) return;
 
-  if (field === "items") {
-    section.items = e.target.value.split("\n");
+  if (field === "html") {
+    section.html = sanitizeHtml(fieldEl.innerHTML);
+  } else if (field === "items") {
+    section.items = fieldEl.value.split("\n");
   } else {
-    section[field] = e.target.value;
+    section[field] = fieldEl.value;
     if (field === "src") {
       const img = card.querySelector(".scard__img-preview img");
-      if (img) img.src = e.target.value;
+      if (img) img.src = fieldEl.value;
     }
   }
   dirty = true;
@@ -907,11 +1080,17 @@ function collectArticle() {
           .map((s) => String(s).trim())
           .filter(Boolean);
       }
+      if (section.type === "text") {
+        section.html = sanitizeHtml(section.html || "");
+        delete section.text; // el HTML pasa a ser la fuente de verdad
+      }
       return section;
     })
     .filter((section) => {
       if (section.type === "image") return Boolean(section.src);
       if (section.type === "list") return section.items.length > 0;
+      if (section.type === "text")
+        return Boolean(htmlToPlainText(section.html).trim());
       return Boolean(section.text && section.text.trim());
     });
 

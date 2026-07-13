@@ -5,8 +5,8 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { startAnalytics } from "./firebase-init.js";
-import { fetchArticle } from "./db.js";
-import { renderArticle } from "./render-article.js";
+import { fetchArticle, fetchPublished } from "./db.js";
+import { renderArticle, formatDate } from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
@@ -67,6 +67,13 @@ function showState(icon, title, text) {
       const meta = document.getElementById("meta-description");
       if (meta) meta.setAttribute("content", article.excerpt);
     }
+
+    /* barra lateral + progreso de lectura */
+    document.getElementById("post-aside").hidden = false;
+    buildToc();
+    buildShare(article);
+    buildMore(article, id);
+    trackProgress();
   } catch (err) {
     console.error("No se pudo cargar el artículo:", err);
     showState(
@@ -76,3 +83,168 @@ function showState(icon, title, text) {
     );
   }
 })();
+
+/* ── Barra lateral ───────────────────────────────────────────────────── */
+
+/* Índice («En este artículo») con resaltado según el scroll */
+function buildToc() {
+  const headings = [...root.querySelectorAll(".post__heading")];
+  if (!headings.length) return;
+
+  const box = document.getElementById("toc-box");
+  const list = document.getElementById("toc-list");
+  box.hidden = false;
+
+  const links = headings.map((h) => {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = "#" + h.id;
+    a.textContent = h.textContent;
+    li.appendChild(a);
+    list.appendChild(li);
+    return a;
+  });
+
+  const setActive = (id) =>
+    links.forEach((a) =>
+      a.classList.toggle("is-active", a.getAttribute("href") === "#" + id)
+    );
+  setActive(headings[0].id);
+
+  if ("IntersectionObserver" in window) {
+    const spy = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActive(entry.target.id);
+        });
+      },
+      { rootMargin: "-20% 0px -65% 0px" }
+    );
+    headings.forEach((h) => spy.observe(h));
+  }
+}
+
+/* Botones de compartir */
+function buildShare(article) {
+  const box = document.getElementById("share-box");
+  const wrap = document.getElementById("share-buttons");
+  box.hidden = false;
+
+  const url = location.href;
+  const title = article.title || "Fenómenos del Caribe";
+
+  const links = [
+    {
+      icon: "logo-whatsapp",
+      label: "WhatsApp",
+      href: "https://wa.me/?text=" + encodeURIComponent(title + " " + url),
+    },
+    {
+      icon: "logo-facebook",
+      label: "Facebook",
+      href:
+        "https://www.facebook.com/sharer/sharer.php?u=" +
+        encodeURIComponent(url),
+    },
+    {
+      icon: "logo-x",
+      label: "X",
+      href:
+        "https://twitter.com/intent/tweet?text=" +
+        encodeURIComponent(title) +
+        "&url=" +
+        encodeURIComponent(url),
+    },
+  ];
+
+  links.forEach(({ icon, label, href }) => {
+    const a = document.createElement("a");
+    a.className = "share__btn";
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener";
+    const ic = document.createElement("ion-icon");
+    ic.setAttribute("name", icon);
+    a.appendChild(ic);
+    a.appendChild(document.createTextNode(label));
+    wrap.appendChild(a);
+  });
+
+  const copy = document.createElement("button");
+  copy.className = "share__btn";
+  const copyIcon = document.createElement("ion-icon");
+  copyIcon.setAttribute("name", "link-outline");
+  copy.appendChild(copyIcon);
+  copy.appendChild(document.createTextNode("Copiar enlace"));
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      copy.classList.add("share__btn--copied");
+      copy.lastChild.textContent = "¡Copiado!";
+      setTimeout(() => {
+        copy.classList.remove("share__btn--copied");
+        copy.lastChild.textContent = "Copiar enlace";
+      }, 2000);
+    } catch (_) {
+      prompt("Copia el enlace:", url);
+    }
+  });
+  wrap.appendChild(copy);
+}
+
+/* Otros artículos publicados */
+async function buildMore(article, currentId) {
+  try {
+    const others = (await fetchPublished())
+      .filter((a) => a.id !== currentId)
+      .slice(0, 4);
+    if (!others.length) return;
+
+    const box = document.getElementById("more-box");
+    const list = document.getElementById("more-list");
+    box.hidden = false;
+
+    others.forEach((a) => {
+      const item = document.createElement("a");
+      item.className = "aside-more__item";
+      item.href = "articulo.html?id=" + encodeURIComponent(a.id);
+
+      const title = document.createElement("span");
+      title.className = "aside-more__title";
+      title.textContent = a.title || "Sin título";
+      item.appendChild(title);
+
+      const meta = document.createElement("span");
+      meta.className = "aside-more__meta";
+      if (a.tag) {
+        const tag = document.createElement("b");
+        tag.textContent = a.tag;
+        meta.appendChild(tag);
+        meta.appendChild(document.createTextNode(" · "));
+      }
+      meta.appendChild(
+        document.createTextNode(formatDate(a.publishedAt || a.createdAt))
+      );
+      item.appendChild(meta);
+
+      list.appendChild(item);
+    });
+  } catch (_) {
+    /* la barra lateral es opcional: sin «más artículos» si falla */
+  }
+}
+
+/* Barra de progreso de lectura */
+function trackProgress() {
+  const bar = document.getElementById("read-progress");
+  if (!bar) return;
+
+  const update = () => {
+    const total = document.documentElement.scrollHeight - innerHeight;
+    const pct = total > 0 ? Math.min(100, (scrollY / total) * 100) : 0;
+    bar.style.width = pct + "%";
+  };
+  addEventListener("scroll", update, { passive: true });
+  addEventListener("resize", update, { passive: true });
+  update();
+}

@@ -40,10 +40,18 @@ Authentication** (correo y contraseña).
 
 Qué permite:
 
+- **Dos pestañas** (Artículos, Etiquetas); la pestaña **Editor** aparece al
+  abrir un artículo (editar o nuevo).
 - **Crear artículos** con título, etiqueta (desplegable), resumen, imagen de
   portada (URL o subida con compresión automática) y pie de artículo.
 - **Contenido por secciones**: subtítulos, párrafos, imágenes, citas y listas.
   Las secciones se **reordenan arrastrando** el asa (o con los botones ↑ ↓).
+- **Texto enriquecido en los párrafos**: negrita, cursiva, subrayado,
+  marcador y alineación (inicio/centro/final) sobre el texto seleccionado.
+  El HTML resultante pasa por una lista blanca estricta (`sanitizeHtml`).
+- **Subtítulos con tamaño elegible** (pequeño/normal/grande/extra grande).
+- **Caja de revisión**: vista previa en vivo fija junto al formulario en
+  pantallas anchas, además de la vista previa a pantalla completa.
 - **Guardar borrador / Publicar**: al publicar, el artículo aparece al instante
   en `articulos.html` y en la portada.
 - **Editar y eliminar** artículos existentes, y **despublicar** (volver a
@@ -51,7 +59,12 @@ Qué permite:
 - **Gestor de etiquetas**: la lista que alimenta el desplegable del editor y
   los filtros de la página pública. (Pensadas para tener páginas propias por
   etiqueta más adelante.)
-- **Vista previa** 1:1 con la página pública antes de publicar.
+
+La página pública del artículo (`articulo.html`) tiene layout de artículo
+real: columna ancha + barra lateral fija que acompaña el scroll con el
+índice «En este artículo» (resaltado según avanzas), caja de compartir
+(WhatsApp, Facebook, X, copiar enlace) y «Más artículos», además de una
+barra de progreso de lectura.
 
 ## Puesta en marcha de Firebase (una sola vez)
 
