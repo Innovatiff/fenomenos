@@ -630,12 +630,17 @@
   margin-top: 1.7rem;
 }
 
-/* Marcador (texto resaltado desde el Estudio) */
-.post__text mark,
-.post__text span[style*="background"] {
-  color: inherit;
+/* Marcador (texto resaltado desde el Estudio): ámbar sólido con tinta
+   oscura para que siempre sea legible. El !important normaliza también
+   los resaltados guardados con el color translúcido antiguo. */
+.post mark,
+.post [style*="background-color"] {
+  background-color: var(--alert) !important;
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink); /* gana a los títulos con gradiente */
   border-radius: 0.3rem;
-  padding: 0 0.25rem;
+  padding: 0.05em 0.3em;
+  font-weight: 500;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }

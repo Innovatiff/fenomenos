@@ -154,7 +154,7 @@ function kb(dataUrl) {
 
 /* ── Texto enriquecido ───────────────────────────────────────────────── */
 
-const MARK_COLOR = "rgba(255, 176, 32, 0.32)";
+const MARK_COLOR = "#ffb020";
 
 function escapeHtml(s) {
   return String(s)

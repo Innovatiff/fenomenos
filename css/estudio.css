@@ -923,9 +923,9 @@
 .rtb__mark {
   padding: 0.1rem 0.5rem;
   border-radius: 0.4rem;
-  background-color: rgba(255, 176, 32, 0.4);
-  color: #fff;
-  font-weight: 600;
+  background-color: var(--alert);
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .rtb__clear {
@@ -982,11 +982,17 @@
 .rich-editor {
   position: relative;
 }
+/* el marcador se ve en el editor igual que publicado: ámbar + tinta */
 .rich-editor mark,
-.rich-editor span[style*="background"] {
-  color: inherit;
+.rich-editor [style*="background-color"] {
+  background-color: var(--alert) !important;
+  color: var(--ink) !important;
+  -webkit-text-fill-color: var(--ink);
   border-radius: 0.3rem;
-  padding: 0 0.2rem;
+  padding: 0.05em 0.3em;
+  font-weight: 500;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 .scard__img-preview {
