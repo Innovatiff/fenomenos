@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000b33" />
+    <meta
+      name="description"
+      content="Artículos, guías y análisis sobre huracanes, tiempo severo, sismos y otros fenómenos naturales del Caribe, Centroamérica, México y Estados Unidos."
+    />
+
+    <title>Artículos | Fenómenos del Caribe</title>
+
+    <link rel="icon" href="img/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/articles.css" />
+
+    <script
+      type="module"
+      src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"
+    ></script>
+    <script
+      nomodule
+      src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"
+    ></script>
+    <script defer src="js/script.js"></script>
+    <script type="module" src="js/articles-page.js"></script>
+  </head>
+
+  <body>
+    <a href="#contenido" class="skip-link">Ir al contenido</a>
+
+    <!-- ══════════════════════════════ HEADER ══════════════════════════════ -->
+    <header class="header">
+      <div class="header__container">
+        <a href="index.html" class="header__left">
+          <img
+            src="img/logo.png"
+            alt="Fenómenos del Caribe"
+            class="header__logo"
+            width="44"
+            height="44"
+          />
+          <span class="header__logo--text">Fenómenos del Caribe</span>
+        </a>
+
+        <div class="header__right">
+          <nav class="header__nav" aria-label="Navegación principal">
+            <a href="articulos.html" class="header__nav--links" aria-current="page"
+              >Artículos</a
+            >
+
+            <div class="header__nav--box">
+              <button
+                class="header__nav--links header__nav--products"
+                aria-expanded="false"
+                aria-controls="dropdown-datos"
+              >
+                Datos y mapas
+                <ion-icon
+                  class="header__nav--icon"
+                  name="chevron-down-outline"
+                ></ion-icon>
+              </button>
+
+              <div class="products__dropdown hidden" id="dropdown-datos">
+                <div class="products__dropdown--container">
+                  <span class="products__dropdown--heading">Herramientas</span>
+                  <div class="products__dropdown--links">
+                    <a href="proximamente.html" class="products__dropdown--link">
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="map-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Mapas de análisis</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Capas sinópticas y de riesgo, actualizadas.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a href="proximamente.html" class="products__dropdown--link">
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="radio-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Radares del Caribe</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Lluvia y tormentas en tiempo real.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a href="proximamente.html" class="products__dropdown--link">
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="earth-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Pronóstico regional</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >El panorama del Caribe y las Américas.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a href="proximamente.html" class="products__dropdown--link">
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="locate-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Pronósticos locales</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >El tiempo en tu país y tu zona.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a href="proximamente.html" class="products__dropdown--link">
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="layers-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Modelo europeo interactivo</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Explora el ECMWF capa por capa.</span
+                        >
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <a href="index.html#cobertura" class="header__nav--links">Cobertura</a>
+            <a href="index.html#comunidad" class="header__nav--links">Comunidad</a>
+          </nav>
+
+          <div class="header__right--right">
+            <div class="header__right--sep" aria-hidden="true"></div>
+            <div class="header__right--start-back">
+              <a href="articulos.html" class="header__right--start"
+                >Explorar artículos</a
+              >
+            </div>
+          </div>
+
+          <button
+            class="header__burger"
+            id="burger"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+            aria-label="Abrir menú"
+          >
+            <span class="header__burger--bar"></span>
+            <span class="header__burger--bar"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════ PHONE NAV ═══════════════════════════ -->
+    <div class="mobile-nav" id="mobile-nav" hidden>
+      <div class="mobile-nav__backdrop" data-close></div>
+
+      <div class="mobile-nav__panel">
+        <div class="mobile-nav__inner">
+          <nav aria-label="Navegación móvil">
+            <a href="articulos.html" class="mobile-nav__link">Artículos</a>
+
+            <div class="mobile-nav__group">
+              <button
+                class="mobile-nav__link mobile-nav__toggle"
+                aria-expanded="false"
+              >
+                Datos y mapas
+                <ion-icon name="chevron-down-outline"></ion-icon>
+              </button>
+              <div class="mobile-nav__sub">
+                <div>
+                  <a href="proximamente.html" class="mobile-nav__sub--link"
+                    ><ion-icon name="map-outline"></ion-icon>Mapas de análisis</a
+                  >
+                  <a href="proximamente.html" class="mobile-nav__sub--link"
+                    ><ion-icon name="radio-outline"></ion-icon>Radares del
+                    Caribe</a
+                  >
+                  <a href="proximamente.html" class="mobile-nav__sub--link"
+                    ><ion-icon name="earth-outline"></ion-icon>Pronóstico
+                    regional</a
+                  >
+                  <a href="proximamente.html" class="mobile-nav__sub--link"
+                    ><ion-icon name="locate-outline"></ion-icon>Pronósticos
+                    locales</a
+                  >
+                  <a href="proximamente.html" class="mobile-nav__sub--link"
+                    ><ion-icon name="layers-outline"></ion-icon>Modelo europeo
+                    interactivo</a
+                  >
+                </div>
+              </div>
+            </div>
+
+            <a href="index.html#cobertura" class="mobile-nav__link">Cobertura</a>
+            <a href="index.html#comunidad" class="mobile-nav__link">Comunidad</a>
+          </nav>
+
+          <div class="mobile-nav__cta">
+            <div class="btn__back">
+              <a href="articulos.html" class="btn btn--primary"
+                >Explorar artículos</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main id="contenido">
+      <!-- ═══════════════════════ CABECERA DE PÁGINA ═══════════════════════ -->
+      <section class="page-hero">
+        <div class="container page-hero__container">
+          <p class="eyebrow">Publicaciones</p>
+          <h1 class="heading__primary page-hero__title">Artículos y análisis</h1>
+          <p class="page-hero__lead">
+            Guías, análisis y contenido educativo sobre huracanes, tiempo
+            severo, sismos y otros fenómenos naturales de la región. Aprende
+            antes del evento.
+          </p>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════ CATÁLOGO ═══════════════════════════ -->
+      <section class="catalog" aria-label="Listado de artículos">
+        <div class="container">
+          <div class="catalog__bar">
+            <div
+              class="catalog__chips"
+              id="tag-filters"
+              role="tablist"
+              aria-label="Filtrar por tema"
+            >
+              <button class="chip is-active" data-tag="">Todos</button>
+            </div>
+
+            <div class="catalog__search">
+              <ion-icon name="search-outline"></ion-icon>
+              <label class="sr-only" for="search">Buscar artículos</label>
+              <input
+                type="search"
+                id="search"
+                placeholder="Buscar artículos…"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <ul class="grid catalog__grid grid--3" id="articles-grid">
+            <li class="skeleton" aria-hidden="true">
+              <div class="skeleton__block skeleton__block--media"></div>
+              <div class="skeleton__block skeleton__block--line w-40"></div>
+              <div class="skeleton__block skeleton__block--line w-80"></div>
+              <div class="skeleton__block skeleton__block--line"></div>
+            </li>
+            <li class="skeleton" aria-hidden="true">
+              <div class="skeleton__block skeleton__block--media"></div>
+              <div class="skeleton__block skeleton__block--line w-40"></div>
+              <div class="skeleton__block skeleton__block--line w-80"></div>
+              <div class="skeleton__block skeleton__block--line"></div>
+            </li>
+            <li class="skeleton" aria-hidden="true">
+              <div class="skeleton__block skeleton__block--media"></div>
+              <div class="skeleton__block skeleton__block--line w-40"></div>
+              <div class="skeleton__block skeleton__block--line w-80"></div>
+              <div class="skeleton__block skeleton__block--line"></div>
+            </li>
+          </ul>
+
+          <div class="catalog__empty" id="catalog-empty">
+            <ion-icon name="newspaper-outline"></ion-icon>
+            <strong>No hay artículos que mostrar</strong>
+            <p id="catalog-empty-text">
+              Aún no hay publicaciones en esta categoría. Vuelve pronto.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ══════════════════════════════ FOOTER ═════════════════════════════ -->
+    <footer class="footer">
+      <div class="container footer__container">
+        <div class="footer__top">
+          <div class="footer__brand">
+            <a href="index.html" class="footer__logo-row">
+              <img
+                src="img/logo.png"
+                alt="Fenómenos del Caribe"
+                class="footer__logo"
+                width="44"
+                height="44"
+                loading="lazy"
+              />
+              <span class="footer__logo-text">Fenómenos del Caribe</span>
+            </a>
+            <p class="footer__tagline">
+              Todo sobre fenómenos del Caribe. Vigilancia y análisis de tiempo
+              peligroso para el Caribe, Centroamérica, México y Estados Unidos.
+            </p>
+          </div>
+
+          <nav class="footer__cols" aria-label="Navegación del pie de página">
+            <div class="footer__col">
+              <h3 class="footer__col-title">Análisis</h3>
+              <a href="proximamente.html" class="footer__link"
+                >Pronóstico regional</a
+              >
+              <a href="proximamente.html" class="footer__link"
+                >Pronósticos locales</a
+              >
+              <a href="proximamente.html" class="footer__link"
+                >Mapas de análisis</a
+              >
+            </div>
+
+            <div class="footer__col">
+              <h3 class="footer__col-title">Herramientas</h3>
+              <a href="proximamente.html" class="footer__link"
+                >Radares del Caribe</a
+              >
+              <a href="proximamente.html" class="footer__link"
+                >Modelo europeo interactivo</a
+              >
+              <a href="articulos.html" class="footer__link">Artículos</a>
+            </div>
+
+            <div class="footer__col">
+              <h3 class="footer__col-title">Comunidades</h3>
+              <a
+                href="https://www.facebook.com/HuracanesCaribe"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Huracanes Caribe</a
+              >
+              <a
+                href="https://www.facebook.com/TiempoSeveroCaribe/"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Tiempo Severo Caribe</a
+              >
+              <a
+                href="https://www.facebook.com/terremotoscaribe/"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Terremotos Caribe</a
+              >
+              <a
+                href="https://www.facebook.com/fenomenosusa"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Fenómenos USA</a
+              >
+            </div>
+          </nav>
+        </div>
+
+        <div class="footer__bottom">
+          <p class="footer__copy">
+            © <span id="year">2026</span> Fenómenos del Caribe. Todos los
+            derechos reservados.
+          </p>
+          <ul class="footer__social">
+            <li>
+              <a
+                href="https://www.facebook.com/HuracanesCaribe"
+                aria-label="Facebook"
+                target="_blank"
+                rel="noopener"
+                ><ion-icon name="logo-facebook"></ion-icon
+              ></a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+
+    <button class="to-top" id="to-top" aria-label="Volver arriba">
+      <ion-icon name="arrow-up-outline"></ion-icon>
+    </button>
+
+    <!-- Watchdog: si el SDK remoto no llega a cargar, no dejes esqueletos -->
+    <script>
+      setTimeout(function () {
+        if (window.__fdcModuleOk) return;
+        var grid = document.getElementById("articles-grid");
+        var empty = document.getElementById("catalog-empty");
+        var text = document.getElementById("catalog-empty-text");
+        if (grid) grid.textContent = "";
+        if (empty) empty.classList.add("is-visible");
+        if (text)
+          text.textContent =
+            "No pudimos conectar con el servidor de artículos. Recarga la página para intentarlo de nuevo.";
+      }, 10000);
+    </script>
+  </body>
+</html>

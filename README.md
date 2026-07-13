@@ -1,28 +1,98 @@
 # Fenómenos del Caribe — sitio web
 
-Landing page terminada, **mobile-first**, construida sobre el diseño original
-(vidrio azul profundo, bordes de gradiente, tipografía Gugi, malla del hero con
-haces de luz y el marquee). Contenido tomado de
-[fenomenosdelcaribe.org](https://fenomenosdelcaribe.org/).
+Sitio estático **mobile-first** con el lenguaje de diseño original (vidrio azul
+profundo, bordes de gradiente, tipografía Gugi, malla del hero con haces de
+luz). El sitio ya no depende de fenomenosdelcaribe.org: tiene sus propias
+páginas y su propio sistema de publicación de artículos sobre Firebase.
 
 ## Estructura
 
 ```
-fenomenos-del-caribe/
-├── index.html          ← una sola página, todas las secciones
+fenomenos/
+├── index.html          ← portada (los «Últimos artículos» se cargan de Firestore)
+├── articulos.html      ← listado público de artículos, filtros por etiqueta + búsqueda
+├── articulo.html       ← lector de un artículo (articulo.html?id=…)
+├── proximamente.html   ← página puente para las herramientas aún no migradas
+├── estudio.html        ← ⚠ EL SOFTWARE (privado): crear/editar/publicar artículos
 ├── css/
-│   └── style.css       ← un solo archivo CSS
+│   ├── style.css       ← base del sitio (tokens, header, cards, footer…)
+│   ├── articles.css    ← páginas públicas de artículos + próximamente
+│   └── estudio.css     ← estilos del Estudio
 ├── js/
-│   └── script.js       ← un solo archivo JS (vanilla, sin dependencias)
-└── img/
-    ├── logo.png            (header + footer)
-    ├── favicon.png
-    ├── apple-touch-icon.png
-    └── favicon.jpeg        (original, por si lo necesitas)
+│   ├── script.js       ← interacción general (header, malla, reveals…)
+│   ├── firebase-init.js← configuración e inicialización de Firebase
+│   ├── db.js           ← lecturas públicas de Firestore
+│   ├── render-article.js ← renderizador compartido (público + vista previa)
+│   ├── index-articles.js ← últimos artículos en portada
+│   ├── articles-page.js  ← listado con filtros y búsqueda
+│   ├── article-page.js   ← lector de artículo
+│   └── estudio.js        ← toda la lógica del Estudio
+└── img/                ← logo, favicons
 ```
 
-Súbelo tal cual a Netlify, Vercel, GitHub Pages o cualquier hosting estático.
-No hay build step.
+Sin build step. Súbelo tal cual a GitHub Pages, Netlify o Vercel.
+
+## El Estudio de publicación (`estudio.html`)
+
+Página **sin enlaces desde el sitio**: solo se entra escribiendo la URL
+(`https://tudominio/estudio.html`). Requiere iniciar sesión con **Firebase
+Authentication** (correo y contraseña).
+
+Qué permite:
+
+- **Crear artículos** con título, etiqueta (desplegable), resumen, imagen de
+  portada (URL o subida con compresión automática) y pie de artículo.
+- **Contenido por secciones**: subtítulos, párrafos, imágenes, citas y listas.
+  Las secciones se **reordenan arrastrando** el asa (o con los botones ↑ ↓).
+- **Guardar borrador / Publicar**: al publicar, el artículo aparece al instante
+  en `articulos.html` y en la portada.
+- **Editar y eliminar** artículos existentes, y **despublicar** (volver a
+  borrador) desde el listado.
+- **Gestor de etiquetas**: la lista que alimenta el desplegable del editor y
+  los filtros de la página pública. (Pensadas para tener páginas propias por
+  etiqueta más adelante.)
+- **Vista previa** 1:1 con la página pública antes de publicar.
+
+## Puesta en marcha de Firebase (una sola vez)
+
+En la [consola de Firebase](https://console.firebase.google.com/) del proyecto
+`fenomenos-61255`:
+
+1. **Authentication → Sign-in method**: habilita **Correo electrónico/contraseña**.
+2. **Authentication → Users → Add user**: crea el usuario del dueño (ese
+   correo/contraseña es el acceso al Estudio). No hay registro público.
+3. **Authentication → Settings → Authorized domains**: añade el dominio donde
+   está publicado el sitio (p. ej. `usuario.github.io` o tu dominio propio).
+4. **Firestore Database**: crea la base de datos (modo producción) y pega estas
+   reglas en **Rules**:
+
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       // Artículos: el público solo lee lo publicado; escribir requiere sesión
+       match /articles/{id} {
+         allow read: if resource.data.status == 'published' || request.auth != null;
+         allow write: if request.auth != null;
+       }
+       // Lista de etiquetas: lectura pública, escritura con sesión
+       match /meta/{id} {
+         allow read: if true;
+         allow write: if request.auth != null;
+       }
+     }
+   }
+   ```
+
+Datos en Firestore: colección `articles` (un documento por artículo, con
+`title`, `tag`, `excerpt`, `cover`, `footer`, `sections[]`, `status`,
+`createdAt/updatedAt/publishedAt`) y documento `meta/tags` (la lista de
+etiquetas).
+
+**Nota sobre imágenes**: las imágenes subidas se comprimen en el navegador y se
+guardan dentro del propio documento del artículo (límite ~1 MB por artículo; el
+Estudio avisa si se supera). Para artículos con muchas imágenes, usa imágenes
+por URL o conecta Firebase Storage más adelante.
 
 ## Paleta
 
@@ -37,49 +107,26 @@ No hay build step.
 | `--glow`      | `#455176` | Haces de luz del hero                  |
 | `--alert`     | `#ffb020` | **Único acento**: señales "en vivo"     |
 
-Todo se controla desde `:root` en `css/style.css`. Cambia un token y cambia
-todo el sitio.
-
-## Secciones
-
-1. **Header** — píldora de vidrio, dropdown "Datos y mapas", drawer en móvil
-2. **Hero** — malla + haces de luz animados, píldora de estado en vivo, stats
-3. **Fuentes** — marquee infinito (NHC, NWS, NOAA, SMN, INSIVUMEH, INDOMET)
-4. **Misión** — 4 pilares
-5. **Cobertura de fenómenos** — Huracanes Caribe, Tiempo Severo Caribe,
-   Terremotos Caribe, Fenómenos USA
-6. **Servicios** — alertas localizadas, mapas, seguimiento, análisis
-7. **Cobertura regional** — 12 países
-8. **Comunidad** — chat en vivo + canales
-9. **Artículos** — 4 más populares
-10. **Alertas** — formulario de suscripción
-11. **Footer**
+Todo se controla desde `:root` en `css/style.css`.
 
 ## Qué falta conectar
 
 - **Formulario de alertas** (`js/script.js`, sección 6): valida el correo y
   muestra el mensaje de éxito, pero no lo envía a ningún lado todavía. Apúntalo
   a Mailchimp, Brevo, o una Cloud Function de Firebase. Busca el `TODO:`.
-- **Imágenes remotas**: las miniaturas de artículos y los logos de las marcas
-  cargan desde `fenomenosdelcaribe.org`. Si mueves el sitio, descárgalas a
-  `img/` y cambia los `src`. Si una falla, el JS la reemplaza por un ícono.
 - **Enlaces de comunidad**: Messenger, WhatsApp y Telegram apuntan todos a
   `chat.fenomenosdelcaribe.org`. Cámbialos por las URLs reales de cada canal.
+- **Páginas de herramientas**: mapas, radares, pronósticos y modelo europeo
+  apuntan por ahora a `proximamente.html`, listas para sustituirse por páginas
+  propias.
 
 ## Notas técnicas
 
 - `html { font-size: 62.5% }` → **1rem = 10px**. Todas las medidas en `rem`.
 - Mobile-first: los `@media` son todos `min-width` (36em / 48em / 64em).
-- **Titular a medida.** El H1 son dos líneas que nunca se parten
-  (`.hero__heading--line`). `script.js` mide la línea más larga y escala el
-  tipo para que llene la columna de borde a borde en cualquier ancho — y lo
-  vuelve a hacer cuando Gugi termina de cargar. También se limita por la
-  altura de la ventana, para que la franja de datos no quede cortada en
-  portátiles bajos. Si cambias el texto del H1, el tamaño se recalcula solo.
-- **Nav del teléfono.** Es un *dropdown* que cuelga del header, no una pantalla
-  completa: solo mide lo que mide su contenido y el fondo se ve detrás.
-- La malla del hero se genera en JS y se reconstruye al rotar el teléfono, así
-  que encaja en cualquier pantalla en vez de tener cientos de `<div>` fijos.
-- Las animaciones respetan `prefers-reduced-motion`.
-- Si el JS no carga, el contenido igual se ve (las animaciones de scroll están
-  bajo la clase `.js`).
+- Las páginas públicas leen Firestore **solo con `where` de igualdad** y
+  ordenan en el cliente, así no hace falta crear índices compuestos.
+- El contenido de los artículos se renderiza siempre como nodos de texto
+  (nunca `innerHTML`), de modo que lo almacenado no puede inyectar HTML.
+- Las animaciones respetan `prefers-reduced-motion`; si el JS no carga, el
+  contenido igual se ve.

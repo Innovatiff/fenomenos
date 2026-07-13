@@ -20,6 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/articles.css" />
 
     <script
       type="module"
@@ -30,6 +31,7 @@
       src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"
     ></script>
     <script defer src="js/script.js"></script>
+    <script type="module" src="js/index-articles.js"></script>
   </head>
 
   <body>
@@ -51,7 +53,7 @@
 
         <div class="header__right">
           <nav class="header__nav" aria-label="Navegación principal">
-            <a href="#articulos" class="header__nav--links">Artículos</a>
+            <a href="articulos.html" class="header__nav--links">Artículos</a>
 
             <div class="header__nav--box">
               <button
@@ -71,7 +73,7 @@
                   <span class="products__dropdown--heading">Herramientas</span>
                   <div class="products__dropdown--links">
                     <a
-                      href="https://fenomenosdelcaribe.org/mapas-de-analisis/"
+                      href="proximamente.html"
                       class="products__dropdown--link"
                     >
                       <ion-icon
@@ -89,7 +91,7 @@
                     </a>
 
                     <a
-                      href="https://fenomenosdelcaribe.org/radares-del-caribe/"
+                      href="proximamente.html"
                       class="products__dropdown--link"
                     >
                       <ion-icon
@@ -107,7 +109,7 @@
                     </a>
 
                     <a
-                      href="https://fenomenosdelcaribe.org/pronostico-regional/"
+                      href="proximamente.html"
                       class="products__dropdown--link"
                     >
                       <ion-icon
@@ -125,7 +127,7 @@
                     </a>
 
                     <a
-                      href="https://fenomenosdelcaribe.org/pronosticos-locales/"
+                      href="proximamente.html"
                       class="products__dropdown--link"
                     >
                       <ion-icon
@@ -143,7 +145,7 @@
                     </a>
 
                     <a
-                      href="https://fenomenosdelcaribe.org/modelo-europeo-interactivo/"
+                      href="proximamente.html"
                       class="products__dropdown--link"
                     >
                       <ion-icon
@@ -171,10 +173,8 @@
           <div class="header__right--right">
             <div class="header__right--sep" aria-hidden="true"></div>
             <div class="header__right--start-back">
-              <a
-                href="https://fenomenosdelcaribe.org/pronostico-regional/"
-                class="header__right--start"
-                >Acceder a análisis</a
+              <a href="articulos.html" class="header__right--start"
+                >Explorar artículos</a
               >
             </div>
           </div>
@@ -200,7 +200,7 @@
       <div class="mobile-nav__panel">
         <div class="mobile-nav__inner">
           <nav aria-label="Navegación móvil">
-            <a href="#articulos" class="mobile-nav__link">Artículos</a>
+            <a href="articulos.html" class="mobile-nav__link">Artículos</a>
 
             <div class="mobile-nav__group">
               <button
@@ -213,30 +213,30 @@
               <div class="mobile-nav__sub">
                 <div>
                   <a
-                    href="https://fenomenosdelcaribe.org/mapas-de-analisis/"
+                    href="proximamente.html"
                     class="mobile-nav__sub--link"
                     ><ion-icon name="map-outline"></ion-icon>Mapas de análisis</a
                   >
                   <a
-                    href="https://fenomenosdelcaribe.org/radares-del-caribe/"
+                    href="proximamente.html"
                     class="mobile-nav__sub--link"
                     ><ion-icon name="radio-outline"></ion-icon>Radares del
                     Caribe</a
                   >
                   <a
-                    href="https://fenomenosdelcaribe.org/pronostico-regional/"
+                    href="proximamente.html"
                     class="mobile-nav__sub--link"
                     ><ion-icon name="earth-outline"></ion-icon>Pronóstico
                     regional</a
                   >
                   <a
-                    href="https://fenomenosdelcaribe.org/pronosticos-locales/"
+                    href="proximamente.html"
                     class="mobile-nav__sub--link"
                     ><ion-icon name="locate-outline"></ion-icon>Pronósticos
                     locales</a
                   >
                   <a
-                    href="https://fenomenosdelcaribe.org/modelo-europeo-interactivo/"
+                    href="proximamente.html"
                     class="mobile-nav__sub--link"
                     ><ion-icon name="layers-outline"></ion-icon>Modelo europeo
                     interactivo</a
@@ -251,10 +251,8 @@
 
           <div class="mobile-nav__cta">
             <div class="btn__back">
-              <a
-                href="https://fenomenosdelcaribe.org/pronostico-regional/"
-                class="btn btn--primary"
-                >Acceder a análisis</a
+              <a href="articulos.html" class="btn btn--primary"
+                >Explorar artículos</a
               >
             </div>
           </div>
@@ -298,18 +296,13 @@
 
               <div class="hero__actions">
                 <div class="btn__back">
-                  <a
-                    href="https://fenomenosdelcaribe.org/pronostico-regional/"
-                    class="btn btn--primary"
-                    >Acceder a análisis</a
+                  <a href="articulos.html" class="btn btn--primary"
+                    >Leer análisis y artículos</a
                   >
                 </div>
-                <a
-                  href="https://fenomenosdelcaribe.org/radares-del-caribe/"
-                  class="btn btn--ghost"
-                >
-                  <ion-icon name="radio-outline"></ion-icon>
-                  Ver radares en vivo
+                <a href="#cobertura" class="btn btn--ghost">
+                  <ion-icon name="earth-outline"></ion-icon>
+                  Conocer la cobertura
                 </a>
               </div>
             </div>
@@ -501,12 +494,7 @@
                 rel="noopener"
               >
                 <span class="brand__logo">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/New-Logo-HC-300x300.png"
-                    alt=""
-                    data-fallback="thunderstorm-outline"
-                    loading="lazy"
-                  />
+                  <ion-icon name="thunderstorm-outline"></ion-icon>
                 </span>
                 <span class="brand__body">
                   <span class="brand__title">Huracanes Caribe</span>
@@ -530,12 +518,7 @@
                 rel="noopener"
               >
                 <span class="brand__logo">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/logo1-300x300.png"
-                    alt=""
-                    data-fallback="rainy-outline"
-                    loading="lazy"
-                  />
+                  <ion-icon name="rainy-outline"></ion-icon>
                 </span>
                 <span class="brand__body">
                   <span class="brand__title">Tiempo Severo Caribe</span>
@@ -559,12 +542,7 @@
                 rel="noopener"
               >
                 <span class="brand__logo">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/Proyecto-nuevo-300x300.png"
-                    alt=""
-                    data-fallback="pulse-outline"
-                    loading="lazy"
-                  />
+                  <ion-icon name="pulse-outline"></ion-icon>
                 </span>
                 <span class="brand__body">
                   <span class="brand__title">Terremotos Caribe</span>
@@ -588,12 +566,7 @@
                 rel="noopener"
               >
                 <span class="brand__logo">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/Screenshot-2025-12-07-at-11.21.33-AM-300x300.png"
-                    alt=""
-                    data-fallback="globe-outline"
-                    loading="lazy"
-                  />
+                  <ion-icon name="globe-outline"></ion-icon>
                 </span>
                 <span class="brand__body">
                   <span class="brand__title">Fenómenos USA</span>
@@ -627,7 +600,7 @@
               </p>
               <div class="btn__back btn__back--inline">
                 <a
-                  href="https://fenomenosdelcaribe.org/pronosticos-locales/"
+                  href="proximamente.html"
                   class="btn btn--primary"
                   >Ver pronósticos locales</a
                 >
@@ -823,7 +796,7 @@
       <section class="section articles" id="articulos">
         <div class="container">
           <div class="section__head reveal">
-            <p class="eyebrow">Artículos más populares</p>
+            <p class="eyebrow">Últimos artículos</p>
             <h2 class="heading__secondary">Aprende antes del evento</h2>
             <p class="section__lead">
               Análisis, guías y contenido educativo sobre fenómenos
@@ -831,120 +804,41 @@
             </p>
           </div>
 
-          <ul class="grid grid--4 articles__grid">
-            <li class="card card--article reveal">
-              <a
-                href="https://fenomenosdelcaribe.org/fenomenos-del-caribe-deteccion-y-respuesta-eficaz/"
-                class="card__inner"
-              >
-                <span class="article__media">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/featured-image-5-678x1024.jpg"
-                    alt=""
-                    loading="lazy"
-                    data-fallback="newspaper-outline"
-                  />
-                </span>
-                <span class="article__meta">15 de diciembre, 2025</span>
-                <h3 class="card__title">
-                  Fenómenos del Caribe: detección y respuesta eficaz
-                </h3>
-                <p class="card__text">
-                  La región del Caribe, Centroamérica y Norteamérica está entre
-                  las más expuestas del mundo a fenómenos naturales extremos.
-                </p>
-                <span class="card__link"
-                  >Leer más <ion-icon name="arrow-forward-outline"></ion-icon
-                ></span>
-              </a>
+          <ul class="grid grid--4 articles__grid" id="home-articles">
+            <li class="skeleton" aria-hidden="true">
+              <div class="skeleton__block skeleton__block--media"></div>
+              <div class="skeleton__block skeleton__block--line w-40"></div>
+              <div class="skeleton__block skeleton__block--line w-80"></div>
+              <div class="skeleton__block skeleton__block--line"></div>
             </li>
-
-            <li class="card card--article reveal">
-              <a
-                href="https://fenomenosdelcaribe.org/guia-para-actuar-frente-a-desastres-naturales-en-el-caribe/"
-                class="card__inner"
-              >
-                <span class="article__media">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/featured-image-7-1024x768.jpg"
-                    alt=""
-                    loading="lazy"
-                    data-fallback="newspaper-outline"
-                  />
-                </span>
-                <span class="article__meta">15 de diciembre, 2025</span>
-                <h3 class="card__title">
-                  Guía para actuar frente a desastres naturales en el Caribe
-                </h3>
-                <p class="card__text">
-                  Huracanes, tormentas tropicales, lluvias intensas e
-                  inundaciones: qué hacer antes, durante y después.
-                </p>
-                <span class="card__link"
-                  >Leer más <ion-icon name="arrow-forward-outline"></ion-icon
-                ></span>
-              </a>
+            <li class="skeleton" aria-hidden="true">
+              <div class="skeleton__block skeleton__block--media"></div>
+              <div class="skeleton__block skeleton__block--line w-40"></div>
+              <div class="skeleton__block skeleton__block--line w-80"></div>
+              <div class="skeleton__block skeleton__block--line"></div>
             </li>
-
-            <li class="card card--article reveal">
-              <a
-                href="https://fenomenosdelcaribe.org/pronosticos-precisos-tu-mejor-herramienta-de-prevencion/"
-                class="card__inner"
-              >
-                <span class="article__media">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/featured-image-4-1024x683.jpg"
-                    alt=""
-                    loading="lazy"
-                    data-fallback="newspaper-outline"
-                  />
-                </span>
-                <span class="article__meta">15 de diciembre, 2025</span>
-                <h3 class="card__title">
-                  Pronósticos precisos: tu mejor herramienta de prevención
-                </h3>
-                <p class="card__text">
-                  Por qué un buen pronóstico cambia por completo la forma en que
-                  te preparas para un evento severo.
-                </p>
-                <span class="card__link"
-                  >Leer más <ion-icon name="arrow-forward-outline"></ion-icon
-                ></span>
-              </a>
+            <li class="skeleton" aria-hidden="true">
+              <div class="skeleton__block skeleton__block--media"></div>
+              <div class="skeleton__block skeleton__block--line w-40"></div>
+              <div class="skeleton__block skeleton__block--line w-80"></div>
+              <div class="skeleton__block skeleton__block--line"></div>
             </li>
-
-            <li class="card card--article reveal">
-              <a
-                href="https://fenomenosdelcaribe.org/como-afecta-el-cambio-climatico-a-los-fenomenos-del-caribe/"
-                class="card__inner"
-              >
-                <span class="article__media">
-                  <img
-                    src="https://fenomenosdelcaribe.org/wp-content/uploads/2025/12/featured-image-6-1024x683.jpg"
-                    alt=""
-                    loading="lazy"
-                    data-fallback="newspaper-outline"
-                  />
-                </span>
-                <span class="article__meta">15 de diciembre, 2025</span>
-                <h3 class="card__title">
-                  Cómo afecta el cambio climático a los fenómenos del Caribe
-                </h3>
-                <p class="card__text">
-                  Ya no es una proyección futura: influye en la intensidad, la
-                  frecuencia y el comportamiento de los eventos.
-                </p>
-                <span class="card__link"
-                  >Leer más <ion-icon name="arrow-forward-outline"></ion-icon
-                ></span>
-              </a>
+            <li class="skeleton" aria-hidden="true">
+              <div class="skeleton__block skeleton__block--media"></div>
+              <div class="skeleton__block skeleton__block--line w-40"></div>
+              <div class="skeleton__block skeleton__block--line w-80"></div>
+              <div class="skeleton__block skeleton__block--line"></div>
             </li>
           </ul>
 
+          <div class="catalog__empty" id="home-articles-empty">
+            <ion-icon name="newspaper-outline"></ion-icon>
+            <strong>Muy pronto</strong>
+            <p>Estamos preparando nuestras primeras publicaciones.</p>
+          </div>
+
           <div class="articles__more reveal">
-            <a
-              href="https://fenomenosdelcaribe.org/articulos/"
-              class="btn btn--ghost"
+            <a href="articulos.html" class="btn btn--ghost"
               >Ver todos los artículos</a
             >
           </div>
@@ -1024,17 +918,17 @@
             <div class="footer__col">
               <h3 class="footer__col-title">Análisis</h3>
               <a
-                href="https://fenomenosdelcaribe.org/pronostico-regional/"
+                href="proximamente.html"
                 class="footer__link"
                 >Pronóstico regional</a
               >
               <a
-                href="https://fenomenosdelcaribe.org/pronosticos-locales/"
+                href="proximamente.html"
                 class="footer__link"
                 >Pronósticos locales</a
               >
               <a
-                href="https://fenomenosdelcaribe.org/mapas-de-analisis/"
+                href="proximamente.html"
                 class="footer__link"
                 >Mapas de análisis</a
               >
@@ -1043,17 +937,17 @@
             <div class="footer__col">
               <h3 class="footer__col-title">Herramientas</h3>
               <a
-                href="https://fenomenosdelcaribe.org/radares-del-caribe/"
+                href="proximamente.html"
                 class="footer__link"
                 >Radares del Caribe</a
               >
               <a
-                href="https://fenomenosdelcaribe.org/modelo-europeo-interactivo/"
+                href="proximamente.html"
                 class="footer__link"
                 >Modelo europeo interactivo</a
               >
               <a
-                href="https://fenomenosdelcaribe.org/articulos/"
+                href="articulos.html"
                 class="footer__link"
                 >Artículos</a
               >
@@ -1143,5 +1037,16 @@
     <button class="to-top" id="to-top" aria-label="Volver arriba">
       <ion-icon name="arrow-up-outline"></ion-icon>
     </button>
+
+    <!-- Watchdog: si el SDK remoto no llega a cargar, no dejes esqueletos -->
+    <script>
+      setTimeout(function () {
+        if (window.__fdcModuleOk) return;
+        var grid = document.getElementById("home-articles");
+        var empty = document.getElementById("home-articles-empty");
+        if (grid) grid.textContent = "";
+        if (empty) empty.classList.add("is-visible");
+      }, 10000);
+    </script>
   </body>
 </html>

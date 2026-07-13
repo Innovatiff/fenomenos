@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000b33" />
+    <meta
+      name="description"
+      content="Estamos construyendo esta herramienta. Muy pronto estará disponible en Fenómenos del Caribe."
+    />
+
+    <title>Próximamente | Fenómenos del Caribe</title>
+
+    <link rel="icon" href="img/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/articles.css" />
+
+    <script
+      type="module"
+      src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"
+    ></script>
+    <script
+      nomodule
+      src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"
+    ></script>
+    <script defer src="js/script.js"></script>
+  </head>
+
+  <body>
+    <!-- ══════════════════════════════ HEADER ══════════════════════════════ -->
+    <header class="header">
+      <div class="header__container">
+        <a href="index.html" class="header__left">
+          <img
+            src="img/logo.png"
+            alt="Fenómenos del Caribe"
+            class="header__logo"
+            width="44"
+            height="44"
+          />
+          <span class="header__logo--text">Fenómenos del Caribe</span>
+        </a>
+
+        <div class="header__right">
+          <nav class="header__nav" aria-label="Navegación principal">
+            <a href="articulos.html" class="header__nav--links">Artículos</a>
+            <a href="index.html#cobertura" class="header__nav--links">Cobertura</a>
+            <a href="index.html#comunidad" class="header__nav--links">Comunidad</a>
+          </nav>
+
+          <div class="header__right--right">
+            <div class="header__right--sep" aria-hidden="true"></div>
+            <div class="header__right--start-back">
+              <a href="articulos.html" class="header__right--start"
+                >Explorar artículos</a
+              >
+            </div>
+          </div>
+
+          <button
+            class="header__burger"
+            id="burger"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+            aria-label="Abrir menú"
+          >
+            <span class="header__burger--bar"></span>
+            <span class="header__burger--bar"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════ PHONE NAV ═══════════════════════════ -->
+    <div class="mobile-nav" id="mobile-nav" hidden>
+      <div class="mobile-nav__backdrop" data-close></div>
+
+      <div class="mobile-nav__panel">
+        <div class="mobile-nav__inner">
+          <nav aria-label="Navegación móvil">
+            <a href="articulos.html" class="mobile-nav__link">Artículos</a>
+            <a href="index.html#cobertura" class="mobile-nav__link">Cobertura</a>
+            <a href="index.html#comunidad" class="mobile-nav__link">Comunidad</a>
+          </nav>
+
+          <div class="mobile-nav__cta">
+            <div class="btn__back">
+              <a href="articulos.html" class="btn btn--primary"
+                >Explorar artículos</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main class="project">
+      <div class="project-hero">
+        <div class="background-line-1" aria-hidden="true"></div>
+        <div class="background-line-2" aria-hidden="true"></div>
+        <div class="background-line-3" aria-hidden="true"></div>
+        <div class="background-line-4" aria-hidden="true"></div>
+        <div class="background-line-5" aria-hidden="true"></div>
+        <div class="background-line-6" aria-hidden="true"></div>
+
+        <div class="background" aria-hidden="true"></div>
+        <div class="background-grid" id="grid" aria-hidden="true"></div>
+
+        <section class="soon">
+          <span class="soon__icon" aria-hidden="true">
+            <ion-icon name="construct-outline"></ion-icon>
+          </span>
+
+          <h1 class="heading__primary soon__title">Próximamente</h1>
+
+          <p class="soon__lead">
+            Estamos construyendo esta herramienta dentro de nuestra nueva
+            plataforma. Mientras tanto, puedes leer nuestros artículos y
+            análisis o seguirnos en nuestras comunidades.
+          </p>
+
+          <div class="soon__actions">
+            <div class="btn__back">
+              <a href="articulos.html" class="btn btn--primary"
+                >Leer artículos</a
+              >
+            </div>
+            <a href="index.html" class="btn btn--ghost">
+              <ion-icon name="home-outline"></ion-icon>
+              Volver al inicio
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
