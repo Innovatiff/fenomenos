@@ -154,16 +154,18 @@
             <div class="editor-col">
           <div class="editor">
             <div class="editor__meta">
-              <label class="field field--wide">
+              <div class="field field--wide">
                 <span class="field__label">Título del artículo</span>
-                <input
-                  type="text"
-                  id="f-title"
-                  class="field__input field__input--title"
-                  placeholder="Ej.: Cómo se forma un huracán en el Atlántico"
-                  maxlength="160"
-                />
-              </label>
+                <div class="rich-field">
+                  <div
+                    id="f-title"
+                    contenteditable="true"
+                    role="textbox"
+                    class="field__input field__input--title rich-editor rich-editor--single"
+                    data-placeholder="Ej.: Cómo se forma un huracán en el Atlántico"
+                  ></div>
+                </div>
+              </div>
 
               <div class="editor__row">
                 <label class="field">
@@ -177,16 +179,18 @@
                   >
                 </label>
 
-                <label class="field">
+                <div class="field">
                   <span class="field__label">Resumen (aparece en las tarjetas)</span>
-                  <textarea
-                    id="f-excerpt"
-                    class="field__input"
-                    rows="3"
-                    maxlength="300"
-                    placeholder="Una o dos frases que inviten a leer el artículo."
-                  ></textarea>
-                </label>
+                  <div class="rich-field">
+                    <div
+                      id="f-excerpt"
+                    contenteditable="true"
+                    role="textbox"
+                      class="field__input rich-editor rich-editor--short"
+                      data-placeholder="Una o dos frases que inviten a leer el artículo."
+                    ></div>
+                  </div>
+                </div>
               </div>
 
               <div class="field">
@@ -255,15 +259,18 @@
               </div>
             </div>
 
-            <label class="field">
+            <div class="field">
               <span class="field__label">Pie del artículo</span>
-              <textarea
-                id="f-footer"
-                class="field__input"
-                rows="3"
-                placeholder="Fuentes, créditos, aclaraciones o nota final del artículo."
-              ></textarea>
-            </label>
+              <div class="rich-field">
+                <div
+                  id="f-footer"
+                    contenteditable="true"
+                    role="textbox"
+                  class="field__input rich-editor rich-editor--short"
+                  data-placeholder="Fuentes, créditos, aclaraciones o nota final del artículo."
+                ></div>
+              </div>
+            </div>
           </div>
 
           <!-- Barra de acciones -->

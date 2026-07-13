@@ -153,7 +153,9 @@ export const HEADING_SIZES = [
 
 const RENDERERS = {
   heading(section) {
-    const h = el("h2", "post__heading", section.text || "");
+    const h = el("h2", "post__heading");
+    if (section.html) h.innerHTML = sanitizeHtml(section.html);
+    else h.textContent = section.text || "";
     if (section.size && section.size !== "md") {
       h.classList.add("post__heading--" + section.size);
     }
@@ -178,26 +180,44 @@ const RENDERERS = {
     img.alt = section.caption || "";
     img.loading = "lazy";
     figure.appendChild(img);
-    if (section.caption) {
-      figure.appendChild(el("figcaption", "post__caption", section.caption));
+    const captionPlain =
+      section.caption || htmlToPlainText(section.captionHtml || "").trim();
+    if (captionPlain) {
+      const cap = el("figcaption", "post__caption");
+      if (section.captionHtml) cap.innerHTML = sanitizeHtml(section.captionHtml);
+      else cap.textContent = section.caption;
+      figure.appendChild(cap);
     }
     return figure;
   },
 
   quote(section) {
-    if (!section.text) return null;
+    const hasHtml = section.html && htmlToPlainText(section.html).trim();
+    if (!hasHtml && !section.text) return null;
     const bq = el("blockquote", "post__quote");
-    bq.appendChild(paragraphs(section.text));
+    if (hasHtml) bq.innerHTML = sanitizeHtml(section.html);
+    else bq.appendChild(paragraphs(section.text));
     if (section.cite) bq.appendChild(el("cite", "post__cite", section.cite));
     return bq;
   },
 
   list(section) {
-    const items = (section.items || []).map((s) => String(s).trim()).filter(Boolean);
-    if (!items.length) return null;
     const ul = el("ul", "post__list");
-    items.forEach((item) => ul.appendChild(el("li", null, item)));
-    return ul;
+    if (Array.isArray(section.itemsHtml) && section.itemsHtml.length) {
+      section.itemsHtml.forEach((h) => {
+        const html = sanitizeHtml(h);
+        if (!htmlToPlainText(html).trim()) return;
+        const li = el("li");
+        li.innerHTML = html;
+        ul.appendChild(li);
+      });
+    } else {
+      (section.items || [])
+        .map((s) => String(s).trim())
+        .filter(Boolean)
+        .forEach((item) => ul.appendChild(el("li", null, item)));
+    }
+    return ul.children.length ? ul : null;
   },
 };
 
@@ -225,8 +245,22 @@ export function renderArticle(root, article) {
   meta.appendChild(el("span", "post__read", readMinutes(article) + " min de lectura"));
   header.appendChild(meta);
 
-  header.appendChild(el("h1", "heading__primary post__title", article.title || "Sin título"));
-  if (article.excerpt) header.appendChild(el("p", "post__excerpt", article.excerpt));
+  const h1 = el("h1", "heading__primary post__title");
+  if (article.titleHtml && htmlToPlainText(article.titleHtml).trim()) {
+    h1.innerHTML = sanitizeHtml(article.titleHtml);
+  } else {
+    h1.textContent = article.title || "Sin título";
+  }
+  header.appendChild(h1);
+
+  const excerptPlain =
+    article.excerpt || htmlToPlainText(article.excerptHtml || "").trim();
+  if (excerptPlain) {
+    const lead = el("p", "post__excerpt");
+    if (article.excerptHtml) lead.innerHTML = sanitizeHtml(article.excerptHtml);
+    else lead.textContent = article.excerpt;
+    header.appendChild(lead);
+  }
   root.appendChild(header);
 
   if (article.cover) {
@@ -246,10 +280,18 @@ export function renderArticle(root, article) {
   });
   root.appendChild(body);
 
-  if (article.footer) {
+  const footerPlain =
+    article.footer || htmlToPlainText(article.footerHtml || "").trim();
+  if (footerPlain) {
     const foot = el("footer", "post__footer");
     foot.appendChild(el("span", "post__footer-label", "Nota del artículo"));
-    foot.appendChild(paragraphs(article.footer, "post__footer-text"));
+    if (article.footerHtml) {
+      const text = el("div", "post__footer-text");
+      text.innerHTML = sanitizeHtml(article.footerHtml);
+      foot.appendChild(text);
+    } else {
+      foot.appendChild(paragraphs(article.footer, "post__footer-text"));
+    }
     root.appendChild(foot);
   }
 }

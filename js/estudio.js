@@ -248,28 +248,80 @@ function buildRichToolbar(editable) {
   return bar;
 }
 
-function buildRichEditable(section) {
-  const ed = document.createElement("div");
-  ed.className = "field__input rich-editor";
-  ed.contentEditable = "true";
-  ed.dataset.field = "html";
-  ed.dataset.placeholder = "Escribe el contenido…";
-  ed.innerHTML = sanitizeHtml(
-    section.html != null ? section.html : textToHtml(section.text)
-  );
-
-  /* pegar siempre limpio */
+/* comportamiento común de todos los editables: pegado limpio y, en los de
+   una sola línea, sin saltos de línea */
+function wireEditable(ed) {
   ed.addEventListener("paste", (e) => {
     e.preventDefault();
     const html = e.clipboardData.getData("text/html");
     const text = e.clipboardData.getData("text/plain");
-    const clean = html
+    let clean = html
       ? sanitizeHtml(html)
       : escapeHtml(text).replace(/\n/g, "<br>");
+    if (ed.classList.contains("rich-editor--single")) {
+      clean = clean.replace(/<br\s*\/?>/gi, " ");
+    }
     document.execCommand("insertHTML", false, clean);
   });
+  if (ed.classList.contains("rich-editor--single")) {
+    ed.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") e.preventDefault();
+    });
+  }
+}
 
+/* editable genérico para las secciones */
+function buildEditable({ field, html, placeholder, single = false }) {
+  const ed = document.createElement("div");
+  ed.className =
+    "field__input rich-editor" + (single ? " rich-editor--single" : "");
+  ed.contentEditable = "true";
+  ed.dataset.field = field;
+  ed.dataset.placeholder = placeholder;
+  ed.innerHTML = sanitizeHtml(html || "");
+  wireEditable(ed);
   return ed;
+}
+
+/* editable + barra de formato, envueltos */
+function richField(editable) {
+  const wrap = document.createElement("div");
+  wrap.className = "rich-field";
+  wrap.appendChild(buildRichToolbar(editable));
+  wrap.appendChild(editable);
+  return wrap;
+}
+
+/* Los elementos de la lista son los bloques (líneas) del editable */
+function listItemsFromEditable(ed) {
+  const items = [];
+  let buf = "";
+  const flush = () => {
+    const html = sanitizeHtml(buf);
+    if (htmlToPlainText(html).trim()) items.push(html);
+    buf = "";
+  };
+  ed.childNodes.forEach((n) => {
+    if (n.nodeType === Node.ELEMENT_NODE && (n.tagName === "DIV" || n.tagName === "P")) {
+      flush();
+      buf = n.innerHTML;
+      flush();
+    } else if (n.nodeType === Node.ELEMENT_NODE && n.tagName === "BR") {
+      flush();
+    } else {
+      buf += n.nodeType === Node.TEXT_NODE ? escapeHtml(n.nodeValue) : n.outerHTML;
+    }
+  });
+  flush();
+  return items;
+}
+
+function listEditableContent(section) {
+  const items =
+    Array.isArray(section.itemsHtml) && section.itemsHtml.length
+      ? section.itemsHtml
+      : (section.items || []).filter((s) => String(s).trim()).map(escapeHtml);
+  return items.map((h) => "<div>" + sanitizeHtml(h) + "</div>").join("");
 }
 
 /* ── Autenticación ───────────────────────────────────────────────────── */
@@ -620,9 +672,9 @@ function resetEditor() {
   editing = null;
   sections = [];
   dirty = false;
-  $("f-title").value = "";
-  $("f-excerpt").value = "";
-  $("f-footer").value = "";
+  setRichField("f-title", "");
+  setRichField("f-excerpt", "");
+  setRichField("f-footer", "");
   $("f-cover-url").value = "";
   setCover("");
   fillTagSelect();
@@ -641,9 +693,9 @@ function openEditor(article) {
   };
   sections = (article.sections || []).map((s) => ({ ...s, uid: uid() }));
   dirty = false;
-  $("f-title").value = article.title || "";
-  $("f-excerpt").value = article.excerpt || "";
-  $("f-footer").value = article.footer || "";
+  setRichField("f-title", article.titleHtml, article.title);
+  setRichField("f-excerpt", article.excerptHtml, article.excerpt);
+  setRichField("f-footer", article.footerHtml, article.footer);
   fillTagSelect();
   $("f-tag").value = article.tag || "";
   if (article.tag && $("f-tag").value !== article.tag) {
@@ -706,6 +758,28 @@ function updateEditorStatus() {
     updateEditorStatus();
   });
 });
+
+/* Campos enriquecidos fijos (título, resumen, pie): barra de formato +
+   comportamiento de editable */
+["f-title", "f-excerpt", "f-footer"].forEach((id) => {
+  const ed = $(id);
+  wireEditable(ed);
+  ed.parentElement.insertBefore(buildRichToolbar(ed), ed);
+});
+
+function setRichField(id, html, plainFallback) {
+  let content = "";
+  if (html != null) content = html;
+  else if (plainFallback)
+    content = $(id).classList.contains("rich-editor--single")
+      ? escapeHtml(plainFallback)
+      : textToHtml(plainFallback);
+  $(id).innerHTML = sanitizeHtml(content);
+}
+function richFieldValue(id) {
+  const html = sanitizeHtml($(id).innerHTML);
+  return { html, plain: htmlToPlainText(html).trim() };
+}
 
 /* Portada */
 
@@ -848,9 +922,14 @@ function buildSectionCard(section, index) {
   if (section.type === "heading") {
     const row = document.createElement("div");
     row.className = "scard__row";
-    row.appendChild(
-      fieldBlock("Texto del subtítulo", makeInput(section, "text", "Ej.: ¿Qué hacer durante el evento?"))
-    );
+
+    const editable = buildEditable({
+      field: "html",
+      html: section.html != null ? section.html : escapeHtml(section.text || ""),
+      placeholder: "Ej.: ¿Qué hacer durante el evento?",
+      single: true,
+    });
+    row.appendChild(fieldBlock("Texto del subtítulo", richField(editable)));
 
     const sizeWrap = document.createElement("div");
     sizeWrap.className = "field__select-wrap";
@@ -874,33 +953,36 @@ function buildSectionCard(section, index) {
   }
 
   if (section.type === "text") {
-    const editable = buildRichEditable(section);
-    const block = document.createElement("div");
-    block.className = "field";
-    const label = document.createElement("span");
-    label.className = "field__label";
-    label.textContent = "Texto — selecciona y aplica formato";
-    block.appendChild(label);
-    block.appendChild(buildRichToolbar(editable));
-    block.appendChild(editable);
-    body.appendChild(block);
+    const editable = buildEditable({
+      field: "html",
+      html: section.html != null ? section.html : textToHtml(section.text),
+      placeholder: "Escribe el contenido…",
+    });
+    body.appendChild(
+      fieldBlock("Texto — selecciona y aplica formato", richField(editable))
+    );
   }
 
   if (section.type === "quote") {
-    body.appendChild(
-      fieldBlock("Cita", makeInput(section, "text", "Texto de la cita…", "textarea", 3))
-    );
+    const editable = buildEditable({
+      field: "html",
+      html: section.html != null ? section.html : textToHtml(section.text),
+      placeholder: "Texto de la cita…",
+    });
+    body.appendChild(fieldBlock("Cita", richField(editable)));
     body.appendChild(
       fieldBlock("Autor o fuente (opcional)", makeInput(section, "cite", "Ej.: Centro Nacional de Huracanes"))
     );
   }
 
   if (section.type === "list") {
+    const editable = buildEditable({
+      field: "itemsHtml",
+      html: listEditableContent(section),
+      placeholder: "Un elemento por línea…",
+    });
     body.appendChild(
-      fieldBlock(
-        "Elementos de la lista (uno por línea)",
-        makeInput(section, "items", "Primer punto\nSegundo punto\nTercer punto", "textarea", 5)
-      )
+      fieldBlock("Elementos de la lista (uno por línea)", richField(editable))
     );
   }
 
@@ -957,8 +1039,17 @@ function buildSectionCard(section, index) {
     controls.appendChild(uploadLabel);
     body.appendChild(controls);
 
+    const captionEditable = buildEditable({
+      field: "captionHtml",
+      html:
+        section.captionHtml != null
+          ? section.captionHtml
+          : escapeHtml(section.caption || ""),
+      placeholder: "Descripción breve de la imagen",
+      single: true,
+    });
     body.appendChild(
-      fieldBlock("Pie de imagen (opcional)", makeInput(section, "caption", "Descripción breve de la imagen"))
+      fieldBlock("Pie de imagen (opcional)", richField(captionEditable))
     );
   }
 
@@ -1048,6 +1139,15 @@ sectionsList.addEventListener("input", (e) => {
 
   if (field === "html") {
     section.html = sanitizeHtml(fieldEl.innerHTML);
+    if (section.type !== "text") {
+      section.text = htmlToPlainText(section.html).trim();
+    }
+  } else if (field === "itemsHtml") {
+    section.itemsHtml = listItemsFromEditable(fieldEl);
+    section.items = section.itemsHtml.map((h) => htmlToPlainText(h).trim());
+  } else if (field === "captionHtml") {
+    section.captionHtml = sanitizeHtml(fieldEl.innerHTML);
+    section.caption = htmlToPlainText(section.captionHtml).trim();
   } else if (field === "items") {
     section.items = fieldEl.value.split("\n");
   } else {
@@ -1076,13 +1176,32 @@ function collectArticle() {
   const cleanSections = sections
     .map(({ uid: _uid, ...section }) => {
       if (section.type === "list") {
-        section.items = (section.items || [])
-          .map((s) => String(s).trim())
-          .filter(Boolean);
+        if (Array.isArray(section.itemsHtml)) {
+          section.itemsHtml = section.itemsHtml
+            .map((h) => sanitizeHtml(h))
+            .filter((h) => htmlToPlainText(h).trim());
+          section.items = section.itemsHtml.map((h) =>
+            htmlToPlainText(h).trim()
+          );
+        } else {
+          section.items = (section.items || [])
+            .map((s) => String(s).trim())
+            .filter(Boolean);
+        }
       }
       if (section.type === "text") {
         section.html = sanitizeHtml(section.html || "");
         delete section.text; // el HTML pasa a ser la fuente de verdad
+      }
+      if (section.type === "heading" || section.type === "quote") {
+        if (section.html != null) {
+          section.html = sanitizeHtml(section.html);
+          section.text = htmlToPlainText(section.html).trim();
+        }
+      }
+      if (section.type === "image" && section.captionHtml != null) {
+        section.captionHtml = sanitizeHtml(section.captionHtml);
+        section.caption = htmlToPlainText(section.captionHtml).trim();
       }
       return section;
     })
@@ -1097,12 +1216,19 @@ function collectArticle() {
   const urlValue = $("f-cover-url").value.trim();
   const cover = coverData.startsWith("data:") ? coverData : urlValue || coverData;
 
+  const title = richFieldValue("f-title");
+  const excerpt = richFieldValue("f-excerpt");
+  const footer = richFieldValue("f-footer");
+
   return {
-    title: $("f-title").value.trim(),
+    title: title.plain,
+    titleHtml: title.html,
     tag: $("f-tag").value,
-    excerpt: $("f-excerpt").value.trim(),
+    excerpt: excerpt.plain,
+    excerptHtml: excerpt.html,
     cover,
-    footer: $("f-footer").value.trim(),
+    footer: footer.plain,
+    footerHtml: footer.html,
     sections: cleanSections,
   };
 }

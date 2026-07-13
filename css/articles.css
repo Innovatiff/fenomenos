@@ -314,11 +314,12 @@
   margin-inline: auto;
 }
 
+/* Sin align-items:start — la columna lateral debe estirarse a la altura
+   del artículo para que sus cajas fijas (sticky) lo acompañen al bajar. */
 .post-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 4.8rem;
-  align-items: start;
 }
 
 .post {
