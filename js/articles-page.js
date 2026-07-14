@@ -84,7 +84,9 @@ function renderGrid() {
   grid.textContent = "";
   const visible = articles.filter(matches);
 
-  visible.forEach((a) => grid.appendChild(articleCard(a, { revealed: true })));
+  visible.forEach((a) =>
+    grid.appendChild(articleCard(a, { revealed: true, reactions: true }))
+  );
 
   empty.classList.toggle("is-visible", visible.length === 0);
   if (!visible.length) {
