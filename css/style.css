@@ -1167,6 +1167,18 @@ section {
   white-space: nowrap; /* the two lines are the composition — never reflow them */
 }
 
+/* On phones the headline must read BIG: let the lines wrap naturally and
+   set a large size here (the JS auto-fit only runs from 48em up). */
+@media (max-width: 47.99em) {
+  .hero__heading {
+    font-size: clamp(3.6rem, 11.5vw, 6.4rem);
+    line-height: 1.08;
+  }
+  .hero__heading--line {
+    white-space: normal;
+  }
+}
+
 .hero__text {
   margin-top: 2.4rem;
   max-width: 64rem;

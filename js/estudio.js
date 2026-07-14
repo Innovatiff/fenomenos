@@ -55,6 +55,8 @@ const DEFAULT_TAGS = [
   "Educación",
 ];
 
+const DEFAULT_CATEGORIES = ["Noticias", "Análisis", "Guías", "Alertas"];
+
 const SECTION_META = {
   heading: { label: "Subtítulo", icon: "text-outline" },
   text: { label: "Párrafo", icon: "reader-outline" },
@@ -68,7 +70,10 @@ const MAX_DOC_BYTES = 900_000;
 
 /* ── Estado ──────────────────────────────────────────────────────────── */
 
-let tags = [];
+let tags = []; // etiquetas (meta tags) administradas
+let categories = []; // categorías administradas
+let selTags = []; // etiquetas del artículo abierto
+let selCats = []; // categorías del artículo abierto
 let articles = [];
 let sections = []; // secciones del artículo abierto en el editor
 let editing = null; // {id, status, publishedAt, createdAt} | null (nuevo)
@@ -395,63 +400,123 @@ async function loadEverything() {
 
 /* ── Etiquetas ───────────────────────────────────────────────────────── */
 
+const TAX = {
+  tags: {
+    label: "etiqueta",
+    listId: "tag-list",
+    formId: "tag-form",
+    inputId: "tag-input",
+    chipsId: "chips-tags",
+    selectId: "add-tag",
+    icon: "pricetag-outline",
+    chipClass: "",
+    get managed() {
+      return tags;
+    },
+    set managed(v) {
+      tags = v;
+    },
+    get selected() {
+      return selTags;
+    },
+    set selected(v) {
+      selTags = v;
+    },
+  },
+  cats: {
+    label: "categoría",
+    listId: "cat-list",
+    formId: "cat-form",
+    inputId: "cat-input",
+    chipsId: "chips-cats",
+    selectId: "add-cat",
+    icon: "folder-open-outline",
+    chipClass: "pchip--cat",
+    get managed() {
+      return categories;
+    },
+    set managed(v) {
+      categories = v;
+    },
+    get selected() {
+      return selCats;
+    },
+    set selected(v) {
+      selCats = v;
+    },
+  },
+};
+
 async function loadTags() {
   try {
     const snap = await getDoc(doc(db, "meta", "tags"));
-    const list = snap.exists() ? snap.data().list : null;
-    tags = Array.isArray(list) && list.length ? list : [...DEFAULT_TAGS];
+    const data = snap.exists() ? snap.data() : {};
+    tags =
+      Array.isArray(data.list) && data.list.length
+        ? data.list
+        : [...DEFAULT_TAGS];
+    categories =
+      Array.isArray(data.categories) && data.categories.length
+        ? data.categories
+        : [...DEFAULT_CATEGORIES];
   } catch (_) {
     tags = [...DEFAULT_TAGS];
+    categories = [...DEFAULT_CATEGORIES];
   }
-  renderTags();
-  fillTagSelect();
+  renderTaxManager("tags");
+  renderTaxManager("cats");
+  renderPicker("tags");
+  renderPicker("cats");
 }
 
-async function saveTags() {
+async function saveTaxonomy() {
   try {
-    await setDoc(doc(db, "meta", "tags"), { list: tags });
+    await setDoc(doc(db, "meta", "tags"), { list: tags, categories });
   } catch (err) {
     console.error(err);
-    toast("No se pudieron guardar las etiquetas.", "error");
+    toast("No se pudieron guardar los cambios.", "error");
   }
 }
 
-function renderTags() {
-  const list = $("tag-list");
+/* ── Gestores (pestaña Etiquetas y categorías) ── */
+
+function renderTaxManager(kind) {
+  const cfg = TAX[kind];
+  const list = $(cfg.listId);
   list.textContent = "";
-  if (!tags.length) {
+  if (!cfg.managed.length) {
     const li = document.createElement("li");
     li.className = "taglist__empty";
-    li.textContent = "No hay etiquetas. Añade la primera arriba.";
+    li.textContent = `No hay ${cfg.label}s. Añade la primera arriba.`;
     list.appendChild(li);
     return;
   }
-  tags.forEach((tag) => {
+  cfg.managed.forEach((name) => {
     const li = document.createElement("li");
     li.className = "taglist__item";
 
     const icon = document.createElement("ion-icon");
-    icon.setAttribute("name", "pricetag-outline");
+    icon.setAttribute("name", cfg.icon);
     li.appendChild(icon);
-    li.appendChild(document.createTextNode(tag));
+    li.appendChild(document.createTextNode(name));
 
     const del = document.createElement("button");
     del.className = "icon-btn icon-btn--danger";
-    del.title = "Eliminar etiqueta";
+    del.title = `Eliminar ${cfg.label}`;
     const delIcon = document.createElement("ion-icon");
     delIcon.setAttribute("name", "trash-outline");
     del.appendChild(delIcon);
     del.addEventListener("click", () => {
       confirmModal(
-        "¿Eliminar etiqueta?",
-        `«${tag}» dejará de aparecer en el desplegable del editor. Los artículos que ya la usan la conservan.`,
+        `¿Eliminar ${cfg.label}?`,
+        `«${name}» dejará de aparecer en el editor. Los artículos que ya la usan la conservan.`,
         "Eliminar",
         async () => {
-          tags = tags.filter((t) => t !== tag);
-          renderTags();
-          fillTagSelect();
-          await saveTags();
-          toast("Etiqueta eliminada.");
+          cfg.managed = cfg.managed.filter((t) => t !== name);
+          renderTaxManager(kind);
+          renderPicker(kind);
+          await saveTaxonomy();
+          toast(`${cfg.label[0].toUpperCase() + cfg.label.slice(1)} eliminada.`);
         }
       );
     });
@@ -460,43 +525,90 @@ function renderTags() {
   });
 }
 
-$("tag-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const input = $("tag-input");
-  const value = input.value.trim();
-  if (!value) return;
-  if (tags.some((t) => t.toLowerCase() === value.toLowerCase())) {
-    toast("Esa etiqueta ya existe.", "error");
-    return;
-  }
-  tags.push(value);
-  input.value = "";
-  renderTags();
-  fillTagSelect();
-  await saveTags();
-  toast("Etiqueta añadida.");
+["tags", "cats"].forEach((kind) => {
+  const cfg = TAX[kind];
+  $(cfg.formId).addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = $(cfg.inputId);
+    const value = input.value.trim();
+    if (!value) return;
+    if (cfg.managed.some((t) => t.toLowerCase() === value.toLowerCase())) {
+      toast(`Esa ${cfg.label} ya existe.`, "error");
+      return;
+    }
+    cfg.managed.push(value);
+    input.value = "";
+    renderTaxManager(kind);
+    renderPicker(kind);
+    await saveTaxonomy();
+    toast(`${cfg.label[0].toUpperCase() + cfg.label.slice(1)} añadida.`);
+  });
 });
 
-function fillTagSelect() {
-  const select = $("f-tag");
-  const current = select.value;
-  select.textContent = "";
+/* ── Selectores del editor: chips sin límite + desplegable para añadir ── */
 
-  const none = document.createElement("option");
-  none.value = "";
-  none.textContent = "— Sin etiqueta —";
-  select.appendChild(none);
+function renderPicker(kind) {
+  const cfg = TAX[kind];
+  const chips = $(cfg.chipsId);
+  const select = $(cfg.selectId);
+  if (!chips || !select) return;
 
-  const options = [...tags];
-  if (current && !options.includes(current)) options.unshift(current);
-  options.forEach((tag) => {
-    const opt = document.createElement("option");
-    opt.value = tag;
-    opt.textContent = tag;
-    select.appendChild(opt);
+  chips.textContent = "";
+  if (!cfg.selected.length) {
+    const empty = document.createElement("span");
+    empty.className = "picker__empty";
+    empty.textContent =
+      kind === "tags" ? "Sin etiquetas todavía" : "Sin categorías todavía";
+    chips.appendChild(empty);
+  }
+  cfg.selected.forEach((name) => {
+    const chip = document.createElement("span");
+    chip.className = ("pchip " + cfg.chipClass).trim();
+    chip.appendChild(document.createTextNode(name));
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "pchip__x";
+    x.title = "Quitar";
+    const icon = document.createElement("ion-icon");
+    icon.setAttribute("name", "close-outline");
+    x.appendChild(icon);
+    x.addEventListener("click", () => {
+      cfg.selected = cfg.selected.filter((t) => t !== name);
+      dirty = true;
+      renderPicker(kind);
+      updateEditorStatus();
+    });
+    chip.appendChild(x);
+    chips.appendChild(chip);
   });
-  select.value = options.includes(current) ? current : "";
+
+  select.textContent = "";
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent =
+    kind === "tags" ? "+ Añadir etiqueta…" : "+ Añadir categoría…";
+  select.appendChild(placeholder);
+  cfg.managed
+    .filter((name) => !cfg.selected.includes(name))
+    .forEach((name) => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      select.appendChild(opt);
+    });
 }
+
+["tags", "cats"].forEach((kind) => {
+  const cfg = TAX[kind];
+  $(cfg.selectId).addEventListener("change", () => {
+    const value = $(cfg.selectId).value;
+    if (!value) return;
+    cfg.selected = [...cfg.selected, value];
+    dirty = true;
+    renderPicker(kind);
+    updateEditorStatus();
+  });
+});
 
 /* ── Listado de artículos ────────────────────────────────────────────── */
 
@@ -559,12 +671,25 @@ function renderList() {
     status.textContent =
       article.status === "published" ? "Publicado" : "Borrador";
     meta.appendChild(status);
-    if (article.tag) {
+    const articleTags = Array.isArray(article.tags)
+      ? article.tags
+      : article.tag
+        ? [article.tag]
+        : [];
+    if (articleTags.length) {
       const tagBadge = document.createElement("span");
       tagBadge.className = "badge badge--tag";
-      tagBadge.textContent = article.tag;
+      tagBadge.textContent =
+        articleTags[0] +
+        (articleTags.length > 1 ? " +" + (articleTags.length - 1) : "");
       meta.appendChild(tagBadge);
     }
+    (article.categories || []).slice(0, 2).forEach((cat) => {
+      const catBadge = document.createElement("span");
+      catBadge.className = "badge badge--cat";
+      catBadge.textContent = cat;
+      meta.appendChild(catBadge);
+    });
     const when = formatDate(article.updatedAt || article.createdAt);
     if (when) {
       const date = document.createElement("span");
@@ -677,8 +802,10 @@ function resetEditor() {
   setRichField("f-footer", "");
   $("f-cover-url").value = "";
   setCover("");
-  fillTagSelect();
-  $("f-tag").value = "";
+  selTags = [];
+  selCats = [];
+  renderPicker("tags");
+  renderPicker("cats");
   $("editor-title").textContent = "Nuevo artículo";
   renderSectionsEditor();
   updateEditorStatus();
@@ -696,16 +823,14 @@ function openEditor(article) {
   setRichField("f-title", article.titleHtml, article.title);
   setRichField("f-excerpt", article.excerptHtml, article.excerpt);
   setRichField("f-footer", article.footerHtml, article.footer);
-  fillTagSelect();
-  $("f-tag").value = article.tag || "";
-  if (article.tag && $("f-tag").value !== article.tag) {
-    // etiqueta que ya no está en la lista: consérvala como opción
-    const opt = document.createElement("option");
-    opt.value = article.tag;
-    opt.textContent = article.tag;
-    $("f-tag").appendChild(opt);
-    $("f-tag").value = article.tag;
-  }
+  selTags = Array.isArray(article.tags)
+    ? [...article.tags]
+    : article.tag
+      ? [article.tag]
+      : [];
+  selCats = Array.isArray(article.categories) ? [...article.categories] : [];
+  renderPicker("tags");
+  renderPicker("cats");
   const isUrl = article.cover && !String(article.cover).startsWith("data:");
   $("f-cover-url").value = isUrl ? article.cover : "";
   setCover(article.cover || "");
@@ -752,7 +877,7 @@ function updateEditorStatus() {
   );
 }
 
-["f-title", "f-excerpt", "f-footer", "f-tag", "f-cover-url"].forEach((id) => {
+["f-title", "f-excerpt", "f-footer", "f-cover-url"].forEach((id) => {
   $(id).addEventListener("input", () => {
     dirty = true;
     updateEditorStatus();
@@ -1223,7 +1348,9 @@ function collectArticle() {
   return {
     title: title.plain,
     titleHtml: title.html,
-    tag: $("f-tag").value,
+    tags: [...selTags],
+    categories: [...selCats],
+    tag: selTags[0] || "", // compatibilidad con artículos antiguos
     excerpt: excerpt.plain,
     excerptHtml: excerpt.html,
     cover,

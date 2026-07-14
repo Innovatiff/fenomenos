@@ -167,29 +167,47 @@
                 </div>
               </div>
 
-              <div class="editor__row">
-                <label class="field">
-                  <span class="field__label">Etiqueta (meta tag)</span>
-                  <div class="field__select-wrap">
-                    <select id="f-tag" class="field__input"></select>
-                    <ion-icon name="chevron-down-outline"></ion-icon>
-                  </div>
-                  <span class="field__hint"
-                    >Administra la lista en la pestaña «Etiquetas».</span
-                  >
-                </label>
-
-                <div class="field">
-                  <span class="field__label">Resumen (aparece en las tarjetas)</span>
-                  <div class="rich-field">
-                    <div
-                      id="f-excerpt"
+              <div class="field">
+                <span class="field__label">Resumen (aparece en las tarjetas)</span>
+                <div class="rich-field">
+                  <div
+                    id="f-excerpt"
                     contenteditable="true"
                     role="textbox"
-                      class="field__input rich-editor rich-editor--short"
-                      data-placeholder="Una o dos frases que inviten a leer el artículo."
-                    ></div>
+                    class="field__input rich-editor rich-editor--short"
+                    data-placeholder="Una o dos frases que inviten a leer el artículo."
+                  ></div>
+                </div>
+              </div>
+
+              <div class="editor__row editor__row--even">
+                <div class="field">
+                  <span class="field__label">Etiquetas (meta tags)</span>
+                  <div class="picker">
+                    <div class="picker__chips" id="chips-tags"></div>
+                    <div class="field__select-wrap">
+                      <select id="add-tag" class="field__input"></select>
+                      <ion-icon name="chevron-down-outline"></ion-icon>
+                    </div>
                   </div>
+                  <span class="field__hint"
+                    >Añade todas las que quieras. La lista se administra en
+                    «Etiquetas».</span
+                  >
+                </div>
+
+                <div class="field">
+                  <span class="field__label">Categorías</span>
+                  <div class="picker">
+                    <div class="picker__chips" id="chips-cats"></div>
+                    <div class="field__select-wrap">
+                      <select id="add-cat" class="field__input"></select>
+                      <ion-icon name="chevron-down-outline"></ion-icon>
+                    </div>
+                  </div>
+                  <span class="field__hint"
+                    >Sin límite. La lista se administra en «Etiquetas».</span
+                  >
                 </div>
               </div>
 
@@ -303,33 +321,61 @@
           </div>
         </section>
 
-        <!-- ── ETIQUETAS ───────────────────────────────────────────── -->
+        <!-- ── ETIQUETAS Y CATEGORÍAS ──────────────────────────────── -->
         <section class="panel" id="panel-tags" hidden>
           <div class="panel__head">
             <div>
-              <h1 class="panel__title">Etiquetas</h1>
+              <h1 class="panel__title">Etiquetas y categorías</h1>
               <p class="panel__sub">
-                Estas etiquetas aparecen en el desplegable del editor y como
-                filtros en la página de artículos. Más adelante, cada etiqueta
-                podrá tener su propia página.
+                Las <strong>etiquetas (meta tags)</strong> aparecen como filtros
+                en la página de artículos y tendrán páginas propias más
+                adelante. Las <strong>categorías</strong> agrupan los artículos
+                por tipo de contenido. Un artículo puede tener tantas de ambas
+                como quieras.
               </p>
             </div>
           </div>
 
-          <form class="tagform" id="tag-form">
-            <input
-              type="text"
-              id="tag-input"
-              class="field__input"
-              placeholder="Nueva etiqueta, ej.: Huracanes"
-              maxlength="40"
-            />
-            <button type="submit" class="btn btn--primary btn--sm">
-              <ion-icon name="add-outline"></ion-icon> Añadir
-            </button>
-          </form>
+          <div class="taxgrid">
+            <div class="taxcol">
+              <h2 class="taxcol__title">
+                <ion-icon name="pricetags-outline"></ion-icon> Etiquetas (meta
+                tags)
+              </h2>
+              <form class="tagform" id="tag-form">
+                <input
+                  type="text"
+                  id="tag-input"
+                  class="field__input"
+                  placeholder="Nueva etiqueta, ej.: Huracanes"
+                  maxlength="40"
+                />
+                <button type="submit" class="btn btn--primary btn--sm">
+                  <ion-icon name="add-outline"></ion-icon> Añadir
+                </button>
+              </form>
+              <ul class="taglist" id="tag-list"></ul>
+            </div>
 
-          <ul class="taglist" id="tag-list"></ul>
+            <div class="taxcol">
+              <h2 class="taxcol__title">
+                <ion-icon name="folder-open-outline"></ion-icon> Categorías
+              </h2>
+              <form class="tagform" id="cat-form">
+                <input
+                  type="text"
+                  id="cat-input"
+                  class="field__input"
+                  placeholder="Nueva categoría, ej.: Guías"
+                  maxlength="40"
+                />
+                <button type="submit" class="btn btn--primary btn--sm">
+                  <ion-icon name="add-outline"></ion-icon> Añadir
+                </button>
+              </form>
+              <ul class="taglist" id="cat-list"></ul>
+            </div>
+          </div>
         </section>
       </main>
     </div>

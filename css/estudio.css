@@ -631,6 +631,107 @@
   .editor__row {
     grid-template-columns: minmax(20rem, 28rem) 1fr;
   }
+  .editor__row--even {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── Selectores de etiquetas / categorías (sin límite) ── */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.picker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3.2rem;
+}
+
+.picker__empty {
+  font-size: 1.25rem;
+  color: var(--text-5);
+}
+
+.pchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem 0.5rem 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--alert);
+  background-color: rgba(255, 176, 32, 0.08);
+  border: 0.1rem solid rgba(255, 176, 32, 0.3);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+}
+
+.pchip--cat {
+  color: #8ec7ff;
+  background-color: rgba(94, 156, 255, 0.08);
+  border-color: rgba(94, 156, 255, 0.3);
+}
+
+.pchip__x {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.4rem;
+  color: inherit;
+  border-radius: 50%;
+  opacity: 0.65;
+  transition: opacity 0.15s var(--ease), background-color 0.15s var(--ease);
+}
+.pchip__x:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Categorías en el listado de artículos */
+.badge--cat {
+  color: #8ec7ff;
+  background-color: rgba(94, 156, 255, 0.1);
+  border: 0.1rem solid rgba(94, 156, 255, 0.35);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Pestaña de etiquetas y categorías en dos columnas */
+.taxgrid {
+  display: grid;
+  gap: 3.2rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 64em) {
+  .taxgrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+}
+
+.taxcol__title {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.6rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.12rem;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.taxcol__title ion-icon {
+  font-size: 1.8rem;
+  color: var(--alert);
+}
+.taxcol:last-child .taxcol__title ion-icon {
+  color: #8ec7ff;
 }
 
 /* Portada */

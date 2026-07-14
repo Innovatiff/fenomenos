@@ -6,7 +6,7 @@
 
 import { startAnalytics } from "./firebase-init.js";
 import { fetchPublished, fetchTags } from "./db.js";
-import { articleCard } from "./render-article.js";
+import { articleCard, articleTagList } from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
@@ -30,7 +30,9 @@ function clearSkeletons() {
 function renderFilters(tags) {
   const counts = new Map();
   articles.forEach((a) => {
-    if (a.tag) counts.set(a.tag, (counts.get(a.tag) || 0) + 1);
+    articleTagList(a).forEach((tag) =>
+      counts.set(tag, (counts.get(tag) || 0) + 1)
+    );
   });
 
   /* Etiquetas administradas primero, luego cualquier otra que traigan los
@@ -68,9 +70,10 @@ function chipButton(label, tag, count) {
 }
 
 function matches(article) {
-  if (activeTag && article.tag !== activeTag) return false;
+  const tags = articleTagList(article);
+  if (activeTag && !tags.includes(activeTag)) return false;
   if (!term) return true;
-  const haystack = [article.title, article.excerpt, article.tag]
+  const haystack = [article.title, article.excerpt, ...tags]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();

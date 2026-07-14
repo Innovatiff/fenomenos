@@ -94,6 +94,12 @@ export function formatDate(v) {
   });
 }
 
+/* Etiquetas del artículo, con compatibilidad con el campo antiguo `tag` */
+export function articleTagList(article) {
+  if (Array.isArray(article.tags) && article.tags.length) return article.tags;
+  return article.tag ? [article.tag] : [];
+}
+
 export function articleWordCount(article) {
   let words = 0;
   const count = (s) => {
@@ -239,7 +245,9 @@ export function renderArticle(root, article) {
   const header = el("header", "post__head");
 
   const meta = el("div", "post__meta");
-  if (article.tag) meta.appendChild(el("span", "post__tag", article.tag));
+  articleTagList(article).forEach((tag) =>
+    meta.appendChild(el("span", "post__tag", tag))
+  );
   const when = formatDate(article.publishedAt || article.updatedAt || article.createdAt);
   if (when) meta.appendChild(el("span", "post__date", when));
   meta.appendChild(el("span", "post__read", readMinutes(article) + " min de lectura"));
@@ -320,8 +328,9 @@ export function articleCard(article, { revealed = false } = {}) {
   a.appendChild(media);
 
   const meta = el("span", "article__meta");
-  if (article.tag) {
-    meta.appendChild(el("span", "article__tag", article.tag));
+  const cardTags = articleTagList(article);
+  if (cardTags.length) {
+    meta.appendChild(el("span", "article__tag", cardTags[0]));
     meta.appendChild(document.createTextNode(" · "));
   }
   meta.appendChild(

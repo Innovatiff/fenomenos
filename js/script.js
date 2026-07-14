@@ -31,6 +31,13 @@
   function fitHeading() {
     if (!heading || !lines.length) return;
 
+    // En pantallas pequeñas las líneas pueden partirse y el tamaño lo fija
+    // el CSS (grande); el ajuste automático solo aplica en pantallas anchas.
+    if (window.innerWidth < 768) {
+      heading.style.fontSize = "";
+      return;
+    }
+
     const avail = heading.clientWidth;
     if (!avail) return;
 
