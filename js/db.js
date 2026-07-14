@@ -12,6 +12,8 @@ import {
   getDocs,
   doc,
   getDoc,
+  updateDoc,
+  increment,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 import { toDateValue } from "./render-article.js";
 
@@ -36,6 +38,15 @@ export async function fetchArticle(id) {
   const snap = await getDoc(doc(db, "articles", id));
   if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
+}
+
+/* Reacciones públicas (👍 ❤️ 🔥): incremento atómico sobre el contador.
+   Requiere la regla de Firestore que permite actualizar SOLO el campo
+   `reactions` de artículos publicados (ver README). */
+export async function reactToArticle(id, kind, delta) {
+  await updateDoc(doc(db, "articles", id), {
+    ["reactions." + kind]: increment(delta),
+  });
 }
 
 export async function fetchTags() {

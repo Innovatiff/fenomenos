@@ -28,7 +28,9 @@ const empty = document.getElementById("home-articles-empty");
 
     articles
       .slice(0, 4)
-      .forEach((a) => grid.appendChild(articleCard(a, { revealed: true })));
+      .forEach((a) =>
+        grid.appendChild(articleCard(a, { revealed: true, reactions: true }))
+      );
   } catch (err) {
     console.error("No se pudieron cargar los artículos:", err);
     grid.textContent = "";

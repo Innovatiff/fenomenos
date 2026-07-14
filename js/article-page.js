@@ -5,8 +5,14 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { startAnalytics } from "./firebase-init.js";
-import { fetchArticle, fetchPublished } from "./db.js";
-import { renderArticle, formatDate } from "./render-article.js";
+import { fetchArticle, fetchPublished, reactToArticle } from "./db.js";
+import {
+  renderArticle,
+  formatDate,
+  REACTIONS,
+  reactionCount,
+  formatCount,
+} from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
@@ -68,7 +74,8 @@ function showState(icon, title, text) {
       if (meta) meta.setAttribute("content", article.excerpt);
     }
 
-    /* barra lateral + progreso de lectura */
+    /* reacciones + barra lateral + progreso de lectura */
+    buildReactionsBar(article, id);
     document.getElementById("post-aside").hidden = false;
     buildToc();
     buildShare(article);
@@ -247,4 +254,82 @@ function trackProgress() {
   addEventListener("scroll", update, { passive: true });
   addEventListener("resize", update, { passive: true });
   update();
+}
+
+
+/* ── Reacciones (👍 ❤️ 🔥) ──────────────────────────────────────────────
+   Se interactúa solo aquí, dentro del artículo. Un clic activa la
+   reacción (+1) y otro la retira (−1); la elección se recuerda en este
+   navegador. Los contadores solo aparecen cuando son mayores que cero. */
+
+function buildReactionsBar(article, id) {
+  const storeKey = "fdc-react-" + id;
+  let mine;
+  try {
+    mine = JSON.parse(localStorage.getItem(storeKey) || "{}");
+  } catch (_) {
+    mine = {};
+  }
+  const counts = {};
+  REACTIONS.forEach(({ key }) => (counts[key] = reactionCount(article, key)));
+
+  const bar = document.createElement("div");
+  bar.className = "post-reactions";
+
+  REACTIONS.forEach(({ key, icon, label }) => {
+    const btn = document.createElement("button");
+    btn.className = "rbtn rbtn--" + key + (mine[key] ? " is-on" : "");
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+
+    const ic = document.createElement("ion-icon");
+    ic.setAttribute("name", mine[key] ? icon : icon + "-outline");
+    btn.appendChild(ic);
+
+    const n = document.createElement("span");
+    n.className = "rbtn__n";
+    n.textContent = counts[key] > 0 ? formatCount(counts[key]) : "";
+    btn.appendChild(n);
+
+    btn.addEventListener("click", async () => {
+      const turningOn = !mine[key];
+      const delta = turningOn ? 1 : -1;
+
+      /* actualización optimista + animación */
+      mine[key] = turningOn || undefined;
+      if (!turningOn) delete mine[key];
+      counts[key] = Math.max(0, counts[key] + delta);
+      btn.classList.toggle("is-on", turningOn);
+      ic.setAttribute("name", turningOn ? icon : icon + "-outline");
+      n.textContent = counts[key] > 0 ? formatCount(counts[key]) : "";
+      if (turningOn) {
+        btn.classList.remove("is-popping");
+        void btn.offsetWidth; // reinicia la animación
+        btn.classList.add("is-popping");
+      }
+      try {
+        localStorage.setItem(storeKey, JSON.stringify(mine));
+      } catch (_) {}
+
+      try {
+        await reactToArticle(id, key, delta);
+      } catch (err) {
+        /* revertir si el servidor lo rechaza */
+        console.error("Reacción no guardada:", err);
+        counts[key] = Math.max(0, counts[key] - delta);
+        if (turningOn) delete mine[key];
+        else mine[key] = true;
+        btn.classList.toggle("is-on", !turningOn);
+        ic.setAttribute("name", !turningOn ? icon : icon + "-outline");
+        n.textContent = counts[key] > 0 ? formatCount(counts[key]) : "";
+        try {
+          localStorage.setItem(storeKey, JSON.stringify(mine));
+        } catch (_) {}
+      }
+    });
+
+    bar.appendChild(btn);
+  });
+
+  root.appendChild(bar);
 }

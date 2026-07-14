@@ -304,9 +304,52 @@ export function renderArticle(root, article) {
   }
 }
 
+/* ── Reacciones (👍 ❤️ 🔥) ───────────────────────────────────────────────── */
+
+export const REACTIONS = [
+  { key: "like", icon: "thumbs-up", label: "Me gusta" },
+  { key: "love", icon: "heart", label: "Me encanta" },
+  { key: "fire", icon: "flame", label: "Increíble" },
+];
+
+export function reactionCount(article, key) {
+  const n = article.reactions && article.reactions[key];
+  return typeof n === "number" && n > 0 ? n : 0;
+}
+
+export function formatCount(n) {
+  if (n >= 1000) {
+    const k = n / 1000;
+    return (k >= 10 ? Math.round(k) : Math.round(k * 10) / 10) + " mil";
+  }
+  return String(n);
+}
+
+/* Fila compacta de solo lectura (tarjetas de la portada): únicamente las
+   reacciones con al menos un clic; si no hay ninguna, no se muestra nada. */
+export function reactionsSummary(article) {
+  const active = REACTIONS.map(({ key, icon }) => ({
+    key,
+    icon,
+    n: reactionCount(article, key),
+  })).filter((r) => r.n > 0);
+  if (!active.length) return null;
+
+  const row = el("span", "card-reacts");
+  active.forEach(({ key, icon, n }) => {
+    const item = el("span", "card-reacts__item card-reacts__item--" + key);
+    const ic = document.createElement("ion-icon");
+    ic.setAttribute("name", icon);
+    item.appendChild(ic);
+    item.appendChild(el("b", null, formatCount(n)));
+    row.appendChild(item);
+  });
+  return row;
+}
+
 /* ── Tarjeta de artículo (para las cuadrículas) ─────────────────────────── */
 
-export function articleCard(article, { revealed = false } = {}) {
+export function articleCard(article, { revealed = false, reactions = false } = {}) {
   const li = el("li", "card card--article" + (revealed ? "" : " reveal"));
   const a = document.createElement("a");
   a.className = "card__inner";
@@ -340,6 +383,11 @@ export function articleCard(article, { revealed = false } = {}) {
 
   a.appendChild(el("h3", "card__title", article.title || "Sin título"));
   if (article.excerpt) a.appendChild(el("p", "card__text", article.excerpt));
+
+  if (reactions) {
+    const summary = reactionsSummary(article);
+    if (summary) a.appendChild(summary);
+  }
 
   const link = el("span", "card__link", "Leer más ");
   const arrow = document.createElement("ion-icon");

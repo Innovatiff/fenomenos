@@ -83,12 +83,18 @@ En la [consola de Firebase](https://console.firebase.google.com/) del proyecto
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
-       // Artículos: el público solo lee lo publicado; escribir requiere sesión
+       // Artículos: el público solo lee lo publicado; escribir requiere
+       // sesión — salvo las reacciones (👍 ❤️ 🔥), que cualquiera puede
+       // actualizar en artículos publicados (y SOLO ese campo)
        match /articles/{id} {
          allow read: if resource.data.status == 'published' || request.auth != null;
-         allow write: if request.auth != null;
+         allow create, delete: if request.auth != null;
+         allow update: if request.auth != null
+           || (resource.data.status == 'published'
+               && request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['reactions']));
        }
-       // Lista de etiquetas: lectura pública, escritura con sesión
+       // Lista de etiquetas y categorías: lectura pública, escritura con sesión
        match /meta/{id} {
          allow read: if true;
          allow write: if request.auth != null;

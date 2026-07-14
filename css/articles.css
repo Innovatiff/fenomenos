@@ -742,6 +742,141 @@
   margin-top: 1rem;
 }
 
+/* ── Reacciones (👍 ❤️ 🔥) ─────────────────────────────────────────────── */
+
+/* Barra interactiva al final del artículo */
+.post-reactions {
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  margin-top: 4rem;
+  padding-top: 3.2rem;
+  border-top: 0.1rem solid var(--line);
+}
+
+.rbtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 6.4rem;
+  justify-content: center;
+  padding: 1.1rem 1.8rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-4);
+  background-color: rgba(5, 7, 17, 0.6);
+  border: 0.1rem solid var(--line);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease),
+    transform 0.15s var(--ease), background-color 0.2s var(--ease);
+}
+.rbtn:hover {
+  transform: translateY(-0.2rem);
+  color: var(--text-2);
+  border-color: var(--line-2);
+}
+.rbtn:active {
+  transform: scale(0.94);
+}
+.rbtn ion-icon {
+  font-size: 2rem;
+  transition: transform 0.2s var(--ease);
+}
+.rbtn__n {
+  font-size: 1.35rem;
+  min-width: 0;
+}
+.rbtn__n:empty {
+  display: none;
+}
+
+/* colores por reacción cuando está activa */
+.rbtn--like.is-on {
+  color: #8ec7ff;
+  border-color: rgba(94, 156, 255, 0.55);
+  background-color: rgba(94, 156, 255, 0.08);
+}
+.rbtn--love.is-on {
+  color: #ff7b8a;
+  border-color: rgba(255, 99, 120, 0.55);
+  background-color: rgba(255, 99, 120, 0.08);
+}
+.rbtn--fire.is-on {
+  color: var(--alert);
+  border-color: rgba(255, 176, 32, 0.55);
+  background-color: rgba(255, 176, 32, 0.08);
+}
+
+/* animación al reaccionar: pop del ícono + onda expansiva */
+.rbtn.is-popping ion-icon {
+  animation: rpop 0.5s var(--ease);
+}
+.rbtn.is-popping::after {
+  content: "";
+  position: absolute;
+  inset: -0.2rem;
+  border-radius: var(--r-pill);
+  border: 0.2rem solid currentColor;
+  animation: rring 0.55s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes rpop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.5) rotate(-10deg);
+  }
+  65% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes rring {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+/* Resumen de solo lectura en las tarjetas de la portada */
+.card-reacts {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  margin-top: 0.2rem;
+}
+.card-reacts__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-4);
+}
+.card-reacts__item ion-icon {
+  font-size: 1.5rem;
+}
+.card-reacts__item--like ion-icon {
+  color: #8ec7ff;
+}
+.card-reacts__item--love ion-icon {
+  color: #ff7b8a;
+}
+.card-reacts__item--fire ion-icon {
+  color: var(--alert);
+}
+
 /* Estados de carga / no encontrado del reader */
 
 .post-state {
