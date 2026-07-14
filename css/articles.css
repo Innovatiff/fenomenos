@@ -768,6 +768,18 @@
   margin-top: 6.4rem;
 }
 
+/* Sub-encabezado dentro de una sección (p. ej. «+2 páginas especializadas»
+   dentro de Cobertura de fenómenos) */
+.section__head--sub {
+  margin-top: 6.4rem;
+  scroll-margin-top: calc(var(--header-h) + 2.4rem);
+}
+@media (min-width: 64em) {
+  .section__head--sub {
+    margin-top: 9.6rem;
+  }
+}
+
 /* ─────────────────────────  PRÓXIMAMENTE  ────────────────────────────── */
 
 .soon {
