@@ -849,6 +849,34 @@
   }
 }
 
+/* Caja de reacciones en la barra lateral (solo computadoras): misma
+   lógica, botones compactos que llenan el ancho de la caja */
+.aside-reacts__row {
+  display: flex;
+  gap: 0.8rem;
+}
+.aside-reacts__row .rbtn {
+  flex: 1;
+  min-width: 0;
+  padding: 0.9rem 0.8rem;
+  font-size: 1.35rem;
+  gap: 0.5rem;
+}
+.aside-reacts__row .rbtn ion-icon {
+  font-size: 1.8rem;
+}
+.aside-reacts__row .rbtn__n {
+  font-size: 1.2rem;
+}
+
+/* En computadoras las reacciones viven en la barra lateral; en teléfonos
+   (sin barra lateral) se mantiene la barra al final del artículo */
+@media (min-width: 75em) {
+  .post-reactions {
+    display: none;
+  }
+}
+
 /* Resumen de solo lectura en las tarjetas de la portada */
 .card-reacts {
   display: flex;

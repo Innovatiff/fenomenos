@@ -266,80 +266,112 @@ function trackProgress() {
 
 
 /* ── Reacciones (👍 ❤️ 🔥) ──────────────────────────────────────────────
-   Se interactúa solo aquí, dentro del artículo. Un clic activa la
-   reacción (+1) y otro la retira (−1); la elección se recuerda en este
-   navegador. Los contadores solo aparecen cuando son mayores que cero. */
+   Se interactúa solo dentro del artículo. Hay dos instancias sincronizadas:
+   la barra al final del contenido (teléfonos) y la caja de la barra lateral
+   (computadoras). Un clic activa la reacción (+1) y otro la retira (−1);
+   la elección se recuerda en este navegador. Los contadores solo aparecen
+   cuando son mayores que cero. */
+
+const rx = {
+  id: null,
+  storeKey: null,
+  counts: {},
+  mine: {},
+  widgets: [], // { key, btn, icon, n } de todas las instancias
+};
 
 function buildReactionsBar(article, id) {
-  const storeKey = "fdc-react-" + id;
-  let mine;
+  rx.id = id;
+  rx.storeKey = "fdc-react-" + id;
   try {
-    mine = JSON.parse(localStorage.getItem(storeKey) || "{}");
+    rx.mine = JSON.parse(localStorage.getItem(rx.storeKey) || "{}");
   } catch (_) {
-    mine = {};
+    rx.mine = {};
   }
-  const counts = {};
-  REACTIONS.forEach(({ key }) => (counts[key] = reactionCount(article, key)));
+  REACTIONS.forEach(({ key }) => (rx.counts[key] = reactionCount(article, key)));
 
+  /* barra al final del artículo (visible en teléfonos) */
+  root.appendChild(reactionsRow("post-reactions"));
+
+  /* caja de la barra lateral (visible en computadoras) */
+  const box = document.getElementById("react-box");
+  const side = document.getElementById("react-side");
+  if (box && side) {
+    box.hidden = false;
+    side.appendChild(reactionsRow("aside-reacts__row"));
+  }
+}
+
+function reactionsRow(className) {
   const bar = document.createElement("div");
-  bar.className = "post-reactions";
+  bar.className = className;
 
   REACTIONS.forEach(({ key, icon, label }) => {
+    const on = Boolean(rx.mine[key]);
     const btn = document.createElement("button");
-    btn.className = "rbtn rbtn--" + key + (mine[key] ? " is-on" : "");
+    btn.className = "rbtn rbtn--" + key + (on ? " is-on" : "");
     btn.title = label;
     btn.setAttribute("aria-label", label);
 
     const ic = document.createElement("ion-icon");
-    ic.setAttribute("name", mine[key] ? icon : icon + "-outline");
+    ic.setAttribute("name", on ? icon : icon + "-outline");
     btn.appendChild(ic);
 
     const n = document.createElement("span");
     n.className = "rbtn__n";
-    n.textContent = counts[key] > 0 ? formatCount(counts[key]) : "";
+    n.textContent = rx.counts[key] > 0 ? formatCount(rx.counts[key]) : "";
     btn.appendChild(n);
 
-    btn.addEventListener("click", async () => {
-      const turningOn = !mine[key];
-      const delta = turningOn ? 1 : -1;
-
-      /* actualización optimista + animación */
-      mine[key] = turningOn || undefined;
-      if (!turningOn) delete mine[key];
-      counts[key] = Math.max(0, counts[key] + delta);
-      btn.classList.toggle("is-on", turningOn);
-      ic.setAttribute("name", turningOn ? icon : icon + "-outline");
-      n.textContent = counts[key] > 0 ? formatCount(counts[key]) : "";
-      if (turningOn) {
-        btn.classList.remove("is-popping");
-        void btn.offsetWidth; // reinicia la animación
-        btn.classList.add("is-popping");
-      }
-      try {
-        localStorage.setItem(storeKey, JSON.stringify(mine));
-      } catch (_) {}
-
-      try {
-        await reactToArticle(id, key, delta);
-      } catch (err) {
-        /* revertir si el servidor lo rechaza */
-        console.error("Reacción no guardada:", err);
-        counts[key] = Math.max(0, counts[key] - delta);
-        if (turningOn) delete mine[key];
-        else mine[key] = true;
-        btn.classList.toggle("is-on", !turningOn);
-        ic.setAttribute("name", !turningOn ? icon : icon + "-outline");
-        n.textContent = counts[key] > 0 ? formatCount(counts[key]) : "";
-        try {
-          localStorage.setItem(storeKey, JSON.stringify(mine));
-        } catch (_) {}
-      }
-    });
-
+    rx.widgets.push({ key, btn, icon: ic, n });
+    btn.addEventListener("click", () => toggleReaction(key, icon));
     bar.appendChild(btn);
   });
 
-  root.appendChild(bar);
+  return bar;
+}
+
+function paintReaction(key, iconName, animate) {
+  const on = Boolean(rx.mine[key]);
+  rx.widgets
+    .filter((w) => w.key === key)
+    .forEach((w) => {
+      w.btn.classList.toggle("is-on", on);
+      w.icon.setAttribute("name", on ? iconName : iconName + "-outline");
+      w.n.textContent = rx.counts[key] > 0 ? formatCount(rx.counts[key]) : "";
+      if (animate && on) {
+        w.btn.classList.remove("is-popping");
+        void w.btn.offsetWidth; // reinicia la animación
+        w.btn.classList.add("is-popping");
+      }
+    });
+}
+
+async function toggleReaction(key, iconName) {
+  const turningOn = !rx.mine[key];
+  const delta = turningOn ? 1 : -1;
+
+  /* actualización optimista en TODAS las instancias */
+  if (turningOn) rx.mine[key] = true;
+  else delete rx.mine[key];
+  rx.counts[key] = Math.max(0, rx.counts[key] + delta);
+  paintReaction(key, iconName, true);
+  try {
+    localStorage.setItem(rx.storeKey, JSON.stringify(rx.mine));
+  } catch (_) {}
+
+  try {
+    await reactToArticle(rx.id, key, delta);
+  } catch (err) {
+    /* revertir si el servidor lo rechaza */
+    console.error("Reacción no guardada:", err);
+    if (turningOn) delete rx.mine[key];
+    else rx.mine[key] = true;
+    rx.counts[key] = Math.max(0, rx.counts[key] - delta);
+    paintReaction(key, iconName, false);
+    try {
+      localStorage.setItem(rx.storeKey, JSON.stringify(rx.mine));
+    } catch (_) {}
+  }
 }
 
 
