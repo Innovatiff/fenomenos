@@ -769,14 +769,21 @@
 }
 
 /* Sub-encabezado dentro de una sección (p. ej. «+2 páginas especializadas»
-   dentro de Cobertura de fenómenos) */
+   dentro de Cobertura de fenómenos): más pequeño y pegado a su sección */
 .section__head--sub {
-  margin-top: 6.4rem;
+  margin-top: 4.8rem;
+  margin-bottom: 2.8rem;
   scroll-margin-top: calc(var(--header-h) + 2.4rem);
 }
+
+.heading__secondary--sub {
+  font-size: clamp(2rem, 3.4vw, 3rem);
+}
+
 @media (min-width: 64em) {
   .section__head--sub {
-    margin-top: 9.6rem;
+    margin-top: 6.4rem;
+    margin-bottom: 3.6rem;
   }
 }
 
