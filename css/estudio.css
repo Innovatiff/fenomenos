@@ -725,6 +725,49 @@
   border-radius: var(--r-pill);
 }
 
+/* barra de filtros de comentarios */
+.cbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  padding: 1.2rem;
+  border: 0.1rem solid var(--line);
+  border-radius: var(--r-md);
+  background-color: rgba(5, 7, 17, 0.4);
+}
+
+.cbar__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 22rem;
+}
+.cbar__search ion-icon {
+  position: absolute;
+  left: 1.3rem;
+  font-size: 1.6rem;
+  color: var(--text-5);
+  pointer-events: none;
+}
+.cbar__search input {
+  padding-left: 3.8rem;
+}
+
+.cbar__select {
+  flex: 0 1 22rem;
+  min-width: 17rem;
+}
+.cbar__select select {
+  cursor: pointer;
+}
+
+.cbar__clear {
+  flex-shrink: 0;
+}
+
 .clist {
   display: flex;
   flex-direction: column;

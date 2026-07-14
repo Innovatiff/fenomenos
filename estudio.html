@@ -343,6 +343,40 @@
             </div>
           </div>
 
+          <!-- Filtros: artículo, orden (fecha / más gustados) y búsqueda -->
+          <div class="cbar">
+            <div class="cbar__search">
+              <ion-icon name="search-outline"></ion-icon>
+              <input
+                type="search"
+                id="c-search"
+                class="field__input"
+                placeholder="Buscar por nombre o correo…"
+                autocomplete="off"
+              />
+            </div>
+
+            <div class="field__select-wrap cbar__select">
+              <select id="c-article-filter" class="field__input">
+                <option value="">Todos los artículos</option>
+              </select>
+              <ion-icon name="chevron-down-outline"></ion-icon>
+            </div>
+
+            <div class="field__select-wrap cbar__select">
+              <select id="c-sort" class="field__input">
+                <option value="new">Más recientes</option>
+                <option value="old">Más antiguos</option>
+                <option value="likes">Más gustados</option>
+              </select>
+              <ion-icon name="chevron-down-outline"></ion-icon>
+            </div>
+
+            <button class="btn-quiet cbar__clear" id="c-clear" hidden>
+              <ion-icon name="close-outline"></ion-icon> Limpiar
+            </button>
+          </div>
+
           <div class="clist" id="admin-comments"></div>
 
           <div class="panel__empty" id="comments-none" hidden>

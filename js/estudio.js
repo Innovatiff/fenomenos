@@ -376,8 +376,10 @@ $("btn-signout").addEventListener("click", () => signOut(auth));
 /* ── Pestañas ────────────────────────────────────────────────────────── */
 
 /* Dos pestañas fijas (Artículos, Etiquetas). La de Editor está oculta y
-   solo aparece cuando se abre un artículo (editar o nuevo). */
-const tabs = document.querySelectorAll(".seg__btn");
+   solo aparece cuando se abre un artículo (editar o nuevo).
+   OJO: solo los .seg__btn con data-panel son pestañas; otros controles
+   segmentados (p. ej. el filtro de comentarios) no deben cambiar de panel. */
+const tabs = document.querySelectorAll(".seg__btn[data-panel]");
 function showPanel(panelId) {
   if (panelId === "panel-editor") $("tab-editor").hidden = false;
   tabs.forEach((t) =>
@@ -397,6 +399,9 @@ tabs.forEach((tab) =>
 
 async function loadEverything() {
   await Promise.all([loadTags(), loadArticles(), loadComments()]);
+  /* con los artículos ya cargados, los títulos del filtro son correctos */
+  fillArticleFilter();
+  renderAdminComments();
   if (!editing) resetEditor();
 }
 
@@ -1301,6 +1306,55 @@ sectionsList.addEventListener(
 
 let adminComments = [];
 let commentFilter = "pending";
+let cQuery = ""; // búsqueda por nombre o correo
+let cArticleFilter = ""; // id de artículo ("" = todos)
+let cSort = "new"; // new | old | likes
+
+$("c-search").addEventListener("input", () => {
+  cQuery = $("c-search").value.trim().toLowerCase();
+  renderAdminComments();
+});
+$("c-article-filter").addEventListener("change", () => {
+  cArticleFilter = $("c-article-filter").value;
+  renderAdminComments();
+});
+$("c-sort").addEventListener("change", () => {
+  cSort = $("c-sort").value;
+  renderAdminComments();
+});
+$("c-clear").addEventListener("click", () => {
+  cQuery = "";
+  cArticleFilter = "";
+  cSort = "new";
+  $("c-search").value = "";
+  $("c-article-filter").value = "";
+  $("c-sort").value = "new";
+  renderAdminComments();
+});
+
+/* llena el desplegable de artículos (solo los que tienen comentarios) */
+function fillArticleFilter() {
+  const select = $("c-article-filter");
+  const current = select.value;
+  select.textContent = "";
+
+  const all = document.createElement("option");
+  all.value = "";
+  all.textContent = "Todos los artículos";
+  select.appendChild(all);
+
+  const withComments = new Set(adminComments.map((c) => c.articleId));
+  [...withComments].forEach((articleId) => {
+    const opt = document.createElement("option");
+    opt.value = articleId;
+    let title = articleTitleOf(articleId);
+    if (title.length > 48) title = title.slice(0, 48) + "…";
+    opt.textContent = title;
+    select.appendChild(opt);
+  });
+  select.value = withComments.has(current) ? current : "";
+  cArticleFilter = select.value;
+}
 
 async function loadComments() {
   try {
@@ -1311,6 +1365,7 @@ async function loadComments() {
     console.error("No se pudieron cargar los comentarios:", err);
     adminComments = [];
   }
+  fillArticleFilter();
   renderAdminComments();
 }
 
@@ -1348,13 +1403,36 @@ function renderAdminComments() {
 
   const list = $("admin-comments");
   list.textContent = "";
-  const rows = adminComments.filter((c) =>
+
+  const hasFilters = Boolean(cQuery || cArticleFilter || cSort !== "new");
+  $("c-clear").hidden = !hasFilters;
+
+  let rows = adminComments.filter((c) =>
     commentFilter === "pending" ? c.status === "pending" : c.status === "approved"
   );
 
+  if (cArticleFilter) rows = rows.filter((c) => c.articleId === cArticleFilter);
+
+  if (cQuery) {
+    rows = rows.filter((c) =>
+      ((c.name || "") + " " + (c.email || "")).toLowerCase().includes(cQuery)
+    );
+  }
+
+  rows.sort((a, b) => {
+    if (cSort === "likes") {
+      const d = (b.likes || 0) - (a.likes || 0);
+      if (d) return d;
+    }
+    const ta = tsValue(a.createdAt);
+    const tb = tsValue(b.createdAt);
+    return cSort === "old" ? ta - tb : tb - ta;
+  });
+
   $("comments-none").hidden = rows.length > 0;
-  $("comments-none-text").textContent =
-    commentFilter === "pending"
+  $("comments-none-text").textContent = hasFilters
+    ? "Ningún comentario coincide con los filtros."
+    : commentFilter === "pending"
       ? "No hay comentarios pendientes de aprobación."
       : "Todavía no hay comentarios aprobados.";
 
