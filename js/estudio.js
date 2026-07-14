@@ -383,9 +383,11 @@ function showPanel(panelId) {
   tabs.forEach((t) =>
     t.classList.toggle("is-active", t.dataset.panel === panelId)
   );
-  ["panel-list", "panel-editor", "panel-tags"].forEach((id) => {
-    $(id).hidden = id !== panelId;
-  });
+  ["panel-list", "panel-editor", "panel-comments", "panel-tags"].forEach(
+    (id) => {
+      $(id).hidden = id !== panelId;
+    }
+  );
 }
 tabs.forEach((tab) =>
   tab.addEventListener("click", () => showPanel(tab.dataset.panel))
@@ -394,7 +396,7 @@ tabs.forEach((tab) =>
 /* ── Carga inicial ───────────────────────────────────────────────────── */
 
 async function loadEverything() {
-  await Promise.all([loadTags(), loadArticles()]);
+  await Promise.all([loadTags(), loadArticles(), loadComments()]);
   if (!editing) resetEditor();
 }
 
@@ -1294,6 +1296,211 @@ sectionsList.addEventListener(
   },
   true
 );
+
+/* ── Moderación de comentarios ───────────────────────────────────────── */
+
+let adminComments = [];
+let commentFilter = "pending";
+
+async function loadComments() {
+  try {
+    const snap = await getDocs(collection(db, "comments"));
+    adminComments = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    adminComments.sort((a, b) => (tsValue(b.createdAt) || 0) - (tsValue(a.createdAt) || 0));
+  } catch (err) {
+    console.error("No se pudieron cargar los comentarios:", err);
+    adminComments = [];
+  }
+  renderAdminComments();
+}
+
+function tsValue(v) {
+  const d = toDateValue(v);
+  return d ? d.getTime() : 0;
+}
+
+function articleTitleOf(articleId) {
+  const article = articles.find((a) => a.id === articleId);
+  return article ? article.title || "Sin título" : "(artículo eliminado)";
+}
+
+document.querySelectorAll("#cfilter .seg__btn").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    commentFilter = btn.dataset.cf;
+    document
+      .querySelectorAll("#cfilter .seg__btn")
+      .forEach((b) => b.classList.toggle("is-active", b === btn));
+    renderAdminComments();
+  })
+);
+
+function renderAdminComments() {
+  const pending = adminComments.filter((c) => c.status === "pending");
+
+  /* burbujas con el número de pendientes */
+  const bubble = $("pending-bubble");
+  const bubble2 = $("cf-pending-n");
+  [bubble, bubble2].forEach((b) => {
+    if (!b) return;
+    b.hidden = pending.length === 0;
+    b.textContent = pending.length;
+  });
+
+  const list = $("admin-comments");
+  list.textContent = "";
+  const rows = adminComments.filter((c) =>
+    commentFilter === "pending" ? c.status === "pending" : c.status === "approved"
+  );
+
+  $("comments-none").hidden = rows.length > 0;
+  $("comments-none-text").textContent =
+    commentFilter === "pending"
+      ? "No hay comentarios pendientes de aprobación."
+      : "Todavía no hay comentarios aprobados.";
+
+  rows.forEach((c) => list.appendChild(adminCommentRow(c)));
+}
+
+function adminCommentRow(c) {
+  const row = document.createElement("div");
+  row.className = "citem";
+
+  const top = document.createElement("div");
+  top.className = "citem__top";
+
+  const who = document.createElement("div");
+  who.className = "citem__who";
+  const name = document.createElement("strong");
+  name.textContent = c.name || "Anónimo";
+  who.appendChild(name);
+  const email = document.createElement("span");
+  email.className = "citem__email";
+  email.textContent = c.email ? c.email : "sin correo";
+  who.appendChild(email);
+  if (c.parentId) {
+    const rep = document.createElement("span");
+    rep.className = "badge badge--cat";
+    rep.textContent = "Respuesta";
+    who.appendChild(rep);
+  }
+  top.appendChild(who);
+
+  const when = document.createElement("span");
+  when.className = "citem__date";
+  const d = toDateValue(c.createdAt);
+  when.textContent = d
+    ? d.toLocaleDateString("es", { day: "numeric", month: "short" }) +
+      " · " +
+      d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" })
+    : "";
+  top.appendChild(when);
+  row.appendChild(top);
+
+  const article = document.createElement("div");
+  article.className = "citem__article";
+  const artIcon = document.createElement("ion-icon");
+  artIcon.setAttribute("name", "newspaper-outline");
+  article.appendChild(artIcon);
+  article.appendChild(document.createTextNode(articleTitleOf(c.articleId)));
+  row.appendChild(article);
+
+  if (c.parentId) {
+    const parent = adminComments.find((p) => p.id === c.parentId);
+    if (parent) {
+      const ctx = document.createElement("div");
+      ctx.className = "citem__parent";
+      ctx.textContent =
+        "En respuesta a " + (parent.name || "Anónimo") + ": «" +
+        String(parent.text || "").slice(0, 80) +
+        (String(parent.text || "").length > 80 ? "…" : "") + "»";
+      row.appendChild(ctx);
+    }
+  }
+
+  const text = document.createElement("p");
+  text.className = "citem__text";
+  text.textContent = c.text || "";
+  row.appendChild(text);
+
+  const foot = document.createElement("div");
+  foot.className = "citem__foot";
+
+  const likes = document.createElement("span");
+  likes.className = "citem__likes";
+  const likeIcon = document.createElement("ion-icon");
+  likeIcon.setAttribute("name", "thumbs-up-outline");
+  likes.appendChild(likeIcon);
+  likes.appendChild(document.createTextNode(" " + (c.likes || 0)));
+  foot.appendChild(likes);
+
+  const actions = document.createElement("div");
+  actions.className = "citem__actions";
+
+  if (c.status === "pending") {
+    const approve = document.createElement("button");
+    approve.className = "btn btn--primary btn--sm";
+    const okIcon = document.createElement("ion-icon");
+    okIcon.setAttribute("name", "checkmark-outline");
+    approve.appendChild(okIcon);
+    approve.appendChild(document.createTextNode(" Aprobar"));
+    approve.addEventListener("click", async () => {
+      busy(approve, true, "Aprobando…");
+      try {
+        await updateDoc(doc(db, "comments", c.id), { status: "approved" });
+        c.status = "approved";
+        toast("Comentario aprobado y publicado.");
+        renderAdminComments();
+      } catch (err) {
+        console.error(err);
+        toast("No se pudo aprobar el comentario.", "error");
+      } finally {
+        busy(approve, false);
+      }
+    });
+    actions.appendChild(approve);
+  } else {
+    const unpub = document.createElement("button");
+    unpub.className = "btn btn--ghost btn--sm";
+    unpub.textContent = "Despublicar";
+    unpub.addEventListener("click", async () => {
+      try {
+        await updateDoc(doc(db, "comments", c.id), { status: "pending" });
+        c.status = "pending";
+        toast("Comentario despublicado (vuelve a pendientes).");
+        renderAdminComments();
+      } catch (err) {
+        console.error(err);
+        toast("No se pudo despublicar.", "error");
+      }
+    });
+    actions.appendChild(unpub);
+  }
+
+  actions.appendChild(
+    iconButton("trash-outline", "Eliminar", "icon-btn--danger", () =>
+      confirmModal(
+        "¿Eliminar comentario?",
+        "El comentario de «" + (c.name || "Anónimo") + "» se eliminará de forma permanente.",
+        "Eliminar",
+        async () => {
+          try {
+            await deleteDoc(doc(db, "comments", c.id));
+            adminComments = adminComments.filter((x) => x.id !== c.id);
+            toast("Comentario eliminado.");
+            renderAdminComments();
+          } catch (err) {
+            console.error(err);
+            toast("No se pudo eliminar.", "error");
+          }
+        }
+      )
+    )
+  );
+
+  foot.appendChild(actions);
+  row.appendChild(foot);
+  return row;
+}
 
 /* ── Guardar / publicar ──────────────────────────────────────────────── */
 

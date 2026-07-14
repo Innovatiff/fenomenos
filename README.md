@@ -99,6 +99,33 @@ En la [consola de Firebase](https://console.firebase.google.com/) del proyecto
          allow read: if true;
          allow write: if request.auth != null;
        }
+
+       // Comentarios: cualquiera puede crear uno PENDIENTE (con campos
+       // válidos); el público solo lee aprobados; los «me gusta» son el
+       // único campo que un visitante puede tocar; aprobar/eliminar
+       // requiere sesión (el Estudio)
+       match /comments/{id} {
+         allow read: if resource.data.status == 'approved' || request.auth != null;
+         allow create: if request.auth != null || (
+           request.resource.data.status == 'pending'
+           && request.resource.data.likes == 0
+           && request.resource.data.text is string
+           && request.resource.data.text.size() > 0
+           && request.resource.data.text.size() <= 2000
+           && request.resource.data.name is string
+           && request.resource.data.name.size() > 0
+           && request.resource.data.name.size() <= 80
+           && request.resource.data.depth is int
+           && request.resource.data.depth >= 0
+           && request.resource.data.depth <= 2
+         );
+         allow update: if request.auth != null || (
+           resource.data.status == 'approved'
+           && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['likes'])
+         );
+         allow delete: if request.auth != null;
+       }
      }
    }
    ```

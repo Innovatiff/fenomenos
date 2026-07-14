@@ -95,6 +95,10 @@
           <button class="seg__btn is-active" data-panel="panel-list">
             <ion-icon name="documents-outline"></ion-icon> Artículos
           </button>
+          <button class="seg__btn" data-panel="panel-comments">
+            <ion-icon name="chatbubbles-outline"></ion-icon> Comentarios
+            <span class="seg__bubble" id="pending-bubble" hidden></span>
+          </button>
           <button class="seg__btn" data-panel="panel-tags">
             <ion-icon name="pricetags-outline"></ion-icon> Etiquetas
           </button>
@@ -318,6 +322,33 @@
                 <article class="post post--live" id="live-root"></article>
               </div>
             </aside>
+          </div>
+        </section>
+
+        <!-- ── COMENTARIOS ─────────────────────────────────────────── -->
+        <section class="panel" id="panel-comments" hidden>
+          <div class="panel__head">
+            <div>
+              <h1 class="panel__title">Comentarios</h1>
+              <p class="panel__sub" id="comments-summary">
+                Los comentarios nuevos llegan aquí y no se publican hasta que
+                los apruebes.
+              </p>
+            </div>
+            <div class="seg seg--mini" id="cfilter">
+              <button class="seg__btn is-active" data-cf="pending">
+                Pendientes <span class="seg__bubble" id="cf-pending-n" hidden></span>
+              </button>
+              <button class="seg__btn" data-cf="approved">Aprobados</button>
+            </div>
+          </div>
+
+          <div class="clist" id="admin-comments"></div>
+
+          <div class="panel__empty" id="comments-none" hidden>
+            <ion-icon name="chatbubbles-outline"></ion-icon>
+            <strong>Nada por aquí</strong>
+            <p id="comments-none-text">No hay comentarios pendientes.</p>
           </div>
         </section>
 

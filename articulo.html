@@ -253,6 +253,32 @@
                 <strong>Cargando artículo…</strong>
               </div>
             </div>
+
+            <!-- ═══════════════════ COMENTARIOS ═══════════════════ -->
+            <section class="comments" id="comments" hidden>
+              <div class="comments__head">
+                <h2 class="comments__title">
+                  <ion-icon name="chatbubbles-outline"></ion-icon>
+                  Comentarios <span id="comments-count"></span>
+                </h2>
+                <button class="btn btn--primary btn--sm" id="btn-comment">
+                  <ion-icon name="create-outline"></ion-icon> Comentar
+                </button>
+              </div>
+
+              <div id="own-pending"></div>
+              <div class="comments__list" id="comments-list"></div>
+
+              <p class="comments__empty" id="comments-empty" hidden>
+                Todavía no hay comentarios. Sé la primera persona en comentar.
+              </p>
+
+              <div class="comments__more">
+                <button class="btn btn--ghost btn--sm" id="comments-more" hidden>
+                  Mostrar más
+                </button>
+              </div>
+            </section>
           </article>
 
           <!-- Barra lateral: cajas fijas que acompañan el scroll -->
@@ -313,6 +339,87 @@
         </div>
       </div>
     </footer>
+
+    <!-- ═══════════════ PORTAL PARA COMENTAR ═══════════════ -->
+    <div class="cmodal" id="cmodal" hidden>
+      <div class="cmodal__backdrop" data-cmodal-close></div>
+      <div
+        class="cmodal__card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cmodal-title"
+      >
+        <div class="cmodal__head">
+          <h3 class="cmodal__title" id="cmodal-title">Escribe un comentario</h3>
+          <button class="cmodal__x" data-cmodal-close aria-label="Cerrar">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <p class="cmodal__replying" id="cmodal-replying" hidden></p>
+
+        <form id="cmodal-form" novalidate>
+          <div class="cfield">
+            <label for="c-name">Nombre</label>
+            <input
+              type="text"
+              id="c-name"
+              maxlength="60"
+              placeholder="Tu nombre"
+              autocomplete="name"
+            />
+            <label class="cmodal__anon">
+              <input type="checkbox" id="c-anon" />
+              Comentar como Anónimo
+            </label>
+          </div>
+
+          <div class="cfield">
+            <label for="c-email">Correo electrónico (opcional)</label>
+            <input
+              type="email"
+              id="c-email"
+              placeholder="tu@correo.com"
+              autocomplete="email"
+            />
+            <small>Tu correo no aparecerá en tu comentario.</small>
+          </div>
+
+          <div class="cfield">
+            <label for="c-text">Comentario</label>
+            <textarea
+              id="c-text"
+              rows="4"
+              maxlength="2000"
+              placeholder="Escribe tu comentario…"
+            ></textarea>
+          </div>
+
+          <p class="cmodal__error" id="cmodal-error" role="alert"></p>
+
+          <div class="cmodal__actions">
+            <button type="button" class="btn btn--ghost btn--sm" data-cmodal-close>
+              Cancelar
+            </button>
+            <button type="submit" class="btn btn--primary btn--sm" id="cmodal-submit">
+              Publicar
+            </button>
+          </div>
+        </form>
+
+        <div class="cmodal__done" id="cmodal-done" hidden>
+          <ion-icon name="checkmark-circle-outline"></ion-icon>
+          <strong>¡Gracias por tu comentario!</strong>
+          <p>
+            Tu comentario está en revisión y aparecerá aquí una vez sea
+            aprobado.
+          </p>
+          <button class="btn btn--primary btn--sm" data-cmodal-close>
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
 
     <button class="to-top" id="to-top" aria-label="Volver arriba">
       <ion-icon name="arrow-up-outline"></ion-icon>

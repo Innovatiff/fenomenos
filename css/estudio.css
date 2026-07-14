@@ -702,6 +702,135 @@
   letter-spacing: 0;
 }
 
+/* ── Moderación de comentarios ── */
+
+.seg--mini {
+  padding: 0.3rem;
+}
+.seg--mini .seg__btn {
+  padding: 0.6rem 1.3rem;
+  font-size: 1.3rem;
+}
+
+.seg__bubble {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  padding: 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+  background-color: var(--alert);
+  border-radius: var(--r-pill);
+}
+
+.clist {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.citem {
+  padding: 1.6rem 1.8rem;
+  border: 0.1rem solid var(--line);
+  border-radius: var(--r-md);
+  background-image: linear-gradient(
+    170deg,
+    rgba(9, 15, 34, 0.9),
+    rgba(0, 11, 51, 0.6)
+  );
+}
+
+.citem__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.6rem;
+  flex-wrap: wrap;
+}
+
+.citem__who {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.citem__who strong {
+  font-size: 1.5rem;
+  color: var(--text);
+}
+
+.citem__email {
+  font-size: 1.25rem;
+  color: var(--text-5);
+}
+
+.citem__date {
+  font-size: 1.2rem;
+  color: var(--text-5);
+  white-space: nowrap;
+}
+
+.citem__article {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+  font-size: 1.25rem;
+  color: var(--text-4);
+}
+.citem__article ion-icon {
+  font-size: 1.4rem;
+  color: var(--alert);
+}
+
+.citem__parent {
+  margin-top: 0.8rem;
+  padding: 0.7rem 1.2rem;
+  font-size: 1.25rem;
+  color: var(--text-5);
+  border-left: 0.3rem solid var(--line-2);
+  background-color: rgba(23, 37, 84, 0.25);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+.citem__text {
+  margin-top: 1rem;
+  font-size: 1.45rem;
+  line-height: 1.65;
+  color: var(--text-3);
+  white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
+.citem__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.6rem;
+  margin-top: 1.4rem;
+}
+
+.citem__likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-4);
+}
+.citem__likes ion-icon {
+  font-size: 1.5rem;
+  color: #8ec7ff;
+}
+
+.citem__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
 /* Pestaña de etiquetas y categorías en dos columnas */
 .taxgrid {
   display: grid;
