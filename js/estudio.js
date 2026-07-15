@@ -209,14 +209,62 @@ function makeDropZone(zone, applyFile, applyUrl) {
       applyFile(file);
       return;
     }
-    /* también acepta arrastrar una imagen desde otra pestaña (llega como URL) */
-    const url = (
-      e.dataTransfer.getData("text/uri-list") ||
-      e.dataTransfer.getData("text/plain") ||
-      ""
-    ).trim();
-    if (url && /^https?:\/\//i.test(url) && applyUrl) applyUrl(url);
+    /* imagen arrastrada desde otra página: la URL real viene en el HTML */
+    const url = extractImageUrl(e.dataTransfer);
+    if (url && applyUrl) {
+      applyUrl(url);
+      return;
+    }
+    toast(
+      "Ahí no venía una imagen (solo el enlace de la página). Haz clic derecho sobre la imagen → «Copiar imagen» y pégala aquí con Ctrl+V.",
+      "error"
+    );
   });
+}
+
+/* Al arrastrar una imagen desde una página web, muchos sitios la envuelven
+   en un enlace: text/uri-list trae la URL DEL ARTÍCULO, no de la imagen.
+   La imagen real está en el fragmento text/html (<img src/srcset>). */
+function extractImageUrl(dt) {
+  const html = dt.getData("text/html");
+  if (html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const img = doc.querySelector("img");
+    if (img) {
+      /* srcset: la candidata más grande */
+      const srcset = img.getAttribute("srcset");
+      if (srcset) {
+        let best = "";
+        let bestW = -1;
+        srcset.split(",").forEach((entry) => {
+          const [u, d] = entry.trim().split(/\s+/);
+          const w = d && /^\d+w$/.test(d) ? parseInt(d, 10) : 0;
+          if (u && w >= bestW) {
+            bestW = w;
+            best = u;
+          }
+        });
+        if (/^https?:/i.test(best)) return best;
+      }
+      const src = img.getAttribute("src") || "";
+      if (/^https?:/i.test(src)) return src;
+      const dataSrc =
+        img.getAttribute("data-src") || img.getAttribute("data-lazy-src") || "";
+      if (/^https?:/i.test(dataSrc)) return dataSrc;
+    }
+  }
+  /* URL suelta: solo si parece de imagen (si no, sería la página misma) */
+  const uri = (
+    dt.getData("text/uri-list") ||
+    dt.getData("text/plain") ||
+    ""
+  )
+    .trim()
+    .split("\n")[0];
+  if (/^https?:\/\/\S+\.(png|jpe?g|gif|webp|avif|svg)(\?|#|$)/i.test(uri)) {
+    return uri;
+  }
+  return "";
 }
 
 async function applyCoverFile(file) {
@@ -1041,6 +1089,16 @@ function setCover(value) {
   coverData = value || "";
   const hasImage = Boolean(coverData);
   $("cover-preview").hidden = !hasImage;
+  /* si el sitio de origen bloquea el enlace, avisa en vez de dejar la
+     imagen rota en silencio */
+  $("cover-img").onerror =
+    hasImage && !coverData.startsWith("data:")
+      ? () =>
+          toast(
+            "Esa imagen no se pudo cargar (el sitio puede bloquear el enlace). Cópiala con clic derecho → «Copiar imagen» y pégala con Ctrl+V.",
+            "error"
+          )
+      : null;
   $("cover-img").src = hasImage ? coverData : "";
   $("cover-hint").textContent = coverData.startsWith("data:")
     ? `Imagen guardada dentro del artículo (${kb(coverData)} KB, comprimida).`
