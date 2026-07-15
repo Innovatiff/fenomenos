@@ -8,7 +8,7 @@ import { startAnalytics } from "./firebase-init.js";
 import {
   fetchArticle,
   fetchPublished,
-  reactToArticle,
+  switchReaction,
   fetchComments,
   addComment,
   likeComment,
@@ -276,17 +276,22 @@ const rx = {
   id: null,
   storeKey: null,
   counts: {},
-  mine: {},
+  mine: null, // clave de la ÚNICA reacción del visitante (o null)
   widgets: [], // { key, btn, icon, n } de todas las instancias
 };
+
+const iconOf = (key) => REACTIONS.find((r) => r.key === key).icon;
 
 function buildReactionsBar(article, id) {
   rx.id = id;
   rx.storeKey = "fdc-react-" + id;
   try {
-    rx.mine = JSON.parse(localStorage.getItem(rx.storeKey) || "{}");
+    const stored = JSON.parse(localStorage.getItem(rx.storeKey) || "{}");
+    /* solo UNA reacción por persona; si había varias guardadas (formato
+       antiguo), se conserva la primera */
+    rx.mine = REACTIONS.map((r) => r.key).find((k) => stored[k]) || null;
   } catch (_) {
-    rx.mine = {};
+    rx.mine = null;
   }
   REACTIONS.forEach(({ key }) => (rx.counts[key] = reactionCount(article, key)));
 
@@ -307,7 +312,7 @@ function reactionsRow(className) {
   bar.className = className;
 
   REACTIONS.forEach(({ key, icon, label }) => {
-    const on = Boolean(rx.mine[key]);
+    const on = rx.mine === key;
     const btn = document.createElement("button");
     btn.className = "rbtn rbtn--" + key + (on ? " is-on" : "");
     btn.title = label;
@@ -323,15 +328,16 @@ function reactionsRow(className) {
     btn.appendChild(n);
 
     rx.widgets.push({ key, btn, icon: ic, n });
-    btn.addEventListener("click", () => toggleReaction(key, icon));
+    btn.addEventListener("click", () => toggleReaction(key));
     bar.appendChild(btn);
   });
 
   return bar;
 }
 
-function paintReaction(key, iconName, animate) {
-  const on = Boolean(rx.mine[key]);
+function paintReaction(key, animate) {
+  const on = rx.mine === key;
+  const iconName = iconOf(key);
   rx.widgets
     .filter((w) => w.key === key)
     .forEach((w) => {
@@ -346,34 +352,44 @@ function paintReaction(key, iconName, animate) {
     });
 }
 
-async function toggleReaction(key, iconName) {
-  const turningOn = !rx.mine[key];
-  const delta = turningOn ? 1 : -1;
+function persistMine() {
+  try {
+    localStorage.setItem(
+      rx.storeKey,
+      JSON.stringify(rx.mine ? { [rx.mine]: true } : {})
+    );
+  } catch (_) {}
+}
+
+/* Una sola reacción por persona: hacer clic en otra la CAMBIA (resta la
+   anterior, suma la nueva); hacer clic en la activa la retira. */
+async function toggleReaction(key) {
+  const prev = rx.mine;
+  const removing = prev === key;
+  const addKey = removing ? null : key;
+  const removeKey = prev;
 
   /* actualización optimista en TODAS las instancias */
-  if (turningOn) rx.mine[key] = true;
-  else delete rx.mine[key];
-  rx.counts[key] = Math.max(0, rx.counts[key] + delta);
-  paintReaction(key, iconName, true);
-  try {
-    localStorage.setItem(rx.storeKey, JSON.stringify(rx.mine));
-  } catch (_) {}
+  rx.mine = addKey;
+  if (removeKey) rx.counts[removeKey] = Math.max(0, rx.counts[removeKey] - 1);
+  if (addKey) rx.counts[addKey] = (rx.counts[addKey] || 0) + 1;
+  if (removeKey) paintReaction(removeKey, false);
+  if (addKey) paintReaction(addKey, true);
+  persistMine();
 
   try {
-    await reactToArticle(rx.id, key, delta);
+    await switchReaction(rx.id, addKey, removeKey);
   } catch (err) {
     /* revertir si el servidor lo rechaza */
     console.error("Reacción no guardada:", err);
-    if (turningOn) delete rx.mine[key];
-    else rx.mine[key] = true;
-    rx.counts[key] = Math.max(0, rx.counts[key] - delta);
-    paintReaction(key, iconName, false);
-    try {
-      localStorage.setItem(rx.storeKey, JSON.stringify(rx.mine));
-    } catch (_) {}
+    rx.mine = prev;
+    if (removeKey) rx.counts[removeKey] += 1;
+    if (addKey) rx.counts[addKey] = Math.max(0, rx.counts[addKey] - 1);
+    if (removeKey) paintReaction(removeKey, false);
+    if (addKey) paintReaction(addKey, false);
+    persistMine();
   }
 }
-
 
 /* ══════════════════════════ COMENTARIOS ══════════════════════════════
    Cualquiera comenta desde el portal; el comentario queda EN REVISIÓN

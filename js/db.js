@@ -51,6 +51,16 @@ export async function reactToArticle(id, kind, delta) {
   });
 }
 
+/* Cambia la reacción única del visitante en una sola escritura atómica:
+   suma a la nueva y resta de la anterior (cualquiera puede ser null). */
+export async function switchReaction(id, addKind, removeKind) {
+  const patch = {};
+  if (addKind) patch["reactions." + addKind] = increment(1);
+  if (removeKind) patch["reactions." + removeKind] = increment(-1);
+  if (!Object.keys(patch).length) return;
+  await updateDoc(doc(db, "articles", id), patch);
+}
+
 /* ── Comentarios ─────────────────────────────────────────────────────────
    Cualquiera puede crear un comentario, pero nace PENDIENTE y solo se ve
    en público cuando el Estudio lo aprueba. Los «me gusta» son un
