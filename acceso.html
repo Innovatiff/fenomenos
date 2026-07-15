@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000b33" />
+    <meta
+      name="description"
+      content="Accede a la app del tiempo de Fenómenos del Caribe: radar en vivo, pronósticos y mapas interactivos."
+    />
+
+    <title>Acceso | Fenómenos App</title>
+
+    <link rel="icon" href="img/favicon.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/app.css" />
+
+    <script
+      type="module"
+      src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"
+    ></script>
+    <script
+      nomodule
+      src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"
+    ></script>
+    <script type="module" src="js/acceso.js"></script>
+  </head>
+
+  <body class="auth-body">
+    <main class="auth">
+      <!-- ══════════════ PANEL DE MARCA ══════════════ -->
+      <section class="auth__brand" aria-hidden="true">
+        <div class="auth__brand-glow"></div>
+        <div class="auth__brand-inner">
+          <a href="index.html" class="auth__logo-row">
+            <img src="img/logo.png" alt="" width="48" height="48" />
+            <span>Fenómenos del Caribe Media</span>
+          </a>
+
+          <h1 class="heading__primary auth__headline">
+            El tiempo del Caribe,<br />en vivo
+          </h1>
+
+          <ul class="auth__features">
+            <li>
+              <ion-icon name="radio-outline"></ion-icon>
+              <div>
+                <strong>Radar y satélite en tiempo real</strong>
+                <span>Lluvia y nubes en movimiento sobre un mapa interactivo.</span>
+              </div>
+            </li>
+            <li>
+              <ion-icon name="partly-sunny-outline"></ion-icon>
+              <div>
+                <strong>Pronóstico de 7 días</strong>
+                <span>Por hora y por día, para cualquier punto del mapa.</span>
+              </div>
+            </li>
+            <li>
+              <ion-icon name="settings-outline"></ion-icon>
+              <div>
+                <strong>A tu medida</strong>
+                <span>Elige tu país, tus unidades y tu capa preferida.</span>
+              </div>
+            </li>
+          </ul>
+
+          <p class="auth__fine">
+            Cobertura: el Caribe, Centroamérica, México y Estados Unidos.
+          </p>
+        </div>
+      </section>
+
+      <!-- ══════════════ TARJETA DE ACCESO ══════════════ -->
+      <section class="auth__side">
+        <div class="auth__card">
+          <div class="auth__card-head">
+            <span class="auth__badge">
+              <ion-icon name="thunderstorm-outline"></ion-icon> Fenómenos App
+            </span>
+            <h2 class="auth__title" id="auth-title">Bienvenido de nuevo</h2>
+            <p class="auth__sub" id="auth-sub">
+              Inicia sesión para entrar a la app del tiempo.
+            </p>
+          </div>
+
+          <div class="seg auth__tabs" role="tablist">
+            <button class="seg__btn is-active" id="tab-login" role="tab">
+              Iniciar sesión
+            </button>
+            <button class="seg__btn" id="tab-signup" role="tab">
+              Crear cuenta
+            </button>
+          </div>
+
+          <!-- Iniciar sesión -->
+          <form id="form-login" novalidate>
+            <label class="field">
+              <span class="field__label">Correo electrónico</span>
+              <input
+                type="email"
+                id="li-email"
+                class="field__input"
+                autocomplete="username"
+                placeholder="tu@correo.com"
+              />
+            </label>
+            <label class="field">
+              <span class="field__label">Contraseña</span>
+              <input
+                type="password"
+                id="li-password"
+                class="field__input"
+                autocomplete="current-password"
+                placeholder="••••••••"
+              />
+            </label>
+            <button type="submit" class="btn btn--primary auth__submit" id="li-submit">
+              <ion-icon name="log-in-outline"></ion-icon> Entrar a la app
+            </button>
+          </form>
+
+          <!-- Crear cuenta -->
+          <form id="form-signup" novalidate hidden>
+            <label class="field">
+              <span class="field__label">Nombre</span>
+              <input
+                type="text"
+                id="su-name"
+                class="field__input"
+                autocomplete="name"
+                maxlength="50"
+                placeholder="Tu nombre"
+              />
+            </label>
+            <label class="field">
+              <span class="field__label">Correo electrónico</span>
+              <input
+                type="email"
+                id="su-email"
+                class="field__input"
+                autocomplete="username"
+                placeholder="tu@correo.com"
+              />
+            </label>
+            <label class="field">
+              <span class="field__label">Contraseña</span>
+              <input
+                type="password"
+                id="su-password"
+                class="field__input"
+                autocomplete="new-password"
+                placeholder="Mínimo 6 caracteres"
+              />
+            </label>
+            <button type="submit" class="btn btn--primary auth__submit" id="su-submit">
+              <ion-icon name="person-add-outline"></ion-icon> Crear cuenta y entrar
+            </button>
+          </form>
+
+          <p class="auth__error" id="auth-error" role="alert"></p>
+
+          <div class="auth__divider"><span>o</span></div>
+
+          <button class="btn btn--ghost auth__guest" id="btn-guest">
+            <ion-icon name="person-outline"></ion-icon>
+            Continuar como invitado
+          </button>
+          <p class="auth__guest-note">
+            Como invitado puedes usar toda la app; tus ajustes se guardan solo
+            en este dispositivo.
+          </p>
+
+          <a href="index.html" class="auth__back">
+            <ion-icon name="arrow-back-outline"></ion-icon> Volver al sitio
+          </a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

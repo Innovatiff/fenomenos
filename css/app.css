@@ -1,0 +1,1252 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   FENÓMENOS DEL CARIBE — app.css
+   Estilos de Fenómenos App: la puerta de acceso (acceso.html) y la app del
+   tiempo (app.html). Solo depende de los tokens de style.css; no carga
+   estudio.css, así que define sus propios campos, pestañas y toasts.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────  CAMPOS Y CONTROLES  ──────────────────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-bottom: 1.6rem;
+  min-width: 0;
+}
+
+.field__label {
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.12rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+}
+
+.field__input {
+  width: 100%;
+  padding: 1.2rem 1.6rem;
+  font-family: inherit;
+  font-size: 1.5rem;
+  color: #fff;
+  background-color: rgba(5, 7, 17, 0.75);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-sm);
+  transition: border-color 0.2s var(--ease);
+}
+.field__input::placeholder {
+  color: var(--text-5);
+}
+.field__input:focus {
+  outline: none;
+  border-color: var(--text-4);
+}
+
+.field__select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.field__select-wrap select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 4rem;
+}
+.field__select-wrap ion-icon {
+  position: absolute;
+  right: 1.4rem;
+  font-size: 1.6rem;
+  color: var(--text-5);
+  pointer-events: none;
+}
+
+.seg {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-pill);
+  background-color: rgba(5, 7, 17, 0.6);
+}
+
+.seg__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  padding: 0.8rem 1.6rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text-4);
+  border-radius: var(--r-pill);
+  white-space: nowrap;
+  transition: color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.seg__btn:hover {
+  color: #fff;
+}
+.seg__btn.is-active {
+  color: var(--ink);
+  background-color: #dfe3ee;
+  font-weight: 600;
+}
+.seg__btn ion-icon {
+  font-size: 1.6rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ACCESO — página de entrada
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.auth-body {
+  min-height: 100svh;
+  background-color: var(--bg);
+}
+
+.auth {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100svh;
+}
+
+@media (min-width: 64em) {
+  .auth {
+    grid-template-columns: 1.15fr 1fr;
+  }
+}
+
+/* Panel de marca (izquierda) */
+
+.auth__brand {
+  position: relative;
+  display: none;
+  overflow: hidden;
+  background-color: var(--surface-2);
+  background-image:
+    linear-gradient(rgba(69, 81, 118, 0.14) 0.1rem, transparent 0.1rem),
+    linear-gradient(90deg, rgba(69, 81, 118, 0.14) 0.1rem, transparent 0.1rem);
+  background-size: 5.2rem 5.2rem;
+  border-right: 0.1rem solid var(--line);
+}
+
+@media (min-width: 64em) {
+  .auth__brand {
+    display: block;
+  }
+}
+
+.auth__brand-glow {
+  position: absolute;
+  top: -18rem;
+  left: -12rem;
+  width: 52rem;
+  height: 52rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 176, 32, 0.14) 0%,
+    rgba(23, 37, 84, 0.35) 45%,
+    transparent 70%
+  );
+  filter: blur(2rem);
+  pointer-events: none;
+}
+
+.auth__brand-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3.6rem;
+  height: 100%;
+  padding: clamp(3.2rem, 6vw, 8rem);
+  max-width: 62rem;
+}
+
+.auth__logo-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2rem;
+  font-family: "Gugi", sans-serif;
+  font-size: 1.8rem;
+  color: #fff;
+  text-decoration: none;
+}
+.auth__logo-row img {
+  border-radius: 50%;
+}
+
+.auth__headline {
+  font-size: clamp(3.4rem, 3.6vw, 5rem);
+  line-height: 1.15;
+}
+
+.auth__features {
+  display: flex;
+  flex-direction: column;
+  gap: 2.2rem;
+}
+
+.auth__features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.6rem;
+}
+
+.auth__features ion-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 4.4rem;
+  height: 4.4rem;
+  padding: 1.1rem;
+  font-size: 2.2rem;
+  color: var(--alert);
+  background-color: var(--ink);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-sm);
+  box-sizing: border-box;
+}
+
+.auth__features strong {
+  display: block;
+  font-size: 1.6rem;
+  color: #fff;
+  margin-bottom: 0.3rem;
+}
+.auth__features span {
+  font-size: 1.4rem;
+  color: var(--text-4);
+}
+
+.auth__fine {
+  font-size: 1.3rem;
+  color: var(--text-5);
+}
+
+/* Tarjeta de acceso (derecha) */
+
+.auth__side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2rem, 4vw, 4.8rem) var(--gutter);
+}
+
+.auth__card {
+  width: min(100%, 44rem);
+  padding: clamp(2.4rem, 4vw, 3.6rem);
+  background-color: var(--surface);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-lg);
+  box-shadow: 0 2.4rem 8rem rgba(0, 4, 20, 0.55);
+}
+
+.auth__card-head {
+  margin-bottom: 2.4rem;
+}
+
+.auth__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 1.3rem;
+  margin-bottom: 1.6rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.14rem;
+  text-transform: uppercase;
+  color: var(--alert);
+  background-color: var(--ink);
+  border: 0.1rem solid rgba(255, 176, 32, 0.35);
+  border-radius: var(--r-pill);
+}
+.auth__badge ion-icon {
+  font-size: 1.5rem;
+}
+
+.auth__title {
+  font-family: "Gugi", sans-serif;
+  font-size: 2.4rem;
+  font-weight: 400;
+  color: #fff;
+  margin-bottom: 0.6rem;
+}
+
+.auth__sub {
+  font-size: 1.4rem;
+  color: var(--text-4);
+}
+
+.auth__tabs {
+  margin-bottom: 2.4rem;
+}
+.auth__tabs .seg__btn {
+  flex: 1;
+}
+
+.auth__submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.4rem;
+}
+
+.auth__error {
+  min-height: 2rem;
+  margin-top: 1.2rem;
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: #ff8a8e;
+  text-align: center;
+}
+.auth__error:empty {
+  margin-top: 0;
+}
+
+.auth__divider {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  margin: 1.6rem 0;
+  font-size: 1.2rem;
+  letter-spacing: 0.14rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+}
+.auth__divider::before,
+.auth__divider::after {
+  content: "";
+  flex: 1;
+  height: 0.1rem;
+  background-color: var(--line-2);
+}
+
+.auth__guest {
+  width: 100%;
+  justify-content: center;
+}
+
+.auth__guest-note {
+  margin-top: 1.2rem;
+  font-size: 1.25rem;
+  color: var(--text-5);
+  text-align: center;
+}
+
+.auth__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 2.4rem;
+  font-size: 1.35rem;
+  color: var(--text-4);
+  text-decoration: none;
+  transition: color 0.2s var(--ease);
+}
+.auth__back:hover {
+  color: #fff;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   APP — app.html
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.app-body {
+  background-color: var(--bg);
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+}
+
+/* ───────────────────────────  BARRA SUPERIOR  ────────────────────────── */
+
+.app__topbar {
+  position: relative;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 1rem clamp(1.4rem, 3vw, 2.8rem);
+  background-color: rgba(0, 11, 51, 0.85);
+  border-bottom: 0.1rem solid var(--line-2);
+  backdrop-filter: blur(2rem);
+  -webkit-backdrop-filter: blur(2rem);
+}
+
+.app__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.app__logo img {
+  border-radius: 50%;
+}
+.app__logo-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.app__logo-title strong {
+  font-family: "Gugi", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #fff;
+  white-space: nowrap;
+}
+.app__logo-title span {
+  font-size: 1.05rem;
+  letter-spacing: 0.14rem;
+  text-transform: uppercase;
+  color: var(--alert);
+}
+
+@media (max-width: 40em) {
+  .app__logo-title {
+    display: none;
+  }
+}
+
+/* Buscador de lugares */
+
+.app__search {
+  position: relative;
+  flex: 1;
+  max-width: 46rem;
+  margin-inline: auto;
+}
+
+.app__search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1.4rem;
+  background-color: rgba(5, 7, 17, 0.7);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-pill);
+  transition: border-color 0.2s var(--ease);
+}
+.app__search-box:focus-within {
+  border-color: var(--text-4);
+}
+.app__search-box ion-icon {
+  font-size: 1.7rem;
+  color: var(--text-5);
+  flex-shrink: 0;
+}
+.app__search-box input {
+  width: 100%;
+  font: inherit;
+  font-size: 1.4rem;
+  color: #fff;
+  background: none;
+  border: 0;
+  outline: none;
+}
+.app__search-box input::placeholder {
+  color: var(--text-5);
+}
+
+.app__search-results {
+  position: absolute;
+  top: calc(100% + 0.8rem);
+  left: 0;
+  right: 0;
+  display: none;
+  flex-direction: column;
+  max-height: 32rem;
+  overflow-y: auto;
+  padding: 0.6rem;
+  background-color: rgba(0, 11, 51, 0.97);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-md);
+  box-shadow: 0 1.6rem 5rem rgba(0, 4, 20, 0.65);
+}
+.app__search-results.is-open {
+  display: flex;
+}
+
+.app__search-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  font-size: 1.4rem;
+  color: var(--text-2);
+  text-align: left;
+  border-radius: var(--r-sm);
+  transition: background-color 0.15s var(--ease);
+}
+.app__search-item:hover {
+  background-color: var(--brand-500);
+}
+.app__search-item ion-icon {
+  flex-shrink: 0;
+  font-size: 1.6rem;
+  color: var(--text-5);
+}
+.app__search-item small {
+  margin-left: auto;
+  font-size: 1.2rem;
+  color: var(--text-5);
+  white-space: nowrap;
+}
+
+.app__search-empty {
+  padding: 1.2rem;
+  font-size: 1.35rem;
+  color: var(--text-5);
+  text-align: center;
+}
+
+/* Lado derecho del topbar */
+
+.app__topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.app__iconbtn {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.9rem;
+  color: var(--text-3);
+  background-color: rgba(5, 7, 17, 0.7);
+  border: 0.1rem solid var(--line-2);
+  border-radius: 50%;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.app__iconbtn:hover {
+  color: #fff;
+  border-color: var(--text-4);
+}
+
+.app__user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 1.4rem 0.6rem 0.7rem;
+  font-size: 1.3rem;
+  color: var(--text-2);
+  background-color: rgba(5, 7, 17, 0.7);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-pill);
+  max-width: 20rem;
+}
+.app__user-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink);
+  background-color: var(--alert);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.app__user-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 48em) {
+  .app__user {
+    display: none;
+  }
+}
+
+/* ─────────────────────────────  CUERPO  ──────────────────────────────── */
+
+/* En móvil el mapa ocupa una franja fija arriba y el panel se desplaza
+   debajo; en pantallas anchas el panel pasa a columna lateral. */
+.app__main {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 46vh minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+@media (min-width: 64em) {
+  .app__main {
+    grid-template-columns: minmax(34rem, 40rem) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 63.99em) {
+  .map-playbar {
+    bottom: 1.4rem;
+  }
+}
+
+/* Panel del pronóstico */
+
+.app__panel {
+  order: 2;
+  overflow-y: auto;
+  padding: 1.6rem var(--gutter) 3.2rem;
+  background-color: var(--surface);
+  border-top: 0.1rem solid var(--line);
+}
+
+@media (min-width: 64em) {
+  .app__panel {
+    order: 0;
+    border-top: 0;
+    border-right: 0.1rem solid var(--line);
+    padding: 2rem 2.4rem 4rem;
+  }
+}
+
+.panel-block {
+  padding: 1.8rem;
+  margin-bottom: 1.6rem;
+  background-color: rgba(9, 15, 34, 0.9);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-md);
+}
+
+.panel-block__title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1.4rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.14rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+}
+.panel-block__title ion-icon {
+  font-size: 1.5rem;
+  color: var(--alert);
+}
+
+/* Condiciones actuales */
+
+.now__place {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.2rem;
+}
+.now__place ion-icon {
+  color: var(--alert);
+  flex-shrink: 0;
+}
+
+.now__updated {
+  font-size: 1.2rem;
+  color: var(--text-5);
+  margin-bottom: 1.6rem;
+}
+
+.now__main {
+  display: flex;
+  align-items: center;
+  gap: 1.8rem;
+  margin-bottom: 0.6rem;
+}
+
+.now__icon {
+  display: grid;
+  place-items: center;
+  width: 6.4rem;
+  height: 6.4rem;
+  font-size: 3.4rem;
+  color: var(--alert);
+  background-color: var(--ink);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-md);
+  flex-shrink: 0;
+}
+
+.now__temp {
+  font-family: "Gugi", sans-serif;
+  font-size: 5.2rem;
+  line-height: 1;
+  color: #fff;
+}
+
+.now__desc {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 1.8rem;
+}
+
+.now__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.now__stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  background-color: rgba(5, 7, 17, 0.6);
+  border: 0.1rem solid var(--line);
+  border-radius: var(--r-sm);
+}
+.now__stat ion-icon {
+  font-size: 1.8rem;
+  color: var(--text-5);
+  flex-shrink: 0;
+}
+.now__stat div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+.now__stat strong {
+  font-size: 1.4rem;
+  color: #fff;
+  white-space: nowrap;
+}
+.now__stat span {
+  font-size: 1.1rem;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+  white-space: nowrap;
+}
+
+/* Pronóstico por horas */
+
+.hours {
+  display: flex;
+  gap: 0.8rem;
+  overflow-x: auto;
+  padding-bottom: 0.6rem;
+  scrollbar-width: thin;
+}
+
+.hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 6.4rem;
+  padding: 1rem 0.6rem;
+  background-color: rgba(5, 7, 17, 0.6);
+  border: 0.1rem solid var(--line);
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+}
+.hour--now {
+  border-color: rgba(255, 176, 32, 0.5);
+}
+.hour__time {
+  font-size: 1.15rem;
+  color: var(--text-5);
+}
+.hour ion-icon {
+  font-size: 2rem;
+  color: var(--text-2);
+}
+.hour__temp {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #fff;
+}
+.hour__rain {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 1.1rem;
+  color: #8ec7ff;
+}
+.hour__rain ion-icon {
+  font-size: 1.1rem;
+  color: #8ec7ff;
+}
+
+/* Pronóstico diario */
+
+.days {
+  display: flex;
+  flex-direction: column;
+}
+
+.day {
+  display: grid;
+  grid-template-columns: 8.6rem 2.4rem 1fr auto;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1rem 0.4rem;
+  border-bottom: 0.1rem solid var(--line);
+}
+.day:last-child {
+  border-bottom: 0;
+}
+
+.day__name {
+  font-size: 1.35rem;
+  font-weight: 500;
+  color: var(--text-2);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+.day ion-icon {
+  font-size: 2rem;
+  color: var(--text-2);
+}
+
+.day__rain {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.2rem;
+  color: #8ec7ff;
+}
+.day__rain ion-icon {
+  font-size: 1.2rem;
+  color: #8ec7ff;
+}
+
+.day__temps {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  white-space: nowrap;
+}
+.day__max {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #fff;
+}
+.day__min {
+  font-size: 1.3rem;
+  color: var(--text-5);
+}
+
+/* Nota de fuente de datos */
+
+.panel-note {
+  font-size: 1.15rem;
+  color: var(--text-5);
+  text-align: center;
+}
+.panel-note a {
+  color: var(--text-4);
+}
+
+/* ──────────────────────────────  MAPA  ───────────────────────────────── */
+
+.app__maparea {
+  position: relative;
+  min-height: 0;
+  background-color: var(--surface-2);
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-color: var(--surface-2);
+}
+
+/* Controles superpuestos */
+
+.map-controls {
+  position: absolute;
+  top: 1.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  max-width: calc(100% - 2.8rem);
+}
+
+.map-layers {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  background-color: rgba(0, 11, 51, 0.88);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-pill);
+  backdrop-filter: blur(1.2rem);
+  -webkit-backdrop-filter: blur(1.2rem);
+}
+
+.map-layers .seg__btn {
+  padding: 0.7rem 1.3rem;
+  font-size: 1.3rem;
+}
+
+.map-playbar {
+  position: absolute;
+  bottom: 2.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  display: none;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 0.8rem 1.6rem 0.8rem 0.8rem;
+  background-color: rgba(0, 11, 51, 0.88);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-pill);
+  backdrop-filter: blur(1.2rem);
+  -webkit-backdrop-filter: blur(1.2rem);
+  max-width: calc(100% - 2.8rem);
+}
+.map-playbar.is-visible {
+  display: flex;
+}
+
+.map-play {
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  font-size: 1.8rem;
+  color: var(--ink);
+  background-color: var(--alert);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: transform 0.15s var(--ease);
+}
+.map-play:hover {
+  transform: scale(1.06);
+}
+
+.map-frame-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.map-frame-label strong {
+  font-size: 1.35rem;
+  color: #fff;
+}
+.map-frame-label span {
+  font-size: 1.1rem;
+  letter-spacing: 0.1rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+}
+
+/* Marca de agua / crédito */
+
+.map-credit {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.6rem;
+  z-index: 500;
+  font-size: 1rem;
+  color: var(--text-5);
+  background-color: rgba(0, 6, 15, 0.55);
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--r-sm);
+  pointer-events: none;
+}
+
+/* Mapa no disponible (sin conexión a los CDN) */
+
+.map-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 400;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 2.4rem;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(23, 37, 84, 0.5), transparent 60%),
+    var(--surface-2);
+}
+.map-fallback.is-visible {
+  display: flex;
+}
+.map-fallback ion-icon {
+  font-size: 4.2rem;
+  color: var(--text-5);
+}
+.map-fallback strong {
+  font-size: 1.7rem;
+  color: #fff;
+}
+.map-fallback p {
+  max-width: 38rem;
+  font-size: 1.4rem;
+  color: var(--text-4);
+}
+
+/* Ajustes del mapa Leaflet al tema */
+
+.leaflet-container {
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: var(--surface-2);
+}
+.leaflet-control-zoom a {
+  color: var(--text-2) !important;
+  background-color: rgba(0, 11, 51, 0.92) !important;
+  border-color: var(--line-2) !important;
+}
+.leaflet-control-attribution {
+  font-size: 1rem !important;
+  color: var(--text-5) !important;
+  background-color: rgba(0, 6, 15, 0.55) !important;
+}
+.leaflet-control-attribution a {
+  color: var(--text-4) !important;
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  color: var(--text-2);
+  background-color: rgba(0, 11, 51, 0.97);
+  border: 0.1rem solid var(--line-2);
+}
+.leaflet-popup-content {
+  font-size: 1.3rem;
+  margin: 1rem 1.4rem;
+}
+
+/* ─────────────────────────  MODAL DE AJUSTES  ────────────────────────── */
+
+.amodal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gutter);
+  background-color: rgba(0, 4, 16, 0.72);
+  backdrop-filter: blur(0.6rem);
+  -webkit-backdrop-filter: blur(0.6rem);
+}
+.amodal.is-open {
+  display: flex;
+}
+
+.amodal__card {
+  width: min(100%, 46rem);
+  max-height: min(88svh, 72rem);
+  overflow-y: auto;
+  padding: 2.4rem;
+  background-color: var(--surface);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-lg);
+  box-shadow: 0 2.4rem 8rem rgba(0, 4, 20, 0.65);
+  animation: amodalIn 0.25s var(--ease);
+}
+
+@keyframes amodalIn {
+  from {
+    opacity: 0;
+    transform: translateY(1.6rem);
+  }
+}
+
+.amodal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.6rem;
+  margin-bottom: 2rem;
+}
+.amodal__head h2 {
+  font-family: "Gugi", sans-serif;
+  font-size: 2rem;
+  font-weight: 400;
+  color: #fff;
+}
+.amodal__head p {
+  font-size: 1.3rem;
+  color: var(--text-4);
+  margin-top: 0.4rem;
+}
+
+.amodal__close {
+  display: grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  font-size: 1.8rem;
+  color: var(--text-4);
+  border: 0.1rem solid var(--line-2);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.amodal__close:hover {
+  color: #fff;
+  border-color: var(--text-4);
+}
+
+.amodal .seg {
+  width: 100%;
+}
+.amodal .seg__btn {
+  flex: 1;
+}
+
+.amodal__save {
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.8rem;
+}
+
+.amodal__guest-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  margin-top: 1.4rem;
+  font-size: 1.25rem;
+  color: var(--text-5);
+}
+.amodal__guest-note ion-icon {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  margin-top: 0.2rem;
+}
+
+/* ─────────────────────────────  TOASTS  ──────────────────────────────── */
+
+.toasts {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  width: min(100% - 3.2rem, 44rem);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 2rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-pill);
+  background-color: rgba(0, 11, 51, 0.95);
+  box-shadow: 0 1.2rem 4rem rgba(0, 4, 20, 0.6);
+  animation: toastIn 0.3s var(--ease);
+}
+.toast ion-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+.toast--ok ion-icon {
+  color: #8ee6a8;
+}
+.toast--error {
+  border-color: rgba(229, 72, 77, 0.6);
+}
+.toast--error ion-icon {
+  color: #ff8a8e;
+}
+.toast.is-leaving {
+  animation: toastOut 0.3s var(--ease) forwards;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(1.2rem);
+  }
+}
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(1.2rem);
+  }
+}
+
+/* ─────────────────────────  PANTALLA DE CARGA  ───────────────────────── */
+
+.app-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.8rem;
+  background-color: var(--bg);
+  transition: opacity 0.35s var(--ease), visibility 0.35s var(--ease);
+}
+.app-boot.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.app-boot img {
+  width: 7.2rem;
+  border-radius: 50%;
+  animation: bootPulse 1.6s var(--ease) infinite;
+}
+.app-boot span {
+  font-size: 1.35rem;
+  letter-spacing: 0.2rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+}
+
+@keyframes bootPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.07);
+    opacity: 0.75;
+  }
+}
+
+/* Esqueleto de carga en el panel */
+
+.skeleton {
+  border-radius: var(--r-sm);
+  background: linear-gradient(
+    100deg,
+    rgba(69, 81, 118, 0.14) 40%,
+    rgba(139, 146, 170, 0.22) 50%,
+    rgba(69, 81, 118, 0.14) 60%
+  );
+  background-size: 200% 100%;
+  animation: skeletonWave 1.4s linear infinite;
+}
+
+@keyframes skeletonWave {
+  to {
+    background-position: -200% 0;
+  }
+}

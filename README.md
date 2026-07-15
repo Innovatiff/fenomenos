@@ -13,10 +13,13 @@ fenomenos/
 ├── articulos.html      ← listado público de artículos, filtros por etiqueta + búsqueda
 ├── articulo.html       ← lector de un artículo (articulo.html?id=…)
 ├── proximamente.html   ← página puente para las herramientas aún no migradas
+├── acceso.html         ← puerta de Fenómenos App: sesión, registro o invitado
+├── app.html            ← FENÓMENOS APP: mapa, radar/satélite, pronóstico
 ├── estudio.html        ← ⚠ EL SOFTWARE (privado): crear/editar/publicar artículos
 ├── css/
 │   ├── style.css       ← base del sitio (tokens, header, cards, footer…)
 │   ├── articles.css    ← páginas públicas de artículos + próximamente
+│   ├── app.css         ← acceso.html + app.html (Fenómenos App)
 │   └── estudio.css     ← estilos del Estudio
 ├── js/
 │   ├── script.js       ← interacción general (header, malla, reveals…)
@@ -26,6 +29,8 @@ fenomenos/
 │   ├── index-articles.js ← últimos artículos en portada
 │   ├── articles-page.js  ← listado con filtros y búsqueda
 │   ├── article-page.js   ← lector de artículo
+│   ├── acceso.js         ← autenticación de la app (correo, registro, invitado)
+│   ├── app.js            ← toda la lógica de Fenómenos App
 │   └── estudio.js        ← toda la lógica del Estudio
 └── img/                ← logo, favicons
 ```
@@ -36,7 +41,9 @@ Sin build step. Súbelo tal cual a GitHub Pages, Netlify o Vercel.
 
 Página **sin enlaces desde el sitio**: solo se entra escribiendo la URL
 (`https://tudominio/estudio.html`). Requiere iniciar sesión con **Firebase
-Authentication** (correo y contraseña).
+Authentication** (correo y contraseña) **y** que el UID de esa cuenta esté
+en la colección `admins` de Firestore (ver «Puesta en marcha»). Las cuentas
+creadas desde Fenómenos App no pueden entrar aunque tengan contraseña.
 
 Qué permite:
 
@@ -66,47 +73,104 @@ real: columna ancha + barra lateral fija que acompaña el scroll con el
 (WhatsApp, Facebook, X, copiar enlace) y «Más artículos», además de una
 barra de progreso de lectura.
 
+## Fenómenos App (`app.html` + `acceso.html`)
+
+El botón **«Lanzar app»** del header lleva a `acceso.html`, donde se puede
+**iniciar sesión, crear una cuenta o entrar como invitado** (sesión anónima
+de Firebase). Una vez dentro, `app.html` ofrece:
+
+- **Mapa interactivo** (Leaflet + mapa base oscuro de CARTO) centrado en el
+  país elegido; al tocar cualquier punto se carga su pronóstico.
+- **Radar y satélite en vivo** (RainViewer) con animación reproducible
+  (fotogramas pasados + pronóstico inmediato del radar).
+- **Pronóstico** de Open-Meteo: condiciones actuales, próximas 24 horas y
+  7 días, en las unidades elegidas.
+- **Buscador de lugares** (geocodificador de Open-Meteo, en español).
+- **Ajustes por usuario**: país principal, °C/°F, km/h/mph y capa inicial.
+  Siempre se guardan en el dispositivo (`localStorage`); si la cuenta no es
+  anónima también se sincronizan en Firestore (`users/{uid}`) para llevarlos
+  a cualquier dispositivo.
+
+Todos los servicios del mapa y del pronóstico son **gratuitos y sin clave**
+(CARTO basemaps, RainViewer, Open-Meteo).
+
+> ⚠️ **Las cuentas de la app NO entran al Estudio.** El Estudio solo abre
+> para las cuentas listadas en la colección `admins` de Firestore (ver
+> abajo); cualquier otra sesión —incluidos los invitados— es rechazada con
+> «Esta cuenta no tiene acceso al Estudio», y las reglas de Firestore
+> refuerzan lo mismo del lado del servidor.
+
 ## Puesta en marcha de Firebase (una sola vez)
 
 En la [consola de Firebase](https://console.firebase.google.com/) del proyecto
 `fenomenos-61255`:
 
-1. **Authentication → Sign-in method**: habilita **Correo electrónico/contraseña**.
+1. **Authentication → Sign-in method**: habilita **Correo electrónico/contraseña**
+   (para el Estudio y las cuentas de la app) y **Anónimo** (para el modo
+   invitado de la app).
 2. **Authentication → Users → Add user**: crea el usuario del dueño (ese
-   correo/contraseña es el acceso al Estudio). No hay registro público.
-3. **Authentication → Settings → Authorized domains**: añade el dominio donde
+   correo/contraseña es el acceso al Estudio).
+3. **Firestore Database → Data**: crea la colección **`admins`** y añade un
+   documento cuyo **ID sea el UID del dueño** (cópialo de Authentication →
+   Users). El contenido puede ser algo como `{ role: "owner" }`; lo que
+   importa es que el documento exista. **Solo los UID listados aquí pueden
+   entrar al Estudio y publicar.** Nunca des permisos de escritura a esta
+   colección desde las reglas: se administra solo desde la consola.
+4. **Authentication → Settings → Authorized domains**: añade el dominio donde
    está publicado el sitio (p. ej. `usuario.github.io` o tu dominio propio).
-4. **Firestore Database**: crea la base de datos (modo producción) y pega estas
+5. **Firestore Database**: crea la base de datos (modo producción) y pega estas
    reglas en **Rules**:
 
    ```
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
-       // Artículos: el público solo lee lo publicado; escribir requiere
-       // sesión — salvo las reacciones (👍 ❤️ 🔥), que cualquiera puede
-       // actualizar en artículos publicados (y SOLO ese campo)
+       // ¿La sesión es de un administrador (dueño del Estudio)?
+       // Solo los UID con documento en la colección admins/ lo son.
+       function isAdmin() {
+         return request.auth != null
+           && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+       }
+
+       // Lista de administradores: cada quien puede comprobar SOLO su propio
+       // documento (así el Estudio verifica el permiso); nadie escribe aquí
+       // desde el cliente — se administra desde la consola de Firebase.
+       match /admins/{uid} {
+         allow get: if request.auth != null && request.auth.uid == uid;
+         allow list: if false;
+         allow write: if false;
+       }
+
+       // Ajustes de la app: cada usuario lee y escribe únicamente los suyos.
+       match /users/{uid} {
+         allow read, write: if request.auth != null && request.auth.uid == uid;
+       }
+
+       // Artículos: el público solo lee lo publicado; escribir es cosa de
+       // administradores — salvo las reacciones (👍 ❤️ 🔥), que cualquiera
+       // puede actualizar en artículos publicados (y SOLO ese campo)
        match /articles/{id} {
-         allow read: if resource.data.status == 'published' || request.auth != null;
-         allow create, delete: if request.auth != null;
-         allow update: if request.auth != null
+         allow read: if resource.data.status == 'published' || isAdmin();
+         allow create, delete: if isAdmin();
+         allow update: if isAdmin()
            || (resource.data.status == 'published'
                && request.resource.data.diff(resource.data).affectedKeys()
                     .hasOnly(['reactions']));
        }
-       // Lista de etiquetas y categorías: lectura pública, escritura con sesión
+
+       // Lista de etiquetas y categorías: lectura pública, escritura de admins
        match /meta/{id} {
          allow read: if true;
-         allow write: if request.auth != null;
+         allow write: if isAdmin();
        }
 
        // Comentarios: cualquiera puede crear uno PENDIENTE (con campos
        // válidos); el público solo lee aprobados; los «me gusta» son el
-       // único campo que un visitante puede tocar; aprobar/eliminar
-       // requiere sesión (el Estudio)
+       // único campo que un visitante puede tocar; aprobar/eliminar es
+       // cosa de administradores (el Estudio)
        match /comments/{id} {
-         allow read: if resource.data.status == 'approved' || request.auth != null;
-         allow create: if request.auth != null || (
+         allow read: if resource.data.status == 'approved' || isAdmin();
+         allow create: if isAdmin() || (
            request.resource.data.status == 'pending'
            && request.resource.data.likes == 0
            && request.resource.data.text is string
@@ -119,12 +183,12 @@ En la [consola de Firebase](https://console.firebase.google.com/) del proyecto
            && request.resource.data.depth >= 0
            && request.resource.data.depth <= 2
          );
-         allow update: if request.auth != null || (
+         allow update: if isAdmin() || (
            resource.data.status == 'approved'
            && request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['likes'])
          );
-         allow delete: if request.auth != null;
+         allow delete: if isAdmin();
        }
      }
    }
@@ -132,8 +196,10 @@ En la [consola de Firebase](https://console.firebase.google.com/) del proyecto
 
 Datos en Firestore: colección `articles` (un documento por artículo, con
 `title`, `tag`, `excerpt`, `cover`, `footer`, `sections[]`, `status`,
-`createdAt/updatedAt/publishedAt`) y documento `meta/tags` (la lista de
-etiquetas).
+`createdAt/updatedAt/publishedAt`), documento `meta/tags` (etiquetas y
+categorías), colección `comments`, colección `users` (ajustes de la app,
+un documento por cuenta) y colección `admins` (la lista blanca del Estudio,
+administrada desde la consola).
 
 **Nota sobre imágenes**: las imágenes subidas se comprimen en el navegador y se
 guardan dentro del propio documento del artículo (límite ~1 MB por artículo; el

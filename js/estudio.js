@@ -499,17 +499,53 @@ function listEditableContent(section) {
 
 /* ── Autenticación ───────────────────────────────────────────────────── */
 
-onAuthStateChanged(auth, (user) => {
-  $("view-boot").hidden = true;
-  if (user) {
-    $("view-login").hidden = true;
-    $("view-app").hidden = false;
-    $("studio-user").textContent = user.email || "";
-    loadEverything();
-  } else {
+/* Solo el personal entra al Estudio: la cuenta debe estar en la colección
+   admins/{uid} de Firestore (se crea a mano desde la consola de Firebase).
+   Las cuentas de Fenómenos App —incluidos los invitados anónimos— comparten
+   el mismo Firebase Auth, así que aquí se les cierra la puerta. */
+async function isAdminUser(user) {
+  if (!user || user.isAnonymous) return false;
+  try {
+    const snap = await getDoc(doc(db, "admins", user.uid));
+    return snap.exists();
+  } catch (_) {
+    return false;
+  }
+}
+
+let gateToken = 0;
+
+onAuthStateChanged(auth, async (user) => {
+  const token = ++gateToken;
+
+  if (!user) {
+    $("view-boot").hidden = true;
     $("view-app").hidden = true;
     $("view-login").hidden = false;
+    return;
   }
+
+  /* la portada de carga sigue visible mientras se verifica el permiso */
+  const admin = await isAdminUser(user);
+  if (token !== gateToken) return; /* cambió la sesión mientras verificaba */
+
+  $("view-boot").hidden = true;
+
+  if (!admin) {
+    try {
+      await signOut(auth);
+    } catch (_) {}
+    $("view-app").hidden = true;
+    $("view-login").hidden = false;
+    $("login-error").textContent =
+      "Esta cuenta no tiene acceso al Estudio. Usa la app en su lugar.";
+    return;
+  }
+
+  $("view-login").hidden = true;
+  $("view-app").hidden = false;
+  $("studio-user").textContent = user.email || "";
+  loadEverything();
 });
 
 $("login-form").addEventListener("submit", async (e) => {

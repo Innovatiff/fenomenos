@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#000b33" />
+    <meta
+      name="description"
+      content="Fenómenos App: radar y satélite en vivo, pronóstico de 7 días y mapas interactivos del Caribe."
+    />
+    <meta name="robots" content="noindex" />
+
+    <title>Fenómenos App | El tiempo del Caribe</title>
+
+    <link rel="icon" href="img/favicon.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin=""
+    />
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      crossorigin=""
+      defer
+    ></script>
+    <script
+      type="module"
+      src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"
+    ></script>
+    <script
+      nomodule
+      src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"
+    ></script>
+    <script type="module" src="js/app.js"></script>
+  </head>
+
+  <body class="app-body">
+    <!-- Pantalla de carga: se oculta cuando hay sesión y datos -->
+    <div class="app-boot" id="app-boot">
+      <img src="img/logo.png" alt="Fenómenos del Caribe" />
+      <span>Cargando Fenómenos App…</span>
+    </div>
+
+    <div class="app">
+      <!-- ══════════════ BARRA SUPERIOR ══════════════ -->
+      <header class="app__topbar">
+        <a href="index.html" class="app__logo" title="Volver al sitio">
+          <img src="img/logo.png" alt="" width="40" height="40" />
+          <span class="app__logo-title">
+            <strong>Fenómenos App</strong>
+            <span>El tiempo del Caribe</span>
+          </span>
+        </a>
+
+        <div class="app__search">
+          <div class="app__search-box">
+            <ion-icon name="search-outline"></ion-icon>
+            <input
+              type="search"
+              id="place-search"
+              placeholder="Busca una ciudad o lugar…"
+              autocomplete="off"
+            />
+          </div>
+          <div class="app__search-results" id="search-results" role="listbox"></div>
+        </div>
+
+        <div class="app__topbar-right">
+          <span class="app__user" id="user-chip" hidden>
+            <span class="app__user-avatar" id="user-avatar">?</span>
+            <span class="app__user-name" id="user-name">Invitado</span>
+          </span>
+          <button
+            class="app__iconbtn"
+            id="btn-settings"
+            title="Ajustes"
+            aria-label="Ajustes"
+          >
+            <ion-icon name="settings-outline"></ion-icon>
+          </button>
+          <button
+            class="app__iconbtn"
+            id="btn-logout"
+            title="Salir"
+            aria-label="Salir"
+          >
+            <ion-icon name="log-out-outline"></ion-icon>
+          </button>
+        </div>
+      </header>
+
+      <!-- ══════════════ CUERPO ══════════════ -->
+      <main class="app__main">
+        <!-- Panel del pronóstico -->
+        <aside class="app__panel" id="panel">
+          <!-- Condiciones actuales -->
+          <section class="panel-block" id="now-block">
+            <p class="panel-block__title">
+              <ion-icon name="navigate-outline"></ion-icon> Condiciones actuales
+            </p>
+            <p class="now__place">
+              <ion-icon name="location-outline"></ion-icon>
+              <span id="now-place">—</span>
+            </p>
+            <p class="now__updated" id="now-updated">Cargando datos…</p>
+            <div class="now__main">
+              <span class="now__icon" id="now-icon">
+                <ion-icon name="cloud-outline"></ion-icon>
+              </span>
+              <span class="now__temp" id="now-temp">--°</span>
+            </div>
+            <p class="now__desc" id="now-desc">—</p>
+            <div class="now__grid" id="now-grid"></div>
+          </section>
+
+          <!-- Por horas -->
+          <section class="panel-block">
+            <p class="panel-block__title">
+              <ion-icon name="time-outline"></ion-icon> Próximas horas
+            </p>
+            <div class="hours" id="hours"></div>
+          </section>
+
+          <!-- 7 días -->
+          <section class="panel-block">
+            <p class="panel-block__title">
+              <ion-icon name="calendar-outline"></ion-icon> Próximos 7 días
+            </p>
+            <div class="days" id="days"></div>
+          </section>
+
+          <p class="panel-note">
+            Datos meteorológicos de Open-Meteo · Radar y satélite de RainViewer
+          </p>
+        </aside>
+
+        <!-- Mapa -->
+        <section class="app__maparea">
+          <div id="map" aria-label="Mapa meteorológico interactivo"></div>
+
+          <div class="map-controls">
+            <div class="seg map-layers" role="tablist" id="layer-seg">
+              <button class="seg__btn is-active" data-layer="radar">
+                <ion-icon name="rainy-outline"></ion-icon> Radar
+              </button>
+              <button class="seg__btn" data-layer="satellite">
+                <ion-icon name="globe-outline"></ion-icon> Satélite
+              </button>
+              <button class="seg__btn" data-layer="none">
+                <ion-icon name="map-outline"></ion-icon> Sin capa
+              </button>
+            </div>
+          </div>
+
+          <div class="map-playbar" id="playbar">
+            <button class="map-play" id="btn-play" aria-label="Reproducir animación">
+              <ion-icon name="play" id="play-icon"></ion-icon>
+            </button>
+            <span class="map-frame-label">
+              <strong id="frame-time">—</strong>
+              <span id="frame-kind">Radar</span>
+            </span>
+          </div>
+
+          <span class="map-credit" id="map-credit" hidden>
+            © OpenStreetMap · CARTO · RainViewer
+          </span>
+
+          <div class="map-fallback" id="map-fallback">
+            <ion-icon name="cloud-offline-outline"></ion-icon>
+            <strong>El mapa no está disponible</strong>
+            <p>
+              No se pudo cargar el mapa interactivo. Revisa tu conexión a
+              internet e intenta de nuevo. El pronóstico sigue disponible en el
+              panel.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ══════════════ MODAL DE AJUSTES ══════════════ -->
+    <div class="amodal" id="settings-modal" role="dialog" aria-modal="true">
+      <div class="amodal__card">
+        <div class="amodal__head">
+          <div>
+            <h2>Ajustes</h2>
+            <p>Personaliza tu país, tus unidades y tu capa del mapa.</p>
+          </div>
+          <button class="amodal__close" id="settings-close" aria-label="Cerrar">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
+
+        <label class="field">
+          <span class="field__label">País principal</span>
+          <span class="field__select-wrap">
+            <select class="field__input" id="set-country"></select>
+            <ion-icon name="chevron-down-outline"></ion-icon>
+          </span>
+        </label>
+
+        <div class="field">
+          <span class="field__label">Temperatura</span>
+          <div class="seg" id="set-temp">
+            <button class="seg__btn is-active" data-value="celsius">°C</button>
+            <button class="seg__btn" data-value="fahrenheit">°F</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">Viento</span>
+          <div class="seg" id="set-wind">
+            <button class="seg__btn is-active" data-value="kmh">km/h</button>
+            <button class="seg__btn" data-value="mph">mph</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field__label">Capa del mapa al iniciar</span>
+          <div class="seg" id="set-layer">
+            <button class="seg__btn is-active" data-value="radar">Radar</button>
+            <button class="seg__btn" data-value="satellite">Satélite</button>
+            <button class="seg__btn" data-value="none">Sin capa</button>
+          </div>
+        </div>
+
+        <button class="btn btn--primary amodal__save" id="settings-save">
+          <ion-icon name="checkmark-outline"></ion-icon> Guardar ajustes
+        </button>
+
+        <p class="amodal__guest-note" id="settings-guest-note" hidden>
+          <ion-icon name="information-circle-outline"></ion-icon>
+          Estás como invitado: tus ajustes se guardan solo en este dispositivo.
+          Crea una cuenta para llevarlos contigo.
+        </p>
+      </div>
+    </div>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+  </body>
+</html>
