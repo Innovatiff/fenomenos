@@ -567,8 +567,9 @@
 
 .post__title {
   font-size: clamp(2.8rem, 6vw, 5.2rem);
-  line-height: 1.12;
-  letter-spacing: -0.05rem;
+  line-height: 1.18;
+  letter-spacing: 0.05rem; /* Gugi se apretaba con el tracking negativo del hero */
+  -webkit-text-stroke: 0.1rem transparent; /* engrosado más suave que el H1 del hero */
 }
 
 .post__excerpt {
