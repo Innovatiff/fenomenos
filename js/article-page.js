@@ -19,6 +19,8 @@ import {
   REACTIONS,
   reactionCount,
   formatCount,
+  normalizeText,
+  articleCard,
 } from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
@@ -49,10 +51,24 @@ function showState(icon, title, text) {
   root.appendChild(box);
 }
 
-(async () => {
-  const id = new URLSearchParams(location.search).get("id");
+/* Las páginas de cobertura (fenomenos-mexico.html, huracanes-caribe.html…)
+   declaran su categoría con <meta name="fdc-category">: en ese modo la
+   página muestra SIEMPRE el artículo publicado más reciente de esa
+   categoría, con todo lo de un artículo normal. */
+const PAGE_CATEGORY =
+  document.querySelector('meta[name="fdc-category"]')?.getAttribute("content") ||
+  null;
 
-  if (!id) {
+function hasCategory(article, category) {
+  const want = normalizeText(category);
+  return (article.categories || []).some((c) => normalizeText(c) === want);
+}
+
+(async () => {
+  let id = new URLSearchParams(location.search).get("id");
+  let catArticles = [];
+
+  if (!id && !PAGE_CATEGORY) {
     showState(
       "help-circle-outline",
       "Artículo no especificado",
@@ -62,18 +78,36 @@ function showState(icon, title, text) {
   }
 
   try {
-    const article = await fetchArticle(id);
+    let article;
 
-    if (!article || article.status !== "published") {
-      showState(
-        "cloud-offline-outline",
-        "Artículo no disponible",
-        "Este artículo no existe o todavía no ha sido publicado."
+    if (PAGE_CATEGORY) {
+      catArticles = (await fetchPublished()).filter((a) =>
+        hasCategory(a, PAGE_CATEGORY)
       );
-      return;
+      article = catArticles[0];
+      if (!article) {
+        showState(
+          "folder-open-outline",
+          "Aún no hay artículos de " + PAGE_CATEGORY,
+          "En cuanto se publique el primero, aparecerá aquí automáticamente."
+        );
+        return;
+      }
+      id = article.id;
+    } else {
+      article = await fetchArticle(id);
+      if (!article || article.status !== "published") {
+        showState(
+          "cloud-offline-outline",
+          "Artículo no disponible",
+          "Este artículo no existe o todavía no ha sido publicado."
+        );
+        return;
+      }
     }
 
     renderArticle(root, article);
+    if (PAGE_CATEGORY) addCategoryExtras(catArticles);
 
     document.title = article.title + " | Fenómenos del Caribe";
     if (article.excerpt) {
@@ -751,4 +785,57 @@ async function submitComment(e) {
     submit.disabled = false;
     submit.textContent = "Publicar";
   }
+}
+
+
+/* ── Extras del modo cobertura ──────────────────────────────────────────
+   Banner arriba, los otros artículos recientes de la categoría antes de
+   los comentarios, y el botón hacia el listado filtrado. */
+
+function addCategoryExtras(catArticles) {
+  /* banner: esta página siempre muestra lo último de la cobertura */
+  const banner = document.createElement("div");
+  banner.className = "cat-banner";
+  const icon = document.createElement("ion-icon");
+  icon.setAttribute("name", "folder-open-outline");
+  banner.appendChild(icon);
+  banner.appendChild(
+    document.createTextNode("Lo último de " + PAGE_CATEGORY)
+  );
+  root.prepend(banner);
+
+  const commentsEl = document.getElementById("comments");
+  const section = document.createElement("section");
+  section.className = "cat-related";
+
+  const others = catArticles.slice(1, 4);
+  if (others.length) {
+    const title = document.createElement("h2");
+    title.className = "cat-related__title";
+    const tIcon = document.createElement("ion-icon");
+    tIcon.setAttribute("name", "newspaper-outline");
+    title.appendChild(tIcon);
+    title.appendChild(
+      document.createTextNode("Más de " + PAGE_CATEGORY)
+    );
+    section.appendChild(title);
+
+    const grid = document.createElement("ul");
+    grid.className = "grid cat-related__grid";
+    others.forEach((a) =>
+      grid.appendChild(articleCard(a, { revealed: true, reactions: true }))
+    );
+    section.appendChild(grid);
+  }
+
+  const more = document.createElement("div");
+  more.className = "cat-related__more";
+  const link = document.createElement("a");
+  link.className = "btn btn--ghost";
+  link.href = "articulos.html?categoria=" + encodeURIComponent(PAGE_CATEGORY);
+  link.textContent = "Ver todos los artículos de " + PAGE_CATEGORY;
+  more.appendChild(link);
+  section.appendChild(more);
+
+  commentsEl.parentNode.insertBefore(section, commentsEl);
 }

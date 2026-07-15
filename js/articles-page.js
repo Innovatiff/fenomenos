@@ -6,7 +6,7 @@
 
 import { startAnalytics } from "./firebase-init.js";
 import { fetchPublished, fetchTags } from "./db.js";
-import { articleCard, articleTagList } from "./render-article.js";
+import { articleCard, articleTagList, normalizeText } from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
@@ -103,10 +103,40 @@ search.addEventListener("input", () => {
   renderGrid();
 });
 
+/* ?categoria=X — llega desde las páginas de cobertura: restringe todo el
+   listado (chips, conteos y búsqueda) a esa categoría */
+const CATEGORY_PARAM = new URLSearchParams(location.search).get("categoria");
+
+function showCategoryNote() {
+  const bar = document.querySelector(".catalog__bar");
+  if (!bar) return;
+  const note = document.createElement("div");
+  note.className = "cat-filter-note";
+  const icon = document.createElement("ion-icon");
+  icon.setAttribute("name", "folder-open-outline");
+  note.appendChild(icon);
+  note.appendChild(
+    document.createTextNode("Mostrando artículos de " + CATEGORY_PARAM)
+  );
+  const clear = document.createElement("a");
+  clear.href = "articulos.html";
+  clear.className = "cat-filter-note__clear";
+  clear.textContent = "Quitar filtro ✕";
+  note.appendChild(clear);
+  bar.parentNode.insertBefore(note, bar);
+}
+
 (async () => {
   try {
     const [published, tags] = await Promise.all([fetchPublished(), fetchTags()]);
     articles = published;
+    if (CATEGORY_PARAM) {
+      const want = normalizeText(CATEGORY_PARAM);
+      articles = articles.filter((a) =>
+        (a.categories || []).some((c) => normalizeText(c) === want)
+      );
+      showCategoryNote();
+    }
     clearSkeletons();
     renderFilters(tags);
     renderGrid();

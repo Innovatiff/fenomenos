@@ -905,6 +905,90 @@
   color: var(--alert);
 }
 
+/* ── Páginas de cobertura (modo categoría) ────────────────────────────── */
+
+/* Banner: esta página siempre muestra lo último de la cobertura */
+.cat-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1.6rem;
+  margin-bottom: 2.4rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.12rem;
+  text-transform: uppercase;
+  color: var(--alert);
+  border: 0.1rem solid rgba(255, 176, 32, 0.35);
+  border-radius: var(--r-pill);
+  background-color: rgba(255, 176, 32, 0.07);
+}
+.cat-banner ion-icon {
+  font-size: 1.6rem;
+}
+
+/* Otros artículos de la categoría, antes de los comentarios */
+.cat-related {
+  margin-top: 4rem;
+  padding-top: 3.2rem;
+  border-top: 0.1rem solid var(--line);
+}
+
+.cat-related__title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  font-family: "Gugi", "Inter", sans-serif;
+  font-weight: 500;
+  font-size: 2rem;
+  color: #fff;
+}
+.cat-related__title ion-icon {
+  font-size: 2rem;
+  color: var(--alert);
+}
+
+.cat-related__grid {
+  align-items: stretch;
+}
+
+.cat-related__more {
+  display: flex;
+  justify-content: center;
+  margin-top: 2.4rem;
+}
+
+/* Nota de filtro por categoría en el listado de artículos */
+.cat-filter-note {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  padding: 1.1rem 1.6rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--alert);
+  border: 0.1rem solid rgba(255, 176, 32, 0.35);
+  border-radius: var(--r-md);
+  background-color: rgba(255, 176, 32, 0.06);
+}
+.cat-filter-note ion-icon {
+  font-size: 1.7rem;
+}
+.cat-filter-note__clear {
+  margin-left: auto;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-4);
+  text-decoration: none;
+  transition: color 0.2s var(--ease);
+}
+.cat-filter-note__clear:hover {
+  color: #fff;
+}
+
 /* ── Comentarios ──────────────────────────────────────────────────────── */
 
 .comments {

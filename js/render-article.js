@@ -94,6 +94,16 @@ export function formatDate(v) {
   });
 }
 
+/* Comparación tolerante: sin tildes, sin mayúsculas, sin espacios extra
+   («Fenómenos Centroamérica» ≡ «fenomenos centroamerica») */
+export function normalizeText(s) {
+  return String(s || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 /* Etiquetas del artículo, con compatibilidad con el campo antiguo `tag` */
 export function articleTagList(article) {
   if (Array.isArray(article.tags) && article.tags.length) return article.tags;

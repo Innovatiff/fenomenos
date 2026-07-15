@@ -1422,6 +1422,19 @@ section {
   gap: 1.8rem;
 }
 
+/* La tarjeta entera lleva a su página de cobertura mediante un enlace
+   superpuesto; «Redes sociales» queda por encima y conserva su destino. */
+.brand__cover {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+}
+.brand .card__link {
+  position: relative;
+  z-index: 3;
+}
+
 .brand__logo {
   display: grid;
   place-items: center;
