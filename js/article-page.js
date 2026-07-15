@@ -163,7 +163,7 @@ function buildShare(article) {
     },
     {
       icon: "logo-x",
-      label: "X",
+      label: "Twitter",
       href:
         "https://twitter.com/intent/tweet?text=" +
         encodeURIComponent(title) +
