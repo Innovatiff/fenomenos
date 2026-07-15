@@ -906,6 +906,49 @@
   color: #8ec7ff;
 }
 
+/* Zonas de imagen: arrastrar y soltar / pegar */
+
+.dropzone {
+  padding: 1.4rem;
+  border: 0.1rem dashed var(--line-2);
+  border-radius: var(--r-md);
+  transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+.dropzone:focus {
+  outline: none;
+  border-color: var(--text-4);
+}
+.dropzone.is-dragover {
+  border-color: var(--alert);
+  border-style: solid;
+  background-color: rgba(255, 176, 32, 0.06);
+  box-shadow: 0 0 0 0.3rem rgba(255, 176, 32, 0.15);
+}
+
+.dropzone__hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 1.6rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: var(--text-5);
+  border-radius: var(--r-sm);
+  background-color: rgba(5, 7, 17, 0.35);
+  pointer-events: none;
+}
+.dropzone__hint ion-icon {
+  font-size: 1.8rem;
+}
+
+.imgzone {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
 /* Portada */
 
 .cover__preview {

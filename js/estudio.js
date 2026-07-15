@@ -157,6 +157,99 @@ function kb(dataUrl) {
   return Math.round((dataUrl.length * 3) / 4 / 1024);
 }
 
+/* ── Zonas de imagen: arrastrar y soltar, o pegar (Ctrl+V) ───────────── */
+
+function makeDropZone(zone, applyFile, applyUrl) {
+  ["dragenter", "dragover"].forEach((ev) =>
+    zone.addEventListener(ev, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.classList.add("is-dragover");
+    })
+  );
+  zone.addEventListener("dragleave", (e) => {
+    if (zone.contains(e.relatedTarget)) return;
+    zone.classList.remove("is-dragover");
+  });
+  zone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.remove("is-dragover");
+    const file = [...(e.dataTransfer.files || [])].find((f) =>
+      f.type.startsWith("image/")
+    );
+    if (file) {
+      applyFile(file);
+      return;
+    }
+    /* también acepta arrastrar una imagen desde otra pestaña (llega como URL) */
+    const url = (
+      e.dataTransfer.getData("text/uri-list") ||
+      e.dataTransfer.getData("text/plain") ||
+      ""
+    ).trim();
+    if (url && /^https?:\/\//i.test(url) && applyUrl) applyUrl(url);
+  });
+}
+
+async function applyCoverFile(file) {
+  try {
+    const dataUrl = await compressImage(file);
+    $("f-cover-url").value = "";
+    setCover(dataUrl);
+    dirty = true;
+    updateEditorStatus();
+  } catch (_) {
+    toast("No se pudo procesar la imagen.", "error");
+  }
+}
+
+async function applySectionImageFile(section, file) {
+  try {
+    section.src = await compressImage(file, 1200, 0.75);
+    dirty = true;
+    renderSectionsEditor();
+    updateEditorStatus();
+  } catch (_) {
+    toast("No se pudo procesar la imagen.", "error");
+  }
+}
+
+/* Pegar una imagen en cualquier parte del editor: si el foco está en una
+   sección de imagen va ahí; si no, va a la portada. Los campos de texto
+   conservan su pegado normal. */
+document.addEventListener("paste", (e) => {
+  if ($("view-app").hidden || $("panel-editor").hidden) return;
+  const t = e.target;
+  if (
+    t &&
+    t.closest &&
+    (t.closest(".rich-editor") || t.matches("input, textarea, select"))
+  ) {
+    return;
+  }
+  const item = [...((e.clipboardData && e.clipboardData.items) || [])].find(
+    (i) => i.type.startsWith("image/")
+  );
+  if (!item) return;
+  e.preventDefault();
+  const file = item.getAsFile();
+  if (!file) return;
+
+  const card = t && t.closest ? t.closest(".scard") : null;
+  const section = card
+    ? sections.find((s) => s.uid === card.dataset.uid && s.type === "image")
+    : null;
+
+  if (section) {
+    applySectionImageFile(section, file);
+    toast("Imagen pegada en la sección.");
+  } else {
+    applyCoverFile(file);
+    toast("Imagen pegada como portada.");
+  }
+});
+
 /* ── Texto enriquecido ───────────────────────────────────────────────── */
 
 const MARK_COLOR = "#ffb020";
@@ -924,8 +1017,16 @@ function setCover(value) {
   $("cover-img").src = hasImage ? coverData : "";
   $("cover-hint").textContent = coverData.startsWith("data:")
     ? `Imagen guardada dentro del artículo (${kb(coverData)} KB, comprimida).`
-    : "Las imágenes subidas se comprimen automáticamente.";
+    : "Arrastra una imagen aquí, pégala (Ctrl+V) o súbela; se comprime automáticamente.";
 }
+
+/* la caja de portada acepta arrastrar y soltar */
+makeDropZone($("cover-box"), applyCoverFile, (url) => {
+  $("f-cover-url").value = url;
+  setCover(url);
+  dirty = true;
+  updateEditorStatus();
+});
 
 $("f-cover-url").addEventListener("change", () => {
   const url = $("f-cover-url").value.trim();
@@ -1119,6 +1220,21 @@ function buildSectionCard(section, index) {
   }
 
   if (section.type === "image") {
+    /* zona: arrastra, pega (Ctrl+V), URL o subir */
+    const zone = document.createElement("div");
+    zone.className = "imgzone dropzone";
+    zone.tabIndex = 0;
+    makeDropZone(
+      zone,
+      (file) => applySectionImageFile(section, file),
+      (url) => {
+        section.src = url;
+        dirty = true;
+        renderSectionsEditor();
+        updateEditorStatus();
+      }
+    );
+
     if (section.src) {
       const preview = document.createElement("div");
       preview.className = "scard__img-preview";
@@ -1126,7 +1242,19 @@ function buildSectionCard(section, index) {
       img.src = section.src;
       img.alt = "";
       preview.appendChild(img);
-      body.appendChild(preview);
+      zone.appendChild(preview);
+    } else {
+      const hint = document.createElement("div");
+      hint.className = "dropzone__hint";
+      const hIcon = document.createElement("ion-icon");
+      hIcon.setAttribute("name", "cloud-upload-outline");
+      hint.appendChild(hIcon);
+      hint.appendChild(
+        document.createTextNode(
+          "Arrastra una imagen aquí o pégala con Ctrl+V"
+        )
+      );
+      zone.appendChild(hint);
     }
 
     const controls = document.createElement("div");
@@ -1155,21 +1283,14 @@ function buildSectionCard(section, index) {
     fileInput.type = "file";
     fileInput.accept = "image/*";
     fileInput.hidden = true;
-    fileInput.addEventListener("change", async () => {
+    fileInput.addEventListener("change", () => {
       const file = fileInput.files[0];
-      if (!file) return;
-      try {
-        section.src = await compressImage(file, 1200, 0.75);
-        dirty = true;
-        renderSectionsEditor();
-        updateEditorStatus();
-      } catch (_) {
-        toast("No se pudo procesar la imagen.", "error");
-      }
+      if (file) applySectionImageFile(section, file);
     });
     uploadLabel.appendChild(fileInput);
     controls.appendChild(uploadLabel);
-    body.appendChild(controls);
+    zone.appendChild(controls);
+    body.appendChild(zone);
 
     const captionEditable = buildEditable({
       field: "captionHtml",
