@@ -159,11 +159,37 @@ function kb(dataUrl) {
 
 /* ── Zonas de imagen: arrastrar y soltar, o pegar (Ctrl+V) ───────────── */
 
+/* Guardas globales: si el archivo se suelta fuera de una zona, el
+   navegador NO debe navegar a la imagen (perdería el trabajo del editor).
+   Mientras se arrastra un archivo, todas las zonas se iluminan. */
+let dragHintTimer;
+window.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  const hasFiles =
+    e.dataTransfer && [...(e.dataTransfer.types || [])].includes("Files");
+  if (!hasFiles) return;
+  document.body.classList.add("is-dragging-file");
+  clearTimeout(dragHintTimer);
+  dragHintTimer = setTimeout(
+    () => document.body.classList.remove("is-dragging-file"),
+    300
+  );
+  /* fuera de una zona el cursor indica que ahí no se puede soltar */
+  if (!(e.target.closest && e.target.closest(".dropzone"))) {
+    e.dataTransfer.dropEffect = "none";
+  }
+});
+window.addEventListener("drop", (e) => {
+  e.preventDefault();
+  document.body.classList.remove("is-dragging-file");
+});
+
 function makeDropZone(zone, applyFile, applyUrl) {
   ["dragenter", "dragover"].forEach((ev) =>
     zone.addEventListener(ev, (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
       zone.classList.add("is-dragover");
     })
   );
@@ -175,6 +201,7 @@ function makeDropZone(zone, applyFile, applyUrl) {
     e.preventDefault();
     e.stopPropagation();
     zone.classList.remove("is-dragover");
+    document.body.classList.remove("is-dragging-file");
     const file = [...(e.dataTransfer.files || [])].find((f) =>
       f.type.startsWith("image/")
     );
