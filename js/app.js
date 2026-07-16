@@ -196,7 +196,8 @@ async function loadWeather(lat, lon, label) {
     longitude: lon.toFixed(4),
     current:
       "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,is_day",
-    hourly: "temperature_2m,precipitation_probability,weather_code,is_day",
+    hourly:
+      "temperature_2m,precipitation_probability,weather_code,is_day,wind_speed_10m,wind_gusts_10m,precipitation,cape",
     daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
     forecast_days: "7",
     timezone: "auto",
@@ -213,6 +214,7 @@ async function loadWeather(lat, lon, label) {
     renderNow(data);
     renderHours(data);
     renderDays(data);
+    refreshRisks(data, lat, lon, weatherAbort.signal);
   } catch (err) {
     if (err && err.name === "AbortError") return;
     $("now-updated").textContent = "No se pudo cargar el pronóstico.";
@@ -291,6 +293,305 @@ function renderDays(data) {
         </span>
       </div>`;
     })
+    .join("");
+}
+
+/* ═══════════════  3b. RIESGOS Y ADVERTENCIAS SEVERAS  ═══════════════════
+   Evaluación de tiempo peligroso para el punto activo en las próximas
+   48 horas: viento, lluvia (inundaciones), tormentas eléctricas y calidad
+   del aire. Cada riesgo se clasifica en Bajo / Moderado / Alto / Extremo
+   con umbrales meteorológicos; los niveles Alto y Extremo generan
+   advertencias serias en lenguaje claro. */
+
+const RISK_LEVELS = [
+  { label: "Bajo", color: "#37d67a" },
+  { label: "Moderado", color: "#ffb020" },
+  { label: "Alto", color: "#ff7a45" },
+  { label: "Extremo", color: "#e5484d" },
+];
+
+function toKmh(v) {
+  return settings.windUnit === "mph" ? v * 1.609344 : v;
+}
+
+/* primer índice del arreglo horario que corresponde a "ahora" */
+function hourlyStart(data) {
+  const t = (data.hourly && data.hourly.time) || [];
+  const nowIso = (data.current && data.current.time) || t[0];
+  if (!t.length || !nowIso) return 0;
+  const i = t.findIndex((x) => x >= nowIso.slice(0, 13) + ":00");
+  return i < 0 ? 0 : i;
+}
+
+function riskWhen(iso) {
+  if (!iso) return "";
+  const d = new Date(`${iso}:00`);
+  const day = d.toLocaleDateString("es", { weekday: "short", day: "numeric" });
+  return `${day} · ${fmtHour(iso)}`;
+}
+
+function computeWindRisk(data, start, end) {
+  const H = data.hourly || {};
+  if (!H.wind_gusts_10m && !H.wind_speed_10m) return null;
+  let maxG = -1;
+  let maxGi = -1;
+  for (let i = start; i < end; i++) {
+    const g = Math.max(
+      H.wind_gusts_10m ? (H.wind_gusts_10m[i] ?? -1) : -1,
+      H.wind_speed_10m ? (H.wind_speed_10m[i] ?? -1) : -1
+    );
+    if (g > maxG) {
+      maxG = g;
+      maxGi = i;
+    }
+  }
+  if (maxG < 0) return null;
+  const kmh = toKmh(maxG);
+  const level = kmh >= 118 ? 3 : kmh >= 63 ? 2 : kmh >= 40 ? 1 : 0;
+  return {
+    key: "wind",
+    icon: "flag-outline",
+    name: "Viento",
+    level,
+    detail: `Ráfagas de hasta ${Math.round(maxG)} ${windSymbol()}`,
+    when: riskWhen(H.time[maxGi]),
+    kmh,
+  };
+}
+
+function computeRainRisk(data, start, end) {
+  const H = data.hourly || {};
+  if (!H.precipitation) return null;
+  let maxR = 0;
+  let maxRi = start;
+  for (let i = start; i < end; i++) {
+    let sum = 0;
+    for (let j = i; j < Math.min(i + 6, end); j++)
+      sum += H.precipitation[j] ?? 0;
+    if (sum > maxR) {
+      maxR = sum;
+      maxRi = i;
+    }
+  }
+  const level = maxR >= 50 ? 3 : maxR >= 25 ? 2 : maxR >= 10 ? 1 : 0;
+  return {
+    key: "rain",
+    icon: "rainy-outline",
+    name: "Lluvia",
+    level,
+    detail: `Hasta ${Math.round(maxR)} mm en 6 h`,
+    when: riskWhen(H.time[maxRi]),
+    mm: maxR,
+  };
+}
+
+function computeStormRisk(data, start, end) {
+  const H = data.hourly || {};
+  if (!H.cape && !H.weather_code) return null;
+  let maxCape = -1;
+  let capeI = -1;
+  let codeLevel = 0;
+  let codeI = -1;
+  for (let i = start; i < end; i++) {
+    const c = H.cape ? H.cape[i] : null;
+    if (c != null && c > maxCape) {
+      maxCape = c;
+      capeI = i;
+    }
+    const w = H.weather_code ? H.weather_code[i] : null;
+    if (w === 95 && codeLevel < 2) {
+      codeLevel = 2;
+      codeI = i;
+    }
+    if ((w === 96 || w === 99) && codeLevel < 3) {
+      codeLevel = 3;
+      codeI = i;
+    }
+  }
+  const capeLevel = maxCape >= 2500 ? 3 : maxCape >= 1600 ? 2 : maxCape >= 800 ? 1 : 0;
+  const level = Math.max(capeLevel, codeLevel);
+  const whenI = codeI >= 0 ? codeI : capeI;
+  const bits = [];
+  if (codeLevel >= 2) bits.push(codeLevel === 3 ? "tormentas con granizo en el pronóstico" : "tormentas eléctricas en el pronóstico");
+  if (maxCape >= 800) bits.push(`energía de tormenta (CAPE) de ${Math.round(maxCape)} J/kg`);
+  return {
+    key: "storm",
+    icon: "thunderstorm-outline",
+    name: "Tormentas",
+    level,
+    detail: bits.length ? bits.join(" · ") : "Ambiente estable",
+    when: whenI >= 0 ? riskWhen(H.time[whenI]) : "",
+    cape: maxCape,
+    hail: codeLevel === 3,
+  };
+}
+
+async function fetchAirRisk(lat, lon, signal) {
+  const params = new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lon.toFixed(4),
+    hourly: "us_aqi",
+    forecast_days: "2",
+    timezone: "auto",
+  });
+  const res = await fetch(
+    `https://air-quality-api.open-meteo.com/v1/air-quality?${params}`,
+    { signal }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  const H = data.hourly || {};
+  if (!H.us_aqi || !H.time) return null;
+  let maxA = -1;
+  let maxI = -1;
+  /* máximo de las próximas ~24 horas */
+  const start = hourlyStart({ hourly: H, current: null });
+  for (let i = start; i < Math.min(start + 24, H.time.length); i++) {
+    const v = H.us_aqi[i];
+    if (v != null && v > maxA) {
+      maxA = v;
+      maxI = i;
+    }
+  }
+  if (maxA < 0) return null;
+  const level = maxA > 200 ? 3 : maxA > 100 ? 2 : maxA > 50 ? 1 : 0;
+  return {
+    key: "air",
+    icon: "leaf-outline",
+    name: "Aire",
+    level,
+    detail: `Índice AQI de hasta ${Math.round(maxA)}`,
+    when: riskWhen(H.time[maxI]),
+    aqi: maxA,
+  };
+}
+
+/* advertencias serias para niveles Alto (aviso) y Extremo (advertencia) */
+function riskWarning(r) {
+  if (!r || r.level < 2) return null;
+  const extreme = r.level === 3;
+  let title = "";
+  let text = "";
+  if (r.key === "wind") {
+    if (extreme) {
+      title = "Vientos con fuerza de huracán";
+      text = `${r.detail} (${r.when}). Peligro para la vida al aire libre: permanece en un lugar seguro, aléjate de ventanas y de la costa.`;
+    } else {
+      title = "Vientos peligrosos";
+      text = `${r.detail} (${r.when}), con fuerza de tormenta tropical. Asegura objetos sueltos, evita andamios y precaución al conducir.`;
+    }
+  } else if (r.key === "rain") {
+    if (extreme) {
+      title = "Lluvias torrenciales — riesgo de inundaciones repentinas";
+      text = `${r.detail} (${r.when}). No cruces ríos, cañadas ni calles inundadas: la corriente puede arrastrar un vehículo.`;
+    } else {
+      title = "Lluvia fuerte";
+      text = `${r.detail} (${r.when}). Posibles inundaciones urbanas y crecidas de ríos; planifica tus traslados.`;
+    }
+  } else if (r.key === "storm") {
+    if (extreme) {
+      title = r.hail ? "Tormentas severas con granizo" : "Tormentas severas";
+      text = `Ambiente muy inestable (${r.detail}; ${r.when}). Rayos, ráfagas destructivas${r.hail ? ", granizo" : ""} e incluso tornados aislados son posibles. Ten un refugio identificado.`;
+    } else {
+      title = "Tormentas eléctricas fuertes";
+      text = `${r.detail} (${r.when}). Al primer trueno busca techo: los rayos matan. Evita campos abiertos, el mar y árboles aislados.`;
+    }
+  } else if (r.key === "air") {
+    if (extreme) {
+      title = "Aire muy dañino para la salud";
+      text = `${r.detail} (${r.when}). Evita toda actividad al aire libre; personas con asma, niños y adultos mayores deben permanecer en interiores.`;
+    } else {
+      title = "Aire dañino";
+      text = `${r.detail} (${r.when}). Grupos sensibles (asma, corazón, niños, embarazadas) deben limitar el esfuerzo al aire libre.`;
+    }
+  }
+  return { level: r.level, title, text };
+}
+
+let riskSeq = 0;
+
+async function refreshRisks(data, lat, lon, signal) {
+  const seq = ++riskSeq;
+  const start = hourlyStart(data);
+  const end = Math.min(start + 48, ((data.hourly && data.hourly.time) || []).length);
+
+  const risks = [
+    computeWindRisk(data, start, end),
+    computeRainRisk(data, start, end),
+    computeStormRisk(data, start, end),
+  ];
+
+  /* la calidad del aire llega de otro servicio: que no bloquee el resto */
+  let air = null;
+  try {
+    air = await fetchAirRisk(lat, lon, signal);
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+  }
+  risks.push(air);
+
+  if (seq !== riskSeq) return; /* ya se pidió otro punto */
+  renderRisks(risks);
+}
+
+function renderRisks(risks) {
+  const placeholders = { wind: "Viento", rain: "Lluvia", storm: "Tormentas", air: "Aire" };
+  const icons = { wind: "flag-outline", rain: "rainy-outline", storm: "thunderstorm-outline", air: "leaf-outline" };
+
+  /* medidores */
+  const rows = ["wind", "rain", "storm", "air"].map((key) => {
+    const r = risks.find((x) => x && x.key === key);
+    if (!r) {
+      return `
+      <div class="risk">
+        <div class="risk__head">
+          <ion-icon name="${icons[key]}"></ion-icon>
+          <span class="risk__name">${placeholders[key]}</span>
+          <strong class="risk__level risk__level--nd">Sin datos</strong>
+        </div>
+      </div>`;
+    }
+    const lv = RISK_LEVELS[r.level];
+    return `
+    <div class="risk">
+      <div class="risk__head">
+        <ion-icon name="${r.icon}"></ion-icon>
+        <span class="risk__name">${r.name}</span>
+        <strong class="risk__level" style="color:${lv.color}">${lv.label}</strong>
+      </div>
+      <div class="risk__bar">
+        <span style="width:${((r.level + 1) / 4) * 100}%;background-color:${lv.color}"></span>
+      </div>
+      <p class="risk__why">${r.detail}${r.when ? ` · ${r.when}` : ""}</p>
+    </div>`;
+  });
+  $("risks").innerHTML = rows.join("");
+
+  /* advertencias, extremas primero */
+  const warnings = risks
+    .map(riskWarning)
+    .filter(Boolean)
+    .sort((a, b) => b.level - a.level);
+
+  if (!warnings.length) {
+    $("risk-warnings").innerHTML = `
+      <p class="risk-clear">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        Sin advertencias severas activas para este punto.
+      </p>`;
+    return;
+  }
+  $("risk-warnings").innerHTML = warnings
+    .map(
+      (w) => `
+    <div class="alertbox ${w.level === 3 ? "alertbox--extreme" : "alertbox--high"}" role="alert">
+      <ion-icon name="${w.level === 3 ? "alert-circle" : "warning"}"></ion-icon>
+      <div>
+        <strong>${w.level === 3 ? "ADVERTENCIA · " : "AVISO · "}${w.title}</strong>
+        <span>${w.text}</span>
+      </div>
+    </div>`
+    )
     .join("");
 }
 

@@ -112,6 +112,14 @@ de Firebase). Una vez dentro, `app.html` ofrece:
   distancias.
 - **Pronóstico** de Open-Meteo: condiciones actuales, próximas 24 horas y
   7 días, en las unidades elegidas.
+- **Riesgos y advertencias severas** (panel izquierdo): evaluación de las
+  próximas 48 h del punto activo en cuatro frentes — **viento** (ráfagas;
+  extremo = fuerza de huracán ≥ 118 km/h), **lluvia** (acumulados de 6 h;
+  extremo ≥ 50 mm, inundaciones repentinas), **tormentas** (códigos de
+  tormenta del pronóstico + energía CAPE) y **aire** (índice AQI del
+  CAMS). Cada riesgo se clasifica Bajo/Moderado/Alto/Extremo con su
+  medidor; los niveles Alto y Extremo generan **AVISOS y ADVERTENCIAS**
+  con instrucciones de seguridad en español claro.
 - **Buscador de lugares** (geocodificador de Open-Meteo, en español).
 - **Ajustes por usuario**: país principal, °C/°F, km/h/mph y capa inicial.
   Siempre se guardan en el dispositivo (`localStorage`); si la cuenta no es

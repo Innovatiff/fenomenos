@@ -730,6 +730,146 @@
   white-space: nowrap;
 }
 
+/* Riesgos y advertencias severas */
+
+.risks__loading {
+  font-size: 1.3rem;
+  color: var(--text-5);
+}
+
+.risk {
+  padding: 1rem 0;
+  border-bottom: 0.1rem solid var(--line);
+}
+.risk:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.risk__head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.risk__head ion-icon {
+  font-size: 1.7rem;
+  color: var(--text-4);
+  flex-shrink: 0;
+}
+.risk__name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.risk__level {
+  margin-left: auto;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+}
+.risk__level--nd {
+  color: var(--text-5);
+}
+
+.risk__bar {
+  height: 0.5rem;
+  margin: 0.8rem 0 0.6rem;
+  border-radius: var(--r-pill);
+  background-color: rgba(5, 7, 17, 0.8);
+  border: 0.1rem solid var(--line);
+  overflow: hidden;
+}
+.risk__bar span {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  transition: width 0.5s var(--ease);
+}
+
+.risk__why {
+  font-size: 1.2rem;
+  color: var(--text-4);
+}
+
+.risk-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1.2rem;
+  margin-bottom: 1.2rem;
+  font-size: 1.25rem;
+  color: #8ee6a8;
+  background-color: rgba(55, 214, 122, 0.08);
+  border: 0.1rem solid rgba(55, 214, 122, 0.25);
+  border-radius: var(--r-sm);
+}
+.risk-clear ion-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.alertbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 1rem;
+  border-radius: var(--r-sm);
+  line-height: 1.5;
+}
+.alertbox ion-icon {
+  flex-shrink: 0;
+  font-size: 2rem;
+  margin-top: 0.2rem;
+}
+.alertbox strong {
+  display: block;
+  font-size: 1.3rem;
+  letter-spacing: 0.04rem;
+  margin-bottom: 0.3rem;
+}
+.alertbox span {
+  font-size: 1.25rem;
+}
+
+.alertbox--high {
+  color: #ffd9a1;
+  background-color: rgba(255, 176, 32, 0.1);
+  border: 0.1rem solid rgba(255, 176, 32, 0.45);
+}
+.alertbox--high ion-icon,
+.alertbox--high strong {
+  color: var(--alert);
+}
+
+.alertbox--extreme {
+  color: #ffc9cb;
+  background-color: rgba(229, 72, 77, 0.12);
+  border: 0.1rem solid rgba(229, 72, 77, 0.55);
+  animation: alertPulse 2.2s var(--ease) infinite;
+}
+.alertbox--extreme ion-icon,
+.alertbox--extreme strong {
+  color: #ff8a8e;
+}
+
+@keyframes alertPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 72, 77, 0);
+  }
+  50% {
+    box-shadow: 0 0 1.8rem 0 rgba(229, 72, 77, 0.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alertbox--extreme {
+    animation: none;
+  }
+}
+
 /* Pronóstico por horas */
 
 .hours {
