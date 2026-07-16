@@ -151,10 +151,74 @@
               <button class="seg__btn" data-layer="satellite">
                 <ion-icon name="globe-outline"></ion-icon> Satélite
               </button>
+              <button class="seg__btn" data-layer="euro">
+                <ion-icon name="stats-chart-outline"></ion-icon> Modelo
+              </button>
               <button class="seg__btn" data-layer="none">
                 <ion-icon name="map-outline"></ion-icon> Sin capa
               </button>
             </div>
+          </div>
+
+          <!-- Modelo europeo (IFS de ECMWF): probabilidades del ensemble y
+               pasada determinista, enfocado en tiempo peligroso -->
+          <aside class="euro-panel" id="euro-panel" hidden>
+            <button class="euro-panel__head" id="euro-collapse" type="button">
+              <span>
+                <strong>Modelo europeo · ECMWF</strong>
+                <span class="euro-panel__sub" id="euro-sub">IFS 0.25° · ensemble de 51 escenarios</span>
+              </span>
+              <ion-icon name="chevron-up-outline" id="euro-collapse-icon"></ion-icon>
+            </button>
+
+            <div class="euro-panel__body" id="euro-body">
+              <div class="seg seg--tight" id="euro-var" role="tablist">
+                <button class="seg__btn is-active" data-value="wind">Viento</button>
+                <button class="seg__btn" data-value="gusts">Ráfagas</button>
+                <button class="seg__btn" data-value="rain">Lluvia</button>
+              </div>
+
+              <div class="seg seg--tight" id="euro-mode" role="tablist">
+                <button class="seg__btn is-active" data-value="prob">Probabilidad</button>
+                <button class="seg__btn" data-value="det">Determinista</button>
+              </div>
+
+              <p class="euro-title" id="euro-title">—</p>
+
+              <div class="euro-time">
+                <button class="euro-time__btn" id="euro-prev" aria-label="Período anterior">
+                  <ion-icon name="chevron-back-outline"></ion-icon>
+                </button>
+                <div class="euro-time__label">
+                  <strong id="euro-step-label">—</strong>
+                  <span>período de 6 horas</span>
+                </div>
+                <button class="euro-time__btn" id="euro-next" aria-label="Período siguiente">
+                  <ion-icon name="chevron-forward-outline"></ion-icon>
+                </button>
+              </div>
+              <input
+                type="range"
+                class="euro-slider"
+                id="euro-slider"
+                min="0"
+                max="0"
+                step="1"
+                value="0"
+                aria-label="Línea de tiempo del modelo"
+              />
+
+              <div class="euro-legend">
+                <div class="euro-legend__bar" id="euro-legend-bar"></div>
+                <div class="euro-legend__ticks" id="euro-legend-ticks"></div>
+              </div>
+
+              <p class="euro-note" id="euro-note">—</p>
+            </div>
+          </aside>
+
+          <div class="map-loading" id="euro-loading" hidden>
+            <span class="map-loading__dot"></span> Calculando el modelo…
           </div>
 
           <div class="map-playbar" id="playbar">
@@ -168,7 +232,7 @@
           </div>
 
           <span class="map-credit" id="map-credit" hidden>
-            © OpenStreetMap · CARTO · RainViewer
+            © OpenStreetMap · CARTO · RainViewer · ECMWF vía Open-Meteo
           </span>
 
           <div class="map-fallback" id="map-fallback">

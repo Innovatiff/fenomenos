@@ -345,6 +345,9 @@ async function initMap() {
   $("map-credit").hidden = false;
 
   map.on("click", onMapClick);
+  map.on("moveend", () => {
+    if (euro.on) euroRefreshSoon();
+  });
 
   await loadRainViewer();
   setLayer(settings.layer, { silent: true });
@@ -356,7 +359,9 @@ function onMapClick(e) {
 
   if (clickMarker) clickMarker.remove();
   clickMarker = window.L.marker([lat, lng]).addTo(map);
-  clickMarker.bindPopup(`Pronóstico para <strong>${label}</strong>`).openPopup();
+  clickMarker
+    .bindPopup(`Pronóstico para <strong>${label}</strong>${euroReadout(lat, lng)}`)
+    .openPopup();
 
   loadWeather(lat, lng, `Punto ${label}`);
   reverseGeocode(lat, lng);
@@ -419,7 +424,9 @@ function setLayer(kind, { silent = false } = {}) {
     weatherLayer = null;
   }
 
-  if (kind === "none" || !map) {
+  euroSetActive(kind === "euro", { silent });
+
+  if (kind === "euro" || kind === "none" || !map) {
     $("playbar").classList.remove("is-visible");
     return;
   }
@@ -482,6 +489,480 @@ function stopPlayback() {
   const icon = $("play-icon");
   if (icon) icon.setAttribute("name", "play");
 }
+
+/* ═══════════════  4b. MODELO EUROPEO (ECMWF · IFS)  ═════════════════════
+   Capa de tiempo peligroso sobre el mapa. Dos modos:
+   · Probabilidad — porcentaje de los 51 escenarios del ensemble IFS que
+     superan un umbral peligroso (viento sostenido > 25 mph, ráfagas
+     > 40 mph, lluvia > 25 mm en 6 h) en cada período de 6 horas.
+   · Determinista — la pasada real de alta resolución del IFS: el máximo
+     (o el total, para lluvia) de cada período de 6 horas.
+   Los datos llegan de Open-Meteo (que redistribuye el IFS de ECMWF sin
+   clave) en una rejilla de puntos que cubre la vista del mapa; el campo
+   se pinta en un canvas y se estira como imagen suavizada sobre el mapa. */
+
+const EURO_HOURS = 6; /* ancho de cada período */
+const EURO_DAYS = 4; /* alcance del pronóstico */
+
+/* rampa de colores para probabilidades (0–100 %) */
+const EURO_PROB_STOPS = [
+  [0, [255, 224, 138, 0]],
+  [5, [255, 224, 138, 45]],
+  [15, [255, 224, 138, 150]],
+  [30, [255, 176, 32, 185]],
+  [50, [255, 122, 69, 205]],
+  [70, [229, 72, 77, 222]],
+  [90, [186, 60, 190, 235]],
+  [100, [148, 40, 190, 245]],
+];
+const EURO_PROB_TICKS = [10, 30, 50, 70, 90];
+
+const EURO_VARS = {
+  wind: {
+    hourly: "wind_speed_10m",
+    agg: "max",
+    unit: "mph",
+    threshold: 25,
+    probTitle: "Probabilidad de viento sostenido > 25 mph (40 km/h)",
+    detTitle: "Viento sostenido máximo del período (mph)",
+    probShort: "P(viento > 25 mph)",
+    detShort: "Viento máx.",
+    detStops: [
+      [8, [70, 150, 165, 0]],
+      [12, [70, 160, 170, 120]],
+      [18, [110, 190, 120, 150]],
+      [25, [255, 224, 90, 185]],
+      [32, [255, 176, 32, 205]],
+      [40, [255, 110, 60, 220]],
+      [50, [229, 60, 70, 232]],
+      [62, [200, 60, 200, 242]],
+    ],
+    detTicks: [12, 25, 40, 62],
+  },
+  gusts: {
+    hourly: "wind_gusts_10m",
+    agg: "max",
+    unit: "mph",
+    threshold: 40,
+    probTitle: "Probabilidad de ráfagas > 40 mph (64 km/h)",
+    detTitle: "Ráfaga máxima del período (mph)",
+    probShort: "P(ráfagas > 40 mph)",
+    detShort: "Ráfaga máx.",
+    detStops: [
+      [12, [70, 150, 165, 0]],
+      [20, [70, 160, 170, 120]],
+      [28, [110, 190, 120, 150]],
+      [40, [255, 224, 90, 185]],
+      [50, [255, 176, 32, 205]],
+      [58, [255, 110, 60, 220]],
+      [70, [229, 60, 70, 232]],
+      [85, [200, 60, 200, 242]],
+    ],
+    detTicks: [20, 40, 60, 85],
+  },
+  rain: {
+    hourly: "precipitation",
+    agg: "sum",
+    unit: "mm",
+    threshold: 25,
+    probTitle: "Probabilidad de lluvia > 25 mm en 6 h (riesgo de inundaciones)",
+    detTitle: "Lluvia acumulada en 6 h (mm)",
+    probShort: "P(lluvia > 25 mm/6 h)",
+    detShort: "Lluvia 6 h",
+    detStops: [
+      [0.5, [90, 150, 255, 0]],
+      [2, [90, 150, 255, 125]],
+      [6, [70, 190, 240, 155]],
+      [12, [90, 220, 150, 180]],
+      [25, [255, 224, 90, 200]],
+      [40, [255, 150, 40, 215]],
+      [60, [229, 60, 70, 230]],
+      [100, [200, 60, 200, 242]],
+    ],
+    detTicks: [2, 25, 60, 100],
+  },
+};
+
+const euro = {
+  on: false,
+  variable: "wind",
+  mode: "prob",
+  step: null,
+  data: null,
+  overlay: null,
+  cache: new Map(),
+  abort: null,
+  seq: 0,
+};
+window.__fdcEuro = euro; /* para depurar */
+
+/* Rejilla de puntos que cubre la vista actual, alineada al espaciado para
+   que pequeños desplazamientos del mapa reutilicen la caché. */
+function euroGrid(maxCols, maxRows) {
+  const b = map.getBounds();
+  const latN = Math.min(b.getNorth(), 75);
+  const latS = Math.max(b.getSouth(), -60);
+  let lonW = b.getWest();
+  let lonE = b.getEast();
+  if (lonE - lonW >= 358) {
+    lonW = -178;
+    lonE = 178;
+  }
+  const SPACINGS = [0.25, 0.5, 1, 2, 3, 4, 6, 8];
+  const sp =
+    SPACINGS.find(
+      (s) => (lonE - lonW) / s + 2 <= maxCols && (latN - latS) / s + 2 <= maxRows
+    ) || 10;
+  const lat0 = Math.min(75, Math.ceil(latN / sp) * sp);
+  const lon0 = Math.floor(lonW / sp) * sp;
+  const rows = Math.min(maxRows, Math.max(2, Math.floor((lat0 - latS) / sp) + 2));
+  const cols = Math.min(maxCols, Math.max(2, Math.floor((lonE - lon0) / sp) + 2));
+  const lats = Array.from({ length: rows }, (_, r) => lat0 - r * sp);
+  const lons = Array.from({ length: cols }, (_, c) => lon0 + c * sp);
+  return { lats, lons, sp, key: `${sp}|${lat0}|${lon0}|${rows}x${cols}` };
+}
+
+function euroNormLon(x) {
+  return ((((x + 180) % 360) + 360) % 360) - 180;
+}
+
+function euroPointParams(grid) {
+  const latQ = [];
+  const lonQ = [];
+  for (const lat of grid.lats)
+    for (const lon of grid.lons) {
+      latQ.push(lat.toFixed(3));
+      lonQ.push(euroNormLon(lon).toFixed(3));
+    }
+  return { latQ, lonQ };
+}
+
+/* agrega las horas de un período: máximo (viento) o suma (lluvia) */
+function euroWindow(values, agg, step) {
+  if (!values) return null;
+  let out = agg === "sum" ? 0 : -Infinity;
+  let seen = false;
+  const from = step * EURO_HOURS;
+  for (let h = from; h < from + EURO_HOURS && h < values.length; h++) {
+    const v = values[h];
+    if (v == null || Number.isNaN(v)) continue;
+    seen = true;
+    if (agg === "sum") out += v;
+    else if (v > out) out = v;
+  }
+  return seen ? out : null;
+}
+
+function euroBaseParams(cfg, grid) {
+  const { latQ, lonQ } = euroPointParams(grid);
+  const params = new URLSearchParams({
+    latitude: latQ.join(","),
+    longitude: lonQ.join(","),
+    hourly: cfg.hourly,
+    forecast_days: String(EURO_DAYS),
+    timeformat: "unixtime",
+    timezone: "UTC",
+  });
+  if (cfg.unit === "mph") params.set("wind_speed_unit", "mph");
+  return params;
+}
+
+function euroTimes(hourly) {
+  const steps = Math.floor(hourly.time.length / EURO_HOURS);
+  return Array.from({ length: steps }, (_, s) => hourly.time[s * EURO_HOURS]);
+}
+
+/* Probabilidad: ensemble de 51 escenarios del IFS */
+async function fetchEuroProb(varKey, grid, signal) {
+  const cfg = EURO_VARS[varKey];
+  const params = euroBaseParams(cfg, grid);
+  params.set("models", "ecmwf_ifs025");
+  const res = await fetch(
+    `https://ensemble-api.open-meteo.com/v1/ensemble?${params}`,
+    { signal }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const raw = await res.json();
+  const list = Array.isArray(raw) ? raw : [raw];
+  const times = euroTimes(list[0].hourly);
+  let members = 0;
+  const values = list.map((loc) => {
+    const keys = Object.keys(loc.hourly).filter(
+      (k) => k === cfg.hourly || k.startsWith(cfg.hourly + "_member")
+    );
+    members = Math.max(members, keys.length);
+    return times.map((_, s) => {
+      let hits = 0;
+      let total = 0;
+      for (const k of keys) {
+        const v = euroWindow(loc.hourly[k], cfg.agg, s);
+        if (v == null) continue;
+        total++;
+        if (v > cfg.threshold) hits++;
+      }
+      return total ? Math.round((hits / total) * 100) : null;
+    });
+  });
+  return { grid, times, values, members, mode: "prob", variable: varKey };
+}
+
+/* Determinista: la pasada de alta resolución del IFS */
+async function fetchEuroDet(varKey, grid, signal) {
+  const cfg = EURO_VARS[varKey];
+  const params = euroBaseParams(cfg, grid);
+  params.set("models", "ecmwf_ifs025");
+  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, {
+    signal,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const raw = await res.json();
+  const list = Array.isArray(raw) ? raw : [raw];
+  const times = euroTimes(list[0].hourly);
+  const values = list.map((loc) =>
+    times.map((_, s) => {
+      const v = euroWindow(loc.hourly[cfg.hourly], cfg.agg, s);
+      return v == null ? null : Math.round(v * 10) / 10;
+    })
+  );
+  return { grid, times, values, members: 1, mode: "det", variable: varKey };
+}
+
+/* color interpolado sobre la rampa */
+function euroColor(v, stops) {
+  if (v == null) return [0, 0, 0, 0];
+  if (v <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++) {
+    const [v1, c1] = stops[i - 1];
+    const [v2, c2] = stops[i];
+    if (v <= v2) {
+      const t = (v - v1) / (v2 - v1);
+      return c1.map((a, j) => Math.round(a + (c2[j] - a) * t));
+    }
+  }
+  return stops[stops.length - 1][1];
+}
+
+function euroDefaultStep(times) {
+  const now = Date.now() / 1000;
+  const i = times.findIndex((t) => t + EURO_HOURS * 3600 > now);
+  return i < 0 ? 0 : i;
+}
+
+function fmtHour12(d) {
+  const h = d.getHours();
+  const suffix = h >= 12 ? "p. m." : "a. m.";
+  const twelve = h % 12 === 0 ? 12 : h % 12;
+  return `${twelve} ${suffix}`;
+}
+
+function euroStepLabel(t) {
+  const from = new Date(t * 1000);
+  const to = new Date((t + EURO_HOURS * 3600) * 1000);
+  const day = from.toLocaleDateString("es", { weekday: "short", day: "numeric" });
+  return `${day} · ${fmtHour12(from)} – ${fmtHour12(to)}`;
+}
+
+function euroLegend(stops, ticks, unit) {
+  const min = stops[0][0];
+  const max = stops[stops.length - 1][0];
+  const pct = (v) => (((v - min) / (max - min)) * 100).toFixed(1);
+  $("euro-legend-bar").style.background = `linear-gradient(to right, ${stops
+    .map(
+      ([v, c]) =>
+        `rgba(${c[0]},${c[1]},${c[2]},${(Math.max(c[3], 36) / 255).toFixed(2)}) ${pct(v)}%`
+    )
+    .join(",")})`;
+  $("euro-legend-ticks").innerHTML = ticks
+    .map(
+      (v, i) =>
+        `<span style="left:${pct(v)}%">${v}${i === ticks.length - 1 ? ` ${unit}` : ""}</span>`
+    )
+    .join("");
+}
+
+/* pinta el paso actual: canvas pequeño → imagen suavizada sobre el mapa */
+function euroRender() {
+  const d = euro.data;
+  if (!d || !map || !window.L) return;
+  const cfg = EURO_VARS[euro.variable];
+  const prob = euro.mode === "prob";
+  const stops = prob ? EURO_PROB_STOPS : cfg.detStops;
+
+  if (euro.step == null) euro.step = euroDefaultStep(d.times);
+  euro.step = Math.max(0, Math.min(euro.step, d.times.length - 1));
+
+  const rows = d.grid.lats.length;
+  const cols = d.grid.lons.length;
+  const cv = document.createElement("canvas");
+  cv.width = cols;
+  cv.height = rows;
+  const cctx = cv.getContext("2d");
+  const img = cctx.createImageData(cols, rows);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const point = d.values[r * cols + c];
+      const [R, G, B, A] = euroColor(point ? point[euro.step] : null, stops);
+      const o = (r * cols + c) * 4;
+      img.data[o] = R;
+      img.data[o + 1] = G;
+      img.data[o + 2] = B;
+      img.data[o + 3] = A;
+    }
+  }
+  cctx.putImageData(img, 0, 0);
+
+  /* reescala con suavizado para que el campo se vea continuo */
+  const up = document.createElement("canvas");
+  up.width = cols * 16;
+  up.height = rows * 16;
+  const uctx = up.getContext("2d");
+  uctx.imageSmoothingEnabled = true;
+  uctx.imageSmoothingQuality = "high";
+  uctx.drawImage(cv, 0, 0, up.width, up.height);
+
+  const half = d.grid.sp / 2;
+  const bounds = [
+    [d.grid.lats[0] + half, d.grid.lons[0] - half],
+    [d.grid.lats[rows - 1] - half, d.grid.lons[cols - 1] + half],
+  ];
+  if (euro.overlay) euro.overlay.remove();
+  euro.overlay = window.L.imageOverlay(up.toDataURL("image/png"), bounds, {
+    opacity: 0.72,
+    interactive: false,
+  });
+  euro.overlay.addTo(map);
+
+  /* controles */
+  $("euro-title").textContent = prob ? cfg.probTitle : cfg.detTitle;
+  $("euro-sub").textContent = prob
+    ? `IFS 0.25° · ensemble de ${d.members || 51} escenarios`
+    : "IFS 0.25° · pasada determinista";
+  const slider = $("euro-slider");
+  slider.max = String(d.times.length - 1);
+  slider.value = String(euro.step);
+  $("euro-step-label").textContent = euroStepLabel(d.times[euro.step]);
+  euroLegend(stops, prob ? EURO_PROB_TICKS : cfg.detTicks, prob ? "%" : cfg.unit);
+  $("euro-note").textContent = prob
+    ? `Porcentaje de los ${d.members || 51} escenarios del ensemble que superan el umbral en cada período de 6 h. Rejilla de ${d.grid.sp}°.`
+    : `Pasada determinista de alta resolución: ${
+        cfg.agg === "sum" ? "total acumulado" : "valor máximo"
+      } de cada período de 6 h. Rejilla de ${d.grid.sp}°.`;
+}
+
+/* lectura del punto tocado para el popup del mapa */
+function euroReadout(lat, lng) {
+  const d = euro.data;
+  if (!euro.on || !d || euro.step == null) return "";
+  const rows = d.grid.lats.length;
+  const cols = d.grid.lons.length;
+  const r = Math.round((d.grid.lats[0] - lat) / d.grid.sp);
+  const c = Math.round((lng - d.grid.lons[0]) / d.grid.sp);
+  if (r < 0 || c < 0 || r >= rows || c >= cols) return "";
+  const point = d.values[r * cols + c];
+  const v = point ? point[euro.step] : null;
+  if (v == null) return "";
+  const cfg = EURO_VARS[euro.variable];
+  const label = euro.mode === "prob" ? cfg.probShort : cfg.detShort;
+  const value = euro.mode === "prob" ? `${v} %` : `${v} ${cfg.unit}`;
+  return `<br>${label}: <strong>${value}</strong> · ${euroStepLabel(d.times[euro.step])}`;
+}
+
+let euroMoveTimer = null;
+function euroRefreshSoon() {
+  clearTimeout(euroMoveTimer);
+  euroMoveTimer = setTimeout(() => euroRefresh(), 550);
+}
+
+async function euroRefresh() {
+  if (!euro.on || !map) return;
+  /* la rejilla determinista es más fina: una sola pasada pesa poco */
+  const grid = euro.mode === "det" ? euroGrid(18, 12) : euroGrid(10, 7);
+  const key = `${euro.variable}|${euro.mode}|${grid.key}`;
+  const cached = euro.cache.get(key);
+  if (cached) {
+    euro.data = cached;
+    euroRender();
+    return;
+  }
+
+  const seq = ++euro.seq;
+  if (euro.abort) euro.abort.abort();
+  euro.abort = new AbortController();
+  $("euro-loading").hidden = false;
+  try {
+    const data =
+      euro.mode === "det"
+        ? await fetchEuroDet(euro.variable, grid, euro.abort.signal)
+        : await fetchEuroProb(euro.variable, grid, euro.abort.signal);
+    euro.cache.set(key, data);
+    if (euro.cache.size > 30) euro.cache.delete(euro.cache.keys().next().value);
+    if (seq === euro.seq && euro.on) {
+      euro.data = data;
+      euroRender();
+    }
+  } catch (err) {
+    if (!(err && err.name === "AbortError")) {
+      toast("No se pudo cargar el modelo europeo.", "error");
+      $("euro-note").textContent =
+        "No se pudo cargar el modelo. Revisa tu conexión e intenta de nuevo.";
+    }
+  } finally {
+    if (seq === euro.seq) $("euro-loading").hidden = true;
+  }
+}
+
+function euroSetActive(on, { silent = false } = {}) {
+  euro.on = on && !!map;
+  $("euro-panel").hidden = !euro.on;
+  /* en pantallas pequeñas el panel arranca plegado para no tapar el mapa */
+  if (euro.on && !euro.opened) {
+    euro.opened = true;
+    if (window.innerWidth < 768) $("euro-panel").classList.add("is-min");
+  }
+  if (!euro.on) {
+    if (euro.overlay) {
+      euro.overlay.remove();
+      euro.overlay = null;
+    }
+    if (euro.abort) euro.abort.abort();
+    $("euro-loading").hidden = true;
+    if (on && !map && !silent) toast("El mapa no está disponible.", "error");
+    return;
+  }
+  euroRefresh();
+}
+
+/* controles del panel */
+["euro-var", "euro-mode"].forEach((id) => {
+  document.querySelectorAll(`#${id} .seg__btn`).forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setSegValue(id, btn.dataset.value);
+      if (id === "euro-var") euro.variable = btn.dataset.value;
+      else euro.mode = btn.dataset.value;
+      euroRefresh();
+    });
+  });
+});
+
+$("euro-slider").addEventListener("input", (e) => {
+  euro.step = Number(e.target.value);
+  euroRender();
+});
+$("euro-prev").addEventListener("click", () => {
+  if (euro.step > 0) {
+    euro.step--;
+    euroRender();
+  }
+});
+$("euro-next").addEventListener("click", () => {
+  if (euro.data && euro.step < euro.data.times.length - 1) {
+    euro.step++;
+    euroRender();
+  }
+});
+$("euro-collapse").addEventListener("click", () => {
+  $("euro-panel").classList.toggle("is-min");
+});
 
 /* ═══════════════════════════  5. BUSCADOR  ══════════════════════════════ */
 

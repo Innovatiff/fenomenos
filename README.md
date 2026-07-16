@@ -83,6 +83,19 @@ de Firebase). Una vez dentro, `app.html` ofrece:
   país elegido; al tocar cualquier punto se carga su pronóstico.
 - **Radar y satélite en vivo** (RainViewer) con animación reproducible
   (fotogramas pasados + pronóstico inmediato del radar).
+- **Capa «Modelo» — el modelo europeo (IFS de ECMWF)**, enfocada en tiempo
+  peligroso, con dos modos:
+  - **Probabilidad**: porcentaje de los **51 escenarios del ensemble** que
+    superan un umbral peligroso en cada período de 6 horas — viento
+    sostenido **> 25 mph**, ráfagas **> 40 mph** o lluvia **> 25 mm en
+    6 h** (riesgo de inundaciones).
+  - **Determinista**: la pasada real de alta resolución del IFS (el máximo
+    de viento/ráfagas o la lluvia acumulada de cada período), en una
+    rejilla más fina.
+  - Línea de tiempo de 6 en 6 horas hasta 4 días, leyenda con gradiente,
+    lectura del valor al tocar el mapa y recálculo automático al mover el
+    mapa. Los datos llegan de Open-Meteo, que redistribuye el IFS de ECMWF
+    sin clave.
 - **Pronóstico** de Open-Meteo: condiciones actuales, próximas 24 horas y
   7 días, en las unidades elegidas.
 - **Buscador de lugares** (geocodificador de Open-Meteo, en español).

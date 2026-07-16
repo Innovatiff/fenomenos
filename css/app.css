@@ -895,6 +895,16 @@
   font-size: 1.3rem;
 }
 
+/* En pantallas estrechas caben las 4 capas sin iconos */
+@media (max-width: 36em) {
+  .map-layers .seg__btn ion-icon {
+    display: none;
+  }
+  .map-layers .seg__btn {
+    padding: 0.7rem 1.1rem;
+  }
+}
+
 .map-playbar {
   position: absolute;
   bottom: 2.6rem;
@@ -947,6 +957,205 @@
   letter-spacing: 0.1rem;
   text-transform: uppercase;
   color: var(--text-5);
+}
+
+/* ────────────────  MODELO EUROPEO (ECMWF · IFS)  ─────────────────────── */
+
+.euro-panel {
+  position: absolute;
+  top: 6.8rem;
+  right: 1.4rem;
+  z-index: 600;
+  width: min(30rem, calc(100% - 2.8rem));
+  background-color: rgba(0, 11, 51, 0.92);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(1.4rem);
+  -webkit-backdrop-filter: blur(1.4rem);
+  box-shadow: 0 1.4rem 4.4rem rgba(0, 4, 20, 0.55);
+}
+
+.euro-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.2rem 1.4rem;
+  text-align: left;
+}
+.euro-panel__head > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.euro-panel__head strong {
+  font-size: 1.3rem;
+  color: #fff;
+  white-space: nowrap;
+}
+.euro-panel__sub {
+  font-size: 1.05rem;
+  letter-spacing: 0.06rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+  white-space: nowrap;
+}
+.euro-panel__head ion-icon {
+  flex-shrink: 0;
+  font-size: 1.6rem;
+  color: var(--text-4);
+  transition: transform 0.25s var(--ease);
+}
+.euro-panel.is-min .euro-panel__head ion-icon {
+  transform: rotate(180deg);
+}
+
+.euro-panel__body {
+  padding: 0 1.4rem 1.4rem;
+}
+.euro-panel.is-min .euro-panel__body {
+  display: none;
+}
+
+.seg--tight {
+  width: 100%;
+  margin-bottom: 0.8rem;
+}
+.seg--tight .seg__btn {
+  flex: 1;
+  padding: 0.55rem 0.6rem;
+  font-size: 1.25rem;
+}
+
+.euro-title {
+  margin: 0.6rem 0 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+
+.euro-time {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+.euro-time__btn {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.5rem;
+  color: var(--text-3);
+  border: 0.1rem solid var(--line-2);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.euro-time__btn:hover {
+  color: #fff;
+  border-color: var(--text-4);
+}
+.euro-time__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.3;
+  min-width: 0;
+  text-align: center;
+}
+.euro-time__label strong {
+  font-size: 1.35rem;
+  color: #fff;
+  white-space: nowrap;
+}
+.euro-time__label span {
+  font-size: 1.05rem;
+  letter-spacing: 0.08rem;
+  text-transform: uppercase;
+  color: var(--text-5);
+}
+
+.euro-slider {
+  width: 100%;
+  margin: 0 0 1.2rem;
+  accent-color: var(--alert);
+  cursor: pointer;
+}
+
+.euro-legend__bar {
+  height: 1rem;
+  border-radius: var(--r-pill);
+  border: 0.1rem solid var(--line-2);
+}
+.euro-legend__ticks {
+  position: relative;
+  height: 1.6rem;
+  margin-top: 0.3rem;
+}
+.euro-legend__ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 1.05rem;
+  color: var(--text-4);
+  white-space: nowrap;
+}
+
+.euro-note {
+  margin-top: 0.8rem;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: var(--text-5);
+}
+
+/* Chip de carga del modelo */
+
+.map-loading {
+  position: absolute;
+  bottom: 2.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 550;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1.6rem;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--text-2);
+  background-color: rgba(0, 11, 51, 0.92);
+  border: 0.1rem solid var(--line-2);
+  border-radius: var(--r-pill);
+  backdrop-filter: blur(1.2rem);
+  -webkit-backdrop-filter: blur(1.2rem);
+}
+.map-loading__dot {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: 0.2rem solid rgba(255, 176, 32, 0.35);
+  border-top-color: var(--alert);
+  animation: euroSpin 0.8s linear infinite;
+}
+@keyframes euroSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 48em) {
+  .euro-panel {
+    top: 6.4rem;
+    left: 1.4rem;
+    right: 1.4rem;
+    width: auto;
+  }
+  .map-loading {
+    bottom: 1.2rem;
+  }
 }
 
 /* Marca de agua / crédito */
