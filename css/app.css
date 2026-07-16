@@ -1115,6 +1115,85 @@
   color: var(--text-5);
 }
 
+/* Interruptor "viento en movimiento" */
+
+.euro-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1.2rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-3);
+  cursor: pointer;
+  user-select: none;
+}
+.euro-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.euro-switch__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 3.4rem;
+  height: 1.9rem;
+  border-radius: var(--r-pill);
+  background-color: rgba(5, 7, 17, 0.8);
+  border: 0.1rem solid var(--line-2);
+  transition: background-color 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.euro-switch__track::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 0.2rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background-color: var(--text-4);
+  transition: transform 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.euro-switch input:checked + .euro-switch__track {
+  background-color: rgba(255, 176, 32, 0.25);
+  border-color: rgba(255, 176, 32, 0.55);
+}
+.euro-switch input:checked + .euro-switch__track::after {
+  transform: translateX(1.5rem);
+  background-color: var(--alert);
+}
+.euro-switch input:focus-visible + .euro-switch__track {
+  outline: 0.2rem solid var(--alert);
+  outline-offset: 0.2rem;
+}
+
+/* Lienzo de partículas de viento: por encima del mapa, sin capturar toques */
+
+.wind-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 450;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+}
+
+/* Satélite infrarrojo: mezcla "screen" — el cielo despejado (negro) se
+   vuelve invisible y solo brillan las nubes sobre el mapa oscuro */
+
+.sat-tiles {
+  mix-blend-mode: screen;
+}
+
+/* Control de escala de Leaflet a juego con el tema */
+
+.leaflet-control-scale-line {
+  color: var(--text-3) !important;
+  background: rgba(0, 11, 51, 0.75) !important;
+  border-color: var(--line-2) !important;
+  font-size: 1rem !important;
+}
+
 /* Chip de carga del modelo */
 
 .map-loading {

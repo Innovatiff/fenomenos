@@ -160,22 +160,30 @@
             </div>
           </div>
 
-          <!-- Modelo europeo (IFS de ECMWF): probabilidades del ensemble y
-               pasada determinista, enfocado en tiempo peligroso -->
+          <!-- Modelos de pronóstico: ECMWF, NOAA y GEM Canadá (probabilidades
+               del ensemble + pasada determinista) y calidad del aire (CAMS),
+               enfocado en tiempo severo -->
           <aside class="euro-panel" id="euro-panel" hidden>
             <button class="euro-panel__head" id="euro-collapse" type="button">
               <span>
-                <strong>Modelo europeo · ECMWF</strong>
+                <strong>Modelos · tiempo severo</strong>
                 <span class="euro-panel__sub" id="euro-sub">EPS de ECMWF · 51 escenarios</span>
               </span>
               <ion-icon name="chevron-up-outline" id="euro-collapse-icon"></ion-icon>
             </button>
 
             <div class="euro-panel__body" id="euro-body">
+              <div class="seg seg--tight" id="euro-model" role="tablist">
+                <button class="seg__btn is-active" data-value="ecmwf" title="Modelo europeo (IFS/EPS)">ECMWF</button>
+                <button class="seg__btn" data-value="noaa" title="Modelo americano (GFS/GEFS)">NOAA</button>
+                <button class="seg__btn" data-value="gem" title="Modelo canadiense (GEM/GEPS)">GEM</button>
+              </div>
+
               <div class="seg seg--tight" id="euro-var" role="tablist">
                 <button class="seg__btn is-active" data-value="wind">Viento</button>
                 <button class="seg__btn" data-value="gusts">Ráfagas</button>
                 <button class="seg__btn" data-value="rain">Lluvia</button>
+                <button class="seg__btn" data-value="air">Aire</button>
               </div>
 
               <div class="seg seg--tight" id="euro-mode" role="tablist">
@@ -213,9 +221,18 @@
                 <div class="euro-legend__ticks" id="euro-legend-ticks"></div>
               </div>
 
+              <label class="euro-switch">
+                <input type="checkbox" id="euro-wind-toggle" checked />
+                <span class="euro-switch__track" aria-hidden="true"></span>
+                Viento en movimiento
+              </label>
+
               <p class="euro-note" id="euro-note">—</p>
             </div>
           </aside>
+
+          <!-- Partículas de viento animadas (se dibujan por encima del mapa) -->
+          <canvas class="wind-canvas" id="wind-canvas" aria-hidden="true"></canvas>
 
           <div class="map-loading" id="euro-loading" hidden>
             <span class="map-loading__dot"></span> Calculando el modelo…
@@ -232,7 +249,8 @@
           </div>
 
           <span class="map-credit" id="map-credit" hidden>
-            © OpenStreetMap · CARTO · RainViewer · ECMWF vía Open-Meteo
+            © OpenStreetMap · CARTO · RainViewer · Open-Meteo (ECMWF · NOAA ·
+            ECCC · CAMS)
           </span>
 
           <div class="map-fallback" id="map-fallback">

@@ -337,16 +337,47 @@ async function initMap() {
     attributionControl: false,
   });
 
+  /* base sin etiquetas + etiquetas en un panel superior: los nombres de
+     ciudades siempre se leen por encima de radar, satélite y modelos */
   baseLayer = L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
     { subdomains: "abcd", maxZoom: 12 }
   );
   baseLayer.addTo(map);
+
+  const labelsPane = map.createPane("labels");
+  labelsPane.style.zIndex = 650;
+  labelsPane.style.pointerEvents = "none";
+  L.tileLayer(
+    "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
+    { subdomains: "abcd", maxZoom: 12, pane: "labels" }
+  ).addTo(map);
+
+  if (L.control && L.control.scale)
+    L.control.scale({ imperial: true, position: "bottomleft" }).addTo(map);
+
+  /* si el mapa base no llega (red caída), avisar una sola vez */
+  let baseErrors = 0;
+  baseLayer.on("tileerror", () => {
+    baseErrors++;
+    if (baseErrors === 8)
+      toast("No se pudo cargar el mapa base. Revisa tu conexión.", "error");
+  });
+
   $("map-credit").hidden = false;
 
   map.on("click", onMapClick);
   map.on("moveend", () => {
     if (euro.on) euroRefreshSoon();
+  });
+
+  /* las partículas se congelan mientras el mapa se mueve y se
+     recolocan al soltar (si no, quedarían "pegadas" a la pantalla) */
+  map.on("movestart zoomstart", () => {
+    if (wind.raf) windStop();
+  });
+  map.on("moveend zoomend", () => {
+    if (euro.on) windEnsure();
   });
 
   await loadRainViewer();
@@ -449,8 +480,11 @@ function setLayer(kind, { silent = false } = {}) {
     ? Math.max(rvData.radar.past.length - 1, 0)
     : frames.length - 1;
 
+  /* el infrarrojo del satélite es opaco (cielo despejado = negro): con
+     mezcla "screen" solo brillan las nubes y el mapa se sigue viendo */
   weatherLayer = window.L.tileLayer(tileUrl(kind, frames[frameIndex]), {
-    opacity: 0.75,
+    opacity: kind === "satellite" ? 0.9 : 0.75,
+    className: kind === "satellite" ? "sat-tiles" : "",
     maxZoom: 12,
   });
   weatherLayer.addTo(map);
@@ -458,6 +492,9 @@ function setLayer(kind, { silent = false } = {}) {
   $("frame-kind").textContent = kind === "radar" ? "Radar" : "Satélite";
   paintFrameLabel();
   $("playbar").classList.add("is-visible");
+
+  /* el radar y el satélite arrancan animados: el mapa se siente vivo */
+  if (frames.length > 1) startPlayback();
 }
 
 function paintFrameLabel() {
@@ -503,6 +540,37 @@ function stopPlayback() {
 
 const EURO_HOURS = 6; /* ancho de cada período */
 const EURO_DAYS = 4; /* alcance del pronóstico */
+
+/* Los tres centros de modelos disponibles vía Open-Meteo (sin clave):
+   · ECMWF — IFS determinista 0.25° + EPS (ensemble de 51 escenarios)
+   · NOAA — GFS determinista 0.25° + GEFS (ensemble de 31 escenarios, 0.25°)
+   · GEM (Canadá) — GEM global determinista 0.15° + GEPS (21 escenarios, 0.5°) */
+const EURO_MODELS_CFG = {
+  ecmwf: {
+    name: "ECMWF",
+    det: "ecmwf_ifs025",
+    ens: "ecmwf_ifs025",
+    detLabel: "IFS de ECMWF · determinista (0.25°)",
+    ensName: "EPS de ECMWF",
+    fallbackMembers: 51,
+  },
+  noaa: {
+    name: "NOAA",
+    det: "gfs_global",
+    ens: "gfs025",
+    detLabel: "GFS de NOAA · determinista (0.25°)",
+    ensName: "GEFS de NOAA",
+    fallbackMembers: 31,
+  },
+  gem: {
+    name: "GEM (Canadá)",
+    det: "gem_global",
+    ens: "gem_global",
+    detLabel: "GEM de Canadá · determinista (0.15°)",
+    ensName: "GEPS de Canadá",
+    fallbackMembers: 21,
+  },
+};
 
 /* rampa de colores para probabilidades (0–100 %) */
 const EURO_PROB_STOPS = [
@@ -583,10 +651,32 @@ const EURO_VARS = {
     ],
     detTicks: [2, 25, 60, 100],
   },
+  /* Calidad del aire: índice AQI de EE. UU. del CAMS (Copernicus).
+     No es un modelo meteorológico con ensemble: solo modo determinista. */
+  air: {
+    hourly: "us_aqi",
+    agg: "max",
+    unit: "AQI",
+    threshold: null,
+    detTitle: "Calidad del aire — índice AQI (EE. UU.)",
+    detShort: "AQI máx.",
+    detStops: [
+      [0, [0, 200, 80, 0]],
+      [25, [0, 210, 90, 90]],
+      [50, [190, 230, 60, 140]],
+      [100, [255, 214, 40, 185]],
+      [150, [255, 126, 0, 210]],
+      [200, [235, 50, 50, 225]],
+      [300, [143, 63, 151, 238]],
+      [400, [126, 0, 35, 245]],
+    ],
+    detTicks: [50, 100, 150, 200, 300],
+  },
 };
 
 const euro = {
   on: false,
+  model: "ecmwf",
   variable: "wind",
   mode: "prob",
   step: null,
@@ -596,7 +686,7 @@ const euro = {
   abort: null,
   seq: 0,
   /* control de tráfico hacia la API */
-  lastFetch: { prob: 0, det: 0 },
+  lastFetch: { prob: 0, det: 0, wind: 0 },
   cooldownUntil: 0,
   inflightKey: null,
   retryTimer: null,
@@ -606,7 +696,7 @@ window.__fdcEuro = euro; /* para depurar */
 /* El ensemble pesa mucho en la cuota de Open-Meteo: entre peticiones
    automáticas (paneos) se respeta un intervalo mínimo por modo. Cambiar
    de variable o de modo a mano lo salta (ver los controles del panel). */
-const EURO_MIN_INTERVAL = { prob: 12000, det: 4000 };
+const EURO_MIN_INTERVAL = { prob: 12000, det: 4000, wind: 4000 };
 
 /* Rejilla de puntos que SIEMPRE cubre la vista actual: el espaciado se
    calcula en continuo (cuantizado a 0.25°, la malla nativa del IFS) para
@@ -643,7 +733,9 @@ function euroGrid(maxCols, maxRows) {
 function euroCovered(reqGrid) {
   const d = euro.data;
   if (!d || !d.at || Date.now() - d.at > EURO_CACHE_TTL) return false;
-  if (d.variable !== euro.variable || d.mode !== euro.mode) return false;
+  const isAir = euro.variable === "air";
+  if (d.variable !== euro.variable) return false;
+  if (!isAir && (d.mode !== euro.mode || d.model !== euro.model)) return false;
   if (d.grid.sp > reqGrid.sp * 1.7) return false; /* muy grueso para este zoom */
   const h = d.grid.sp / 2;
   const dN = d.grid.lats[0] + h;
@@ -747,11 +839,12 @@ async function euroFetchJson(url, signal) {
   }
 }
 
-/* Probabilidad: el EPS de ECMWF (ensemble de 51 escenarios del IFS) */
-async function fetchEuroProb(varKey, grid, signal) {
+/* Probabilidad: el ensemble del centro elegido (EPS / GEFS / GEPS) */
+async function fetchEuroProb(modelKey, varKey, grid, signal) {
   const cfg = EURO_VARS[varKey];
+  const model = EURO_MODELS_CFG[modelKey];
   const params = euroBaseParams(cfg, grid);
-  params.set("models", "ecmwf_ifs025");
+  params.set("models", model.ens);
   const raw = await euroFetchJson(
     `https://ensemble-api.open-meteo.com/v1/ensemble?${params}`,
     signal
@@ -776,14 +869,15 @@ async function fetchEuroProb(varKey, grid, signal) {
       return total ? Math.round((hits / total) * 100) : null;
     });
   });
-  return { grid, times, values, members, mode: "prob", variable: varKey, at: Date.now() };
+  return { grid, times, values, members, mode: "prob", variable: varKey, model: modelKey, at: Date.now() };
 }
 
-/* Determinista: la pasada de alta resolución del IFS */
-async function fetchEuroDet(varKey, grid, signal) {
+/* Determinista: la pasada de alta resolución del centro elegido */
+async function fetchEuroDet(modelKey, varKey, grid, signal) {
   const cfg = EURO_VARS[varKey];
+  const model = EURO_MODELS_CFG[modelKey];
   const params = euroBaseParams(cfg, grid);
-  params.set("models", "ecmwf_ifs025");
+  params.set("models", model.det);
   const raw = await euroFetchJson(
     `https://api.open-meteo.com/v1/forecast?${params}`,
     signal
@@ -796,7 +890,26 @@ async function fetchEuroDet(varKey, grid, signal) {
       return v == null ? null : Math.round(v * 10) / 10;
     })
   );
-  return { grid, times, values, members: 1, mode: "det", variable: varKey, at: Date.now() };
+  return { grid, times, values, members: 1, mode: "det", variable: varKey, model: modelKey, at: Date.now() };
+}
+
+/* Calidad del aire: índice AQI del CAMS global (Copernicus), 0.4° */
+async function fetchEuroAir(grid, signal) {
+  const cfg = EURO_VARS.air;
+  const params = euroBaseParams(cfg, grid);
+  const raw = await euroFetchJson(
+    `https://air-quality-api.open-meteo.com/v1/air-quality?${params}`,
+    signal
+  );
+  const list = Array.isArray(raw) ? raw : [raw];
+  const times = euroTimes(list[0].hourly);
+  const values = list.map((loc) =>
+    times.map((_, s) => {
+      const v = euroWindow(loc.hourly[cfg.hourly], cfg, s);
+      return v == null ? null : Math.round(v);
+    })
+  );
+  return { grid, times, values, members: 1, mode: "det", variable: "air", model: "cams", at: Date.now() };
 }
 
 /* color interpolado sobre la rampa */
@@ -951,20 +1064,30 @@ function euroRender() {
   euro.overlay.addTo(map);
 
   /* controles */
+  const isAir = euro.variable === "air";
+  const modelCfg = EURO_MODELS_CFG[d.model] || EURO_MODELS_CFG[euro.model];
   $("euro-title").textContent = prob ? cfg.probTitle : cfg.detTitle;
-  $("euro-sub").textContent = prob
-    ? `EPS de ECMWF · ${d.members || 51} escenarios`
-    : "IFS de ECMWF · determinista (0.25°)";
+  $("euro-sub").textContent = isAir
+    ? "CAMS de Copernicus · global (0.4°)"
+    : prob
+      ? `${modelCfg.ensName} · ${d.members || modelCfg.fallbackMembers} escenarios`
+      : modelCfg.detLabel;
+  /* el aire no tiene ensemble ni centros alternativos */
+  $("euro-model").style.display = isAir ? "none" : "";
+  $("euro-mode").style.display = isAir ? "none" : "";
   const slider = $("euro-slider");
   slider.max = String(d.times.length - 1);
   slider.value = String(euro.step);
   $("euro-step-label").textContent = euroStepLabel(d.times[euro.step]);
   euroLegend(stops, prob ? EURO_PROB_TICKS : cfg.detTicks, prob ? "%" : cfg.unit);
-  $("euro-note").textContent = prob
-    ? `Porcentaje de los ${d.members || 51} escenarios del EPS (el ensemble del modelo europeo) que superan el umbral en cada período de 6 h. Rejilla de ${d.grid.sp}°.`
-    : `Pasada determinista de alta resolución: ${
-        cfg.agg === "sum" ? "total acumulado" : "valor máximo"
-      } de cada período de 6 h. Rejilla de ${d.grid.sp}°.`;
+  $("euro-note").textContent = isAir
+    ? `Índice de calidad del aire (AQI de EE. UU.) del CAMS de Copernicus: máximo de cada período de 6 h. 0–50 bueno · 51–100 moderado · 101–150 dañino para grupos sensibles · 151+ dañino. Rejilla de ${d.grid.sp}°.`
+    : prob
+      ? `Porcentaje de los ${d.members || modelCfg.fallbackMembers} escenarios del ${modelCfg.ensName} que superan el umbral en cada período de 6 h. Rejilla de ${d.grid.sp}°.`
+      : `${modelCfg.detLabel}: ${
+          cfg.agg === "sum" ? "total acumulado" : "valor máximo"
+        } de cada período de 6 h. Rejilla de ${d.grid.sp}°.`;
+  windEnsure();
 }
 
 /* lectura del punto tocado para el popup del mapa */
@@ -997,10 +1120,14 @@ const EURO_CACHE_TTL = 60 * 60 * 1000; /* el IFS se actualiza cada ~6 h */
 
 async function euroRefresh() {
   if (!euro.on || !map) return;
+  /* la calidad del aire no tiene ensemble: siempre es determinista */
+  const isAir = euro.variable === "air";
+  const mode = isAir ? "det" : euro.mode;
   /* la rejilla determinista es más fina: una sola pasada pesa poco.
-     La del EPS es más pequeña: 51 miembros por punto pesan en la cuota. */
-  const grid = euro.mode === "det" ? euroGrid(14, 10) : euroGrid(9, 6);
-  const key = `${euro.variable}|${euro.mode}|${grid.key}`;
+     La del ensemble es más pequeña: decenas de miembros por punto
+     pesan en la cuota del servicio. */
+  const grid = mode === "det" ? euroGrid(14, 10) : euroGrid(9, 6);
+  const key = `${isAir ? "cams" : euro.model}|${euro.variable}|${mode}|${grid.key}`;
 
   const cached = euro.cache.get(key);
   if (cached && Date.now() - cached.at < EURO_CACHE_TTL) {
@@ -1026,7 +1153,7 @@ async function euroRefresh() {
   const now = Date.now();
   const wait = Math.max(
     euro.cooldownUntil - now,
-    euro.lastFetch[euro.mode] + EURO_MIN_INTERVAL[euro.mode] - now
+    euro.lastFetch[mode] + EURO_MIN_INTERVAL[mode] - now
   );
   if (wait > 0) {
     clearTimeout(euro.retryTimer);
@@ -1035,7 +1162,7 @@ async function euroRefresh() {
       $("euro-note").textContent = "Esperando al servicio del modelo…";
     return;
   }
-  euro.lastFetch[euro.mode] = now;
+  euro.lastFetch[mode] = now;
 
   const seq = ++euro.seq;
   if (euro.abort) euro.abort.abort();
@@ -1043,10 +1170,11 @@ async function euroRefresh() {
   euro.inflightKey = key;
   $("euro-loading").hidden = false;
   try {
-    const data =
-      euro.mode === "det"
-        ? await fetchEuroDet(euro.variable, grid, euro.abort.signal)
-        : await fetchEuroProb(euro.variable, grid, euro.abort.signal);
+    const data = isAir
+      ? await fetchEuroAir(grid, euro.abort.signal)
+      : mode === "det"
+        ? await fetchEuroDet(euro.model, euro.variable, grid, euro.abort.signal)
+        : await fetchEuroProb(euro.model, euro.variable, grid, euro.abort.signal);
     euro.cache.set(key, { data, at: Date.now() });
     if (euro.cache.size > 30) euro.cache.delete(euro.cache.keys().next().value);
     if (seq === euro.seq && euro.on) {
@@ -1092,7 +1220,9 @@ function euroSetActive(on, { silent = false } = {}) {
     }
     if (euro.abort) euro.abort.abort();
     clearTimeout(euro.retryTimer);
+    clearTimeout(wind.retryTimer);
     euro.inflightKey = null;
+    windStop();
     $("euro-loading").hidden = true;
     if (on && !map && !silent) toast("El mapa no está disponible.", "error");
     return;
@@ -1100,16 +1230,311 @@ function euroSetActive(on, { silent = false } = {}) {
   euroRefresh();
 }
 
+/* ── Viento en movimiento ─────────────────────────────────────────────
+   El truco visual de los grandes visores meteorológicos: cientos de
+   partículas que se dejan llevar por el viento del modelo, con estelas
+   que se desvanecen, coloreadas por intensidad (blanco → ámbar → rojo).
+   Usa la pasada determinista del centro elegido, muestreada a mitad de
+   cada período de 6 h, así la animación sigue a la línea de tiempo. */
+
+const wind = {
+  enabled:
+    !window.matchMedia ||
+    !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  data: null,
+  particles: [],
+  raf: null,
+  paused: false,
+  fetching: null,
+  retryTimer: null,
+};
+window.__fdcWind = wind; /* para depurar */
+
+async function fetchWindField(modelKey, grid) {
+  const model = EURO_MODELS_CFG[modelKey];
+  const { latQ, lonQ } = euroPointParams(grid);
+  const params = new URLSearchParams({
+    latitude: latQ.join(","),
+    longitude: lonQ.join(","),
+    hourly: "wind_speed_10m,wind_direction_10m",
+    forecast_days: String(EURO_DAYS),
+    timeformat: "unixtime",
+    timezone: "UTC",
+    wind_speed_unit: "mph",
+    models: model.det,
+  });
+  const raw = await euroFetchJson(
+    `https://api.open-meteo.com/v1/forecast?${params}`
+  );
+  const list = Array.isArray(raw) ? raw : [raw];
+  const hlen = list[0].hourly.time.length;
+  const steps = Math.max(1, Math.floor(hlen / EURO_HOURS));
+  const u = [];
+  const v = [];
+  for (const loc of list) {
+    const su = new Array(steps);
+    const sv = new Array(steps);
+    for (let s = 0; s < steps; s++) {
+      const hh = Math.min(s * EURO_HOURS + 3, hlen - 1);
+      const spd = loc.hourly.wind_speed_10m ? loc.hourly.wind_speed_10m[hh] : null;
+      const dir = loc.hourly.wind_direction_10m
+        ? loc.hourly.wind_direction_10m[hh]
+        : null;
+      if (spd == null || dir == null) {
+        su[s] = 0;
+        sv[s] = 0;
+        continue;
+      }
+      /* convención meteorológica: la dirección es DE DONDE viene */
+      const rad = (dir * Math.PI) / 180;
+      su[s] = -spd * Math.sin(rad);
+      sv[s] = -spd * Math.cos(rad);
+    }
+    u.push(su);
+    v.push(sv);
+  }
+  return { grid, u, v, steps, model: modelKey, at: Date.now() };
+}
+
+function windCovered(reqGrid, modelKey) {
+  const d = wind.data;
+  if (!d || d.model !== modelKey || Date.now() - d.at > EURO_CACHE_TTL)
+    return false;
+  if (d.grid.sp > reqGrid.sp * 1.7) return false;
+  const h2 = d.grid.sp / 2;
+  return (
+    d.grid.lats[0] + h2 >= reqGrid.lats[0] &&
+    d.grid.lats[d.grid.lats.length - 1] - h2 <=
+      reqGrid.lats[reqGrid.lats.length - 1] &&
+    d.grid.lons[0] - h2 <= reqGrid.lons[0] &&
+    d.grid.lons[d.grid.lons.length - 1] + h2 >=
+      reqGrid.lons[reqGrid.lons.length - 1]
+  );
+}
+
+function windEnsure() {
+  if (!euro.on || !map || !wind.enabled) {
+    windStop();
+    return;
+  }
+  const grid = euroGrid(12, 9);
+  const modelKey = euro.variable === "air" ? "ecmwf" : euro.model;
+  const key = `wind|${modelKey}|${grid.key}`;
+
+  const cached = euro.cache.get(key);
+  if (cached && Date.now() - cached.at < EURO_CACHE_TTL) {
+    wind.data = cached.data;
+    windStart();
+    return;
+  }
+  if (windCovered(grid, modelKey)) {
+    windStart();
+    return;
+  }
+  if (wind.fetching === key) return;
+
+  const now = Date.now();
+  const wait = Math.max(
+    euro.cooldownUntil - now,
+    euro.lastFetch.wind + EURO_MIN_INTERVAL.wind - now
+  );
+  if (wait > 0) {
+    clearTimeout(wind.retryTimer);
+    wind.retryTimer = setTimeout(() => windEnsure(), wait + 250);
+    return;
+  }
+  euro.lastFetch.wind = now;
+  wind.fetching = key;
+  fetchWindField(modelKey, grid)
+    .then((data) => {
+      euro.cache.set(key, { data, at: Date.now() });
+      wind.data = data;
+      windStart();
+    })
+    .catch(() => {
+      /* sin animación no se rompe nada: se reintenta en el próximo render */
+    })
+    .finally(() => {
+      if (wind.fetching === key) wind.fetching = null;
+    });
+}
+
+let windCtx = null;
+
+function windCanvasSetup() {
+  const cv = $("wind-canvas");
+  const area = cv.parentElement;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, area.clientWidth);
+  const h = Math.max(1, area.clientHeight);
+  cv.width = Math.round(w * dpr);
+  cv.height = Math.round(h * dpr);
+  cv.style.width = `${w}px`;
+  cv.style.height = `${h}px`;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+
+function windSpawn(w, h) {
+  return {
+    x: Math.random() * w,
+    y: Math.random() * h,
+    age: Math.floor(Math.random() * 70),
+  };
+}
+
+function windStart() {
+  if (!wind.enabled || !wind.data || !map || !euro.on) return;
+  if (wind.raf) return; /* ya está corriendo */
+  windCtx = windCanvasSetup();
+  const count = Math.max(
+    220,
+    Math.min(950, Math.round((windCtx.w * windCtx.h) / 2900))
+  );
+  wind.particles = Array.from({ length: count }, () =>
+    windSpawn(windCtx.w, windCtx.h)
+  );
+  wind.paused = false;
+  $("wind-canvas").style.opacity = "1";
+  const loop = () => {
+    wind.raf = requestAnimationFrame(loop);
+    if (!wind.paused) windFrame();
+  };
+  wind.raf = requestAnimationFrame(loop);
+}
+
+function windStop() {
+  if (wind.raf) cancelAnimationFrame(wind.raf);
+  wind.raf = null;
+  const cv = $("wind-canvas");
+  if (cv) {
+    const c2 = cv.getContext("2d");
+    if (c2) c2.clearRect(0, 0, cv.width, cv.height);
+    cv.style.opacity = "0";
+  }
+}
+
+/* interpolación bilineal del vector de viento en un punto */
+function windVecAt(lat, lon, s) {
+  const d = wind.data;
+  const g = d.grid;
+  const rows = g.lats.length;
+  const cols = g.lons.length;
+  const fr = (g.lats[0] - lat) / g.sp;
+  const fc = (lon - g.lons[0]) / g.sp;
+  if (fr < 0 || fc < 0 || fr > rows - 1 || fc > cols - 1) return null;
+  const r0 = Math.min(Math.floor(fr), rows - 2);
+  const c0 = Math.min(Math.floor(fc), cols - 2);
+  const tr = fr - r0;
+  const tc = fc - c0;
+  const idx = (r, c) => r * cols + c;
+  const bilerp = (arr) => {
+    const a = arr[idx(r0, c0)];
+    const b = arr[idx(r0, c0 + 1)];
+    const c2 = arr[idx(r0 + 1, c0)];
+    const d2 = arr[idx(r0 + 1, c0 + 1)];
+    /* respuesta incompleta del servicio: mejor sin vector que romper */
+    if (!a || !b || !c2 || !d2) return null;
+    return (
+      (a[s] * (1 - tc) + b[s] * tc) * (1 - tr) +
+      (c2[s] * (1 - tc) + d2[s] * tc) * tr
+    );
+  };
+  const u = bilerp(d.u);
+  const v = bilerp(d.v);
+  if (u == null || v == null || Number.isNaN(u) || Number.isNaN(v)) return null;
+  return { u, v };
+}
+
+function windFrame() {
+  if (!windCtx || !wind.data) return;
+  const { ctx, w, h } = windCtx;
+
+  /* desvanece las estelas anteriores */
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.fillStyle = "rgba(0,0,0,0.92)";
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = "source-over";
+  ctx.lineWidth = 1.2;
+
+  const s = Math.max(0, Math.min(euro.step ?? 0, wind.data.steps - 1));
+  const zoom = map.getZoom ? map.getZoom() : 6;
+  const k = 0.055 * Math.pow(2, zoom - 6);
+
+  for (const p of wind.particles) {
+    const ll = map.containerPointToLatLng
+      ? map.containerPointToLatLng([p.x, p.y])
+      : null;
+    const vec = ll ? windVecAt(ll.lat, ll.lng, s) : null;
+    p.age++;
+    if (!vec || p.age > 90) {
+      Object.assign(p, windSpawn(w, h), { age: 0 });
+      continue;
+    }
+    const spd = Math.hypot(vec.u, vec.v); /* mph */
+    let dx = vec.u * k;
+    let dy = -vec.v * k; /* norte = arriba en pantalla */
+    const disp = Math.hypot(dx, dy);
+    if (disp > 6) {
+      dx *= 6 / disp;
+      dy *= 6 / disp;
+    }
+    if (disp < 0.12) p.age += 4; /* aire en calma: recicla pronto */
+    const nx = p.x + dx;
+    const ny = p.y + dy;
+    ctx.strokeStyle =
+      spd >= 40
+        ? "rgba(255,96,80,0.66)"
+        : spd >= 25
+          ? "rgba(255,176,32,0.56)"
+          : spd >= 15
+            ? "rgba(222,230,255,0.4)"
+            : "rgba(200,208,235,0.26)";
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(nx, ny);
+    ctx.stroke();
+    p.x = nx;
+    p.y = ny;
+    if (nx < -12 || ny < -12 || nx > w + 12 || ny > h + 12)
+      Object.assign(p, windSpawn(w, h), { age: 0 });
+  }
+}
+
+$("euro-wind-toggle").checked = wind.enabled;
+$("euro-wind-toggle").addEventListener("change", (e) => {
+  wind.enabled = e.target.checked;
+  if (wind.enabled) windEnsure();
+  else windStop();
+});
+
+document.addEventListener("visibilitychange", () => {
+  wind.paused = document.hidden;
+});
+
+let windResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(windResizeTimer);
+  windResizeTimer = setTimeout(() => {
+    if (wind.raf) {
+      windStop();
+      windEnsure();
+    }
+  }, 300);
+});
+
 /* controles del panel */
-["euro-var", "euro-mode"].forEach((id) => {
+["euro-var", "euro-mode", "euro-model"].forEach((id) => {
   document.querySelectorAll(`#${id} .seg__btn`).forEach((btn) => {
     btn.addEventListener("click", () => {
       setSegValue(id, btn.dataset.value);
       if (id === "euro-var") euro.variable = btn.dataset.value;
-      else euro.mode = btn.dataset.value;
+      else if (id === "euro-mode") euro.mode = btn.dataset.value;
+      else euro.model = btn.dataset.value;
       /* acción deliberada del usuario: salta el intervalo entre peticiones
          (el enfriamiento por 429 sí se respeta) */
-      euro.lastFetch = { prob: 0, det: 0 };
+      euro.lastFetch = { prob: 0, det: 0, wind: 0 };
       euroRefresh();
     });
   });
