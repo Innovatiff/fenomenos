@@ -595,8 +595,18 @@ const euro = {
   cache: new Map(),
   abort: null,
   seq: 0,
+  /* control de tráfico hacia la API */
+  lastFetch: { prob: 0, det: 0 },
+  cooldownUntil: 0,
+  inflightKey: null,
+  retryTimer: null,
 };
 window.__fdcEuro = euro; /* para depurar */
+
+/* El ensemble pesa mucho en la cuota de Open-Meteo: entre peticiones
+   automáticas (paneos) se respeta un intervalo mínimo por modo. Cambiar
+   de variable o de modo a mano lo salta (ver los controles del panel). */
+const EURO_MIN_INTERVAL = { prob: 12000, det: 4000 };
 
 /* Rejilla de puntos que SIEMPRE cubre la vista actual: el espaciado se
    calcula en continuo (cuantizado a 0.25°, la malla nativa del IFS) para
@@ -605,8 +615,8 @@ window.__fdcEuro = euro; /* para depurar */
    mapa reutilicen la caché. */
 function euroGrid(maxCols, maxRows) {
   const b = map.getBounds();
-  const latN = Math.min(b.getNorth(), 78);
-  const latS = Math.max(b.getSouth(), -65);
+  const latN = Math.min(b.getNorth(), 74);
+  const latS = Math.max(b.getSouth(), -60);
   let lonW = b.getWest();
   let lonE = b.getEast();
   if (lonE - lonW >= 358) {
@@ -619,13 +629,33 @@ function euroGrid(maxCols, maxRows) {
     0.25
   );
   const sp = Math.ceil(need / 0.25) * 0.25;
-  const lat0 = Math.min(84, Math.ceil(latN / sp) * sp);
+  const lat0 = Math.min(76, Math.ceil(latN / sp) * sp);
   const lon0 = Math.floor(lonW / sp) * sp;
   const rows = Math.max(2, Math.ceil((lat0 - latS) / sp) + 1);
   const cols = Math.max(2, Math.ceil((lonE - lon0) / sp) + 1);
   const lats = Array.from({ length: rows }, (_, r) => lat0 - r * sp);
   const lons = Array.from({ length: cols }, (_, c) => lon0 + c * sp);
   return { lats, lons, sp, key: `${sp}|${lat0}|${lon0}|${rows}x${cols}` };
+}
+
+/* ¿Los datos en pantalla todavía cubren la vista pedida? Si sí, no hace
+   falta pedir nada: así un paseo por el mapa no quema la cuota de la API. */
+function euroCovered(reqGrid) {
+  const d = euro.data;
+  if (!d || !d.at || Date.now() - d.at > EURO_CACHE_TTL) return false;
+  if (d.variable !== euro.variable || d.mode !== euro.mode) return false;
+  if (d.grid.sp > reqGrid.sp * 1.7) return false; /* muy grueso para este zoom */
+  const h = d.grid.sp / 2;
+  const dN = d.grid.lats[0] + h;
+  const dS = d.grid.lats[d.grid.lats.length - 1] - h;
+  const dW = d.grid.lons[0] - h;
+  const dE = d.grid.lons[d.grid.lons.length - 1] + h;
+  return (
+    dN >= reqGrid.lats[0] &&
+    dS <= reqGrid.lats[reqGrid.lats.length - 1] &&
+    dW <= reqGrid.lons[0] &&
+    dE >= reqGrid.lons[reqGrid.lons.length - 1]
+  );
 }
 
 function euroNormLon(x) {
@@ -681,17 +711,51 @@ function euroTimes(hourly) {
   return Array.from({ length: steps }, (_, s) => hourly.time[s * EURO_HOURS]);
 }
 
-/* Probabilidad: ensemble de 51 escenarios del IFS */
+/* GET con un reintento silencioso si el servicio devuelve 429
+   (límite por minuto de Open-Meteo) */
+function euroSleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms);
+    if (signal)
+      signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(t);
+          const e = new Error("abort");
+          e.name = "AbortError";
+          reject(e);
+        },
+        { once: true }
+      );
+  });
+}
+
+async function euroFetchJson(url, signal) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { signal });
+    if (res.status === 429) {
+      if (attempt === 0) {
+        await euroSleep(8000, signal);
+        continue;
+      }
+      const err = new Error("HTTP 429");
+      err.rateLimited = true;
+      throw err;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+}
+
+/* Probabilidad: el EPS de ECMWF (ensemble de 51 escenarios del IFS) */
 async function fetchEuroProb(varKey, grid, signal) {
   const cfg = EURO_VARS[varKey];
   const params = euroBaseParams(cfg, grid);
   params.set("models", "ecmwf_ifs025");
-  const res = await fetch(
+  const raw = await euroFetchJson(
     `https://ensemble-api.open-meteo.com/v1/ensemble?${params}`,
-    { signal }
+    signal
   );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const raw = await res.json();
   const list = Array.isArray(raw) ? raw : [raw];
   const times = euroTimes(list[0].hourly);
   let members = 0;
@@ -712,7 +776,7 @@ async function fetchEuroProb(varKey, grid, signal) {
       return total ? Math.round((hits / total) * 100) : null;
     });
   });
-  return { grid, times, values, members, mode: "prob", variable: varKey };
+  return { grid, times, values, members, mode: "prob", variable: varKey, at: Date.now() };
 }
 
 /* Determinista: la pasada de alta resolución del IFS */
@@ -720,11 +784,10 @@ async function fetchEuroDet(varKey, grid, signal) {
   const cfg = EURO_VARS[varKey];
   const params = euroBaseParams(cfg, grid);
   params.set("models", "ecmwf_ifs025");
-  const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, {
-    signal,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const raw = await res.json();
+  const raw = await euroFetchJson(
+    `https://api.open-meteo.com/v1/forecast?${params}`,
+    signal
+  );
   const list = Array.isArray(raw) ? raw : [raw];
   const times = euroTimes(list[0].hourly);
   const values = list.map((loc) =>
@@ -733,7 +796,7 @@ async function fetchEuroDet(varKey, grid, signal) {
       return v == null ? null : Math.round(v * 10) / 10;
     })
   );
-  return { grid, times, values, members: 1, mode: "det", variable: varKey };
+  return { grid, times, values, members: 1, mode: "det", variable: varKey, at: Date.now() };
 }
 
 /* color interpolado sobre la rampa */
@@ -890,15 +953,15 @@ function euroRender() {
   /* controles */
   $("euro-title").textContent = prob ? cfg.probTitle : cfg.detTitle;
   $("euro-sub").textContent = prob
-    ? `IFS 0.25° · ensemble de ${d.members || 51} escenarios`
-    : "IFS 0.25° · pasada determinista";
+    ? `EPS de ECMWF · ${d.members || 51} escenarios`
+    : "IFS de ECMWF · determinista (0.25°)";
   const slider = $("euro-slider");
   slider.max = String(d.times.length - 1);
   slider.value = String(euro.step);
   $("euro-step-label").textContent = euroStepLabel(d.times[euro.step]);
   euroLegend(stops, prob ? EURO_PROB_TICKS : cfg.detTicks, prob ? "%" : cfg.unit);
   $("euro-note").textContent = prob
-    ? `Porcentaje de los ${d.members || 51} escenarios del ensemble que superan el umbral en cada período de 6 h. Rejilla de ${d.grid.sp}°.`
+    ? `Porcentaje de los ${d.members || 51} escenarios del EPS (el ensemble del modelo europeo) que superan el umbral en cada período de 6 h. Rejilla de ${d.grid.sp}°.`
     : `Pasada determinista de alta resolución: ${
         cfg.agg === "sum" ? "total acumulado" : "valor máximo"
       } de cada período de 6 h. Rejilla de ${d.grid.sp}°.`;
@@ -934,14 +997,17 @@ const EURO_CACHE_TTL = 60 * 60 * 1000; /* el IFS se actualiza cada ~6 h */
 
 async function euroRefresh() {
   if (!euro.on || !map) return;
-  /* la rejilla determinista es más fina: una sola pasada pesa poco */
-  const grid = euro.mode === "det" ? euroGrid(16, 11) : euroGrid(10, 7);
+  /* la rejilla determinista es más fina: una sola pasada pesa poco.
+     La del EPS es más pequeña: 51 miembros por punto pesan en la cuota. */
+  const grid = euro.mode === "det" ? euroGrid(14, 10) : euroGrid(9, 6);
   const key = `${euro.variable}|${euro.mode}|${grid.key}`;
+
   const cached = euro.cache.get(key);
   if (cached && Date.now() - cached.at < EURO_CACHE_TTL) {
     /* invalida cualquier petición en vuelo: si no, una respuesta tardía
        de otra variable/modo pisaría lo que se acaba de mostrar */
     euro.seq++;
+    euro.inflightKey = null;
     if (euro.abort) euro.abort.abort();
     $("euro-loading").hidden = true;
     euro.data = cached.data;
@@ -950,9 +1016,31 @@ async function euroRefresh() {
   }
   if (cached) euro.cache.delete(key);
 
+  /* lo mostrado aún cubre esta vista → no gastamos cuota */
+  if (euroCovered(grid)) return;
+
+  /* esa misma petición ya va en camino */
+  if (euro.inflightKey === key) return;
+
+  /* respeta el enfriamiento tras un 429 y el intervalo mínimo por modo */
+  const now = Date.now();
+  const wait = Math.max(
+    euro.cooldownUntil - now,
+    euro.lastFetch[euro.mode] + EURO_MIN_INTERVAL[euro.mode] - now
+  );
+  if (wait > 0) {
+    clearTimeout(euro.retryTimer);
+    euro.retryTimer = setTimeout(() => euroRefresh(), wait + 200);
+    if (!euro.data)
+      $("euro-note").textContent = "Esperando al servicio del modelo…";
+    return;
+  }
+  euro.lastFetch[euro.mode] = now;
+
   const seq = ++euro.seq;
   if (euro.abort) euro.abort.abort();
   euro.abort = new AbortController();
+  euro.inflightKey = key;
   $("euro-loading").hidden = false;
   try {
     const data =
@@ -966,13 +1054,26 @@ async function euroRefresh() {
       euroRender();
     }
   } catch (err) {
-    if (!(err && err.name === "AbortError")) {
+    if (err && err.name === "AbortError") {
+      /* sustituida por otra petición: nada que hacer */
+    } else if (err && err.rateLimited) {
+      /* límite por minuto del servicio: enfriar y reintentar solo */
+      euro.cooldownUntil = Date.now() + 60000;
+      clearTimeout(euro.retryTimer);
+      euro.retryTimer = setTimeout(() => euroRefresh(), 61000);
+      toast("El servicio del modelo está saturado; se reintenta en un minuto.", "error");
+      $("euro-note").textContent =
+        "Se alcanzó el límite del servicio del modelo. Se reintentará automáticamente en un minuto.";
+    } else {
       toast("No se pudo cargar el modelo europeo.", "error");
       $("euro-note").textContent =
         "No se pudo cargar el modelo. Revisa tu conexión e intenta de nuevo.";
     }
   } finally {
-    if (seq === euro.seq) $("euro-loading").hidden = true;
+    if (seq === euro.seq) {
+      $("euro-loading").hidden = true;
+      euro.inflightKey = null;
+    }
   }
 }
 
@@ -990,6 +1091,8 @@ function euroSetActive(on, { silent = false } = {}) {
       euro.overlay = null;
     }
     if (euro.abort) euro.abort.abort();
+    clearTimeout(euro.retryTimer);
+    euro.inflightKey = null;
     $("euro-loading").hidden = true;
     if (on && !map && !silent) toast("El mapa no está disponible.", "error");
     return;
@@ -1004,6 +1107,9 @@ function euroSetActive(on, { silent = false } = {}) {
       setSegValue(id, btn.dataset.value);
       if (id === "euro-var") euro.variable = btn.dataset.value;
       else euro.mode = btn.dataset.value;
+      /* acción deliberada del usuario: salta el intervalo entre peticiones
+         (el enfriamiento por 429 sí se respeta) */
+      euro.lastFetch = { prob: 0, det: 0 };
       euroRefresh();
     });
   });
