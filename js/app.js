@@ -997,7 +997,7 @@ window.__fdcEuro = euro; /* para depurar */
 /* El ensemble pesa mucho en la cuota de Open-Meteo: entre peticiones
    automáticas (paneos) se respeta un intervalo mínimo por modo. Cambiar
    de variable o de modo a mano lo salta (ver los controles del panel). */
-const EURO_MIN_INTERVAL = { prob: 12000, det: 4000, wind: 4000 };
+const EURO_MIN_INTERVAL = { prob: 20000, det: 8000 };
 
 /* Rejilla de puntos que SIEMPRE cubre la vista actual: el espaciado se
    calcula en continuo (cuantizado a 0.25°, la malla nativa del IFS) para
@@ -1173,25 +1173,98 @@ async function fetchEuroProb(modelKey, varKey, grid, signal) {
   return { grid, times, values, members, mode: "prob", variable: varKey, model: modelKey, at: Date.now() };
 }
 
-/* Determinista: la pasada de alta resolución del centro elegido */
-async function fetchEuroDet(modelKey, varKey, grid, signal) {
-  const cfg = EURO_VARS[varKey];
+/* Determinista: UNA sola petición por centro y rejilla, con las tres
+   variables más la dirección del viento. De ese paquete salen los campos
+   de viento, ráfagas y lluvia Y las partículas animadas: cuatro usos con
+   una única llamada, para cuidar la cuota del servicio. */
+async function fetchDetBundle(modelKey, grid, signal) {
   const model = EURO_MODELS_CFG[modelKey];
-  const params = euroBaseParams(cfg, grid);
-  params.set("models", model.det);
+  const { latQ, lonQ } = euroPointParams(grid);
+  const params = new URLSearchParams({
+    latitude: latQ.join(","),
+    longitude: lonQ.join(","),
+    hourly: "wind_speed_10m,wind_gusts_10m,precipitation,wind_direction_10m",
+    forecast_days: String(EURO_DAYS),
+    timeformat: "unixtime",
+    timezone: "UTC",
+    wind_speed_unit: "mph",
+    models: model.det,
+  });
   const raw = await euroFetchJson(
     `https://api.open-meteo.com/v1/forecast?${params}`,
     signal
   );
   const list = Array.isArray(raw) ? raw : [raw];
   const times = euroTimes(list[0].hourly);
-  const values = list.map((loc) =>
-    times.map((_, s) => {
-      const v = euroWindow(loc.hourly[cfg.hourly], cfg, s);
+  const round1 = (v) => (v == null ? null : Math.round(v * 10) / 10);
+  const hourly = list.map((loc) => ({
+    speed: (loc.hourly.wind_speed_10m || []).map(round1),
+    gusts: (loc.hourly.wind_gusts_10m || []).map(round1),
+    precip: (loc.hourly.precipitation || []).map(round1),
+    dir: (loc.hourly.wind_direction_10m || []).map((v) =>
+      v == null ? null : Math.round(v)
+    ),
+  }));
+  return { kind: "bundle", grid, times, hourly, model: modelKey, at: Date.now() };
+}
+
+const BUNDLE_VAR = { wind: "speed", gusts: "gusts", rain: "precip" };
+
+/* campo determinista de una variable, calculado del paquete */
+function deriveDetData(bundle, varKey) {
+  if (!bundle.derived) bundle.derived = {};
+  if (bundle.derived[varKey]) return bundle.derived[varKey];
+  const cfg = EURO_VARS[varKey];
+  const srcKey = BUNDLE_VAR[varKey];
+  const values = bundle.hourly.map((pt) =>
+    bundle.times.map((_, s) => {
+      const v = euroWindow(pt[srcKey], cfg, s);
       return v == null ? null : Math.round(v * 10) / 10;
     })
   );
-  return { grid, times, values, members: 1, mode: "det", variable: varKey, model: modelKey, at: Date.now() };
+  const data = {
+    grid: bundle.grid,
+    times: bundle.times,
+    values,
+    members: 1,
+    mode: "det",
+    variable: varKey,
+    model: bundle.model,
+    at: bundle.at,
+  };
+  bundle.derived[varKey] = data;
+  return data;
+}
+
+/* vectores u/v para las partículas, calculados del mismo paquete */
+function deriveWindUV(bundle) {
+  if (bundle.windUV) return bundle.windUV;
+  const steps = bundle.times.length;
+  const u = [];
+  const v = [];
+  for (const pt of bundle.hourly) {
+    const su = new Array(steps);
+    const sv = new Array(steps);
+    const n = pt.speed.length;
+    for (let s = 0; s < steps; s++) {
+      const hh = Math.min(s * EURO_HOURS + 3, Math.max(0, n - 1));
+      const spd = pt.speed[hh];
+      const dir = pt.dir[hh];
+      if (spd == null || dir == null) {
+        su[s] = 0;
+        sv[s] = 0;
+        continue;
+      }
+      /* convención meteorológica: la dirección es DE DONDE viene */
+      const rad = (dir * Math.PI) / 180;
+      su[s] = -spd * Math.sin(rad);
+      sv[s] = -spd * Math.cos(rad);
+    }
+    u.push(su);
+    v.push(sv);
+  }
+  bundle.windUV = { grid: bundle.grid, u, v, steps, model: bundle.model, at: bundle.at };
+  return bundle.windUV;
 }
 
 /* Calidad del aire: índice AQI del CAMS global (Copernicus), 0.4° */
@@ -1417,7 +1490,45 @@ function euroRefreshSoon() {
   euroMoveTimer = setTimeout(() => euroRefresh(), 800);
 }
 
-const EURO_CACHE_TTL = 60 * 60 * 1000; /* el IFS se actualiza cada ~6 h */
+const EURO_CACHE_TTL = 60 * 60 * 1000; /* los modelos se actualizan cada ~6 h */
+const EURO_CACHE_LS = "fdc-euro-cache-v1";
+const EURO_COOLDOWN_LS = "fdc-euro-cooldown";
+
+/* la caché de campos sobrevive a la recarga de la página: recargar la app
+   no vuelve a gastar cuota del servicio */
+function euroCacheSet(key, entry) {
+  euro.cache.set(key, entry);
+  if (euro.cache.size > 24) euro.cache.delete(euro.cache.keys().next().value);
+  try {
+    const out = [];
+    let size = 0;
+    for (const [k, e] of [...euro.cache.entries()].reverse()) {
+      if (!e || !e.data || Date.now() - e.at > EURO_CACHE_TTL) continue;
+      const d = e.data;
+      const slim =
+        d.kind === "bundle" ? { ...d, derived: undefined, windUV: undefined } : d;
+      const s = JSON.stringify([k, { data: slim, at: e.at }]);
+      if (s.length > 500000 || size + s.length > 1500000) continue;
+      size += s.length;
+      out.push(s);
+    }
+    localStorage.setItem(EURO_CACHE_LS, `[${out.join(",")}]`);
+  } catch (_) {
+    /* almacenamiento lleno o bloqueado: la caché en memoria basta */
+  }
+}
+
+function euroCacheLoad() {
+  try {
+    const raw = localStorage.getItem(EURO_CACHE_LS);
+    if (raw)
+      for (const [k, e] of JSON.parse(raw))
+        if (e && e.data && Date.now() - e.at < EURO_CACHE_TTL)
+          euro.cache.set(k, e);
+    euro.cooldownUntil = Number(localStorage.getItem(EURO_COOLDOWN_LS)) || 0;
+  } catch (_) {}
+}
+euroCacheLoad();
 
 async function euroRefresh() {
   if (!euro.on || !map) return;
@@ -1427,8 +1538,14 @@ async function euroRefresh() {
   /* la rejilla determinista es más fina: una sola pasada pesa poco.
      La del ensemble es más pequeña: decenas de miembros por punto
      pesan en la cuota del servicio. */
-  const grid = mode === "det" ? euroGrid(14, 10) : euroGrid(9, 6);
-  const key = `${isAir ? "cams" : euro.model}|${euro.variable}|${mode}|${grid.key}`;
+  const grid = mode === "det" ? euroGrid(12, 9) : euroGrid(8, 5);
+  /* el determinista se guarda como PAQUETE por centro+rejilla (sirve a las
+     tres variables y a las partículas); el ensemble y el aire, por campo */
+  const key = isAir
+    ? `cams|air|${grid.key}`
+    : mode === "det"
+      ? `det|${euro.model}|${grid.key}`
+      : `${euro.model}|${euro.variable}|prob|${grid.key}`;
 
   const cached = euro.cache.get(key);
   if (cached && Date.now() - cached.at < EURO_CACHE_TTL) {
@@ -1438,7 +1555,10 @@ async function euroRefresh() {
     euro.inflightKey = null;
     if (euro.abort) euro.abort.abort();
     $("euro-loading").hidden = true;
-    euro.data = cached.data;
+    euro.data =
+      cached.data.kind === "bundle"
+        ? deriveDetData(cached.data, euro.variable)
+        : cached.data;
     euroRender();
     return;
   }
@@ -1474,12 +1594,11 @@ async function euroRefresh() {
     const data = isAir
       ? await fetchEuroAir(grid, euro.abort.signal)
       : mode === "det"
-        ? await fetchEuroDet(euro.model, euro.variable, grid, euro.abort.signal)
+        ? await fetchDetBundle(euro.model, grid, euro.abort.signal)
         : await fetchEuroProb(euro.model, euro.variable, grid, euro.abort.signal);
-    euro.cache.set(key, { data, at: Date.now() });
-    if (euro.cache.size > 30) euro.cache.delete(euro.cache.keys().next().value);
+    euroCacheSet(key, { data, at: Date.now() });
     if (seq === euro.seq && euro.on) {
-      euro.data = data;
+      euro.data = data.kind === "bundle" ? deriveDetData(data, euro.variable) : data;
       euroRender();
     }
   } catch (err) {
@@ -1487,12 +1606,15 @@ async function euroRefresh() {
       /* sustituida por otra petición: nada que hacer */
     } else if (err && err.rateLimited) {
       /* límite por minuto del servicio: enfriar y reintentar solo */
-      euro.cooldownUntil = Date.now() + 60000;
+      euro.cooldownUntil = Date.now() + 120000;
+      try {
+        localStorage.setItem(EURO_COOLDOWN_LS, String(euro.cooldownUntil));
+      } catch (_) {}
       clearTimeout(euro.retryTimer);
-      euro.retryTimer = setTimeout(() => euroRefresh(), 61000);
-      toast("El servicio del modelo está saturado; se reintenta en un minuto.", "error");
+      euro.retryTimer = setTimeout(() => euroRefresh(), 121000);
+      toast("El servicio del modelo está saturado; se reintenta en 2 minutos.", "error");
       $("euro-note").textContent =
-        "Se alcanzó el límite del servicio del modelo. Se reintentará automáticamente en un minuto.";
+        "Se alcanzó el límite del servicio del modelo. Se reintentará automáticamente en un par de minutos.";
     } else {
       toast("No se pudo cargar el modelo europeo.", "error");
       $("euro-note").textContent =
@@ -1551,52 +1673,6 @@ const wind = {
 };
 window.__fdcWind = wind; /* para depurar */
 
-async function fetchWindField(modelKey, grid) {
-  const model = EURO_MODELS_CFG[modelKey];
-  const { latQ, lonQ } = euroPointParams(grid);
-  const params = new URLSearchParams({
-    latitude: latQ.join(","),
-    longitude: lonQ.join(","),
-    hourly: "wind_speed_10m,wind_direction_10m",
-    forecast_days: String(EURO_DAYS),
-    timeformat: "unixtime",
-    timezone: "UTC",
-    wind_speed_unit: "mph",
-    models: model.det,
-  });
-  const raw = await euroFetchJson(
-    `https://api.open-meteo.com/v1/forecast?${params}`
-  );
-  const list = Array.isArray(raw) ? raw : [raw];
-  const hlen = list[0].hourly.time.length;
-  const steps = Math.max(1, Math.floor(hlen / EURO_HOURS));
-  const u = [];
-  const v = [];
-  for (const loc of list) {
-    const su = new Array(steps);
-    const sv = new Array(steps);
-    for (let s = 0; s < steps; s++) {
-      const hh = Math.min(s * EURO_HOURS + 3, hlen - 1);
-      const spd = loc.hourly.wind_speed_10m ? loc.hourly.wind_speed_10m[hh] : null;
-      const dir = loc.hourly.wind_direction_10m
-        ? loc.hourly.wind_direction_10m[hh]
-        : null;
-      if (spd == null || dir == null) {
-        su[s] = 0;
-        sv[s] = 0;
-        continue;
-      }
-      /* convención meteorológica: la dirección es DE DONDE viene */
-      const rad = (dir * Math.PI) / 180;
-      su[s] = -spd * Math.sin(rad);
-      sv[s] = -spd * Math.cos(rad);
-    }
-    u.push(su);
-    v.push(sv);
-  }
-  return { grid, u, v, steps, model: modelKey, at: Date.now() };
-}
-
 function windCovered(reqGrid, modelKey) {
   const d = wind.data;
   if (!d || d.model !== modelKey || Date.now() - d.at > EURO_CACHE_TTL)
@@ -1620,11 +1696,13 @@ function windEnsure() {
   }
   const grid = euroGrid(12, 9);
   const modelKey = euro.variable === "air" ? "ecmwf" : euro.model;
-  const key = `wind|${modelKey}|${grid.key}`;
+  const key = `det|${modelKey}|${grid.key}`;
 
+  /* el paquete determinista ya trae el viento: cero peticiones extra
+     cuando el usuario está en modo determinista o ya lo visitó */
   const cached = euro.cache.get(key);
   if (cached && Date.now() - cached.at < EURO_CACHE_TTL) {
-    wind.data = cached.data;
+    wind.data = deriveWindUV(cached.data);
     windStart();
     return;
   }
@@ -1637,19 +1715,19 @@ function windEnsure() {
   const now = Date.now();
   const wait = Math.max(
     euro.cooldownUntil - now,
-    euro.lastFetch.wind + EURO_MIN_INTERVAL.wind - now
+    euro.lastFetch.det + EURO_MIN_INTERVAL.det - now
   );
   if (wait > 0) {
     clearTimeout(wind.retryTimer);
-    wind.retryTimer = setTimeout(() => windEnsure(), wait + 250);
+    wind.retryTimer = setTimeout(() => windEnsure(), wait + 300);
     return;
   }
-  euro.lastFetch.wind = now;
+  euro.lastFetch.det = now;
   wind.fetching = key;
-  fetchWindField(modelKey, grid)
-    .then((data) => {
-      euro.cache.set(key, { data, at: Date.now() });
-      wind.data = data;
+  fetchDetBundle(modelKey, grid)
+    .then((bundle) => {
+      euroCacheSet(key, { data: bundle, at: Date.now() });
+      wind.data = deriveWindUV(bundle);
       windStart();
     })
     .catch(() => {
@@ -1835,7 +1913,7 @@ window.addEventListener("resize", () => {
       else euro.model = btn.dataset.value;
       /* acción deliberada del usuario: salta el intervalo entre peticiones
          (el enfriamiento por 429 sí se respeta) */
-      euro.lastFetch = { prob: 0, det: 0, wind: 0 };
+      euro.lastFetch = { prob: 0, det: 0 };
       euroRefresh();
     });
   });

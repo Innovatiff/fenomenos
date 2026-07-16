@@ -103,8 +103,12 @@ de Firebase). Una vez dentro, `app.html` ofrece:
     apagar; respeta `prefers-reduced-motion`).
   - Línea de tiempo de 6 en 6 horas hasta 4 días, leyenda con gradiente,
     lectura del valor al tocar el mapa, recálculo al mover el mapa y
-    control de tráfico ante los límites del servicio (reutilización de
-    cobertura, intervalos mínimos y enfriamiento tras un 429).
+    control de tráfico ante los límites del servicio: una sola petición
+    determinista «en paquete» por centro (alimenta viento, ráfagas,
+    lluvia y las partículas a la vez), reutilización de cobertura,
+    intervalos mínimos, caché persistente en `localStorage` (recargar la
+    página no vuelve a pedir nada) y enfriamiento de 2 minutos tras un
+    429.
 - **Mapa profesional**: base oscura de CARTO **sin etiquetas** con los
   nombres de lugares en una capa superior (siempre legibles sobre radar,
   satélite y modelos), satélite infrarrojo con mezcla «screen» (solo
