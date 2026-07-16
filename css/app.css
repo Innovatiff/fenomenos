@@ -993,6 +993,8 @@
   font-size: 1.3rem;
   color: #fff;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .euro-panel__sub {
   font-size: 1.05rem;
@@ -1000,6 +1002,8 @@
   text-transform: uppercase;
   color: var(--text-5);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .euro-panel__head ion-icon {
   flex-shrink: 0;
@@ -1146,12 +1150,22 @@
   }
 }
 
-@media (max-width: 48em) {
+@media (max-width: 63.99em) {
   .euro-panel {
     top: 6.4rem;
     left: 1.4rem;
     right: 1.4rem;
     width: auto;
+  }
+  /* el panel expandido no debe salirse de la franja del mapa (46vh) */
+  .euro-panel__body {
+    max-height: calc(46vh - 14rem);
+    overflow-y: auto;
+  }
+  /* los botones de zoom bajan para que el panel del modelo no los tape */
+  .leaflet-top.leaflet-left {
+    top: auto;
+    bottom: 3.2rem;
   }
   .map-loading {
     bottom: 1.2rem;

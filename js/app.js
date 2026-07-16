@@ -542,6 +542,7 @@ const EURO_VARS = {
   gusts: {
     hourly: "wind_gusts_10m",
     agg: "max",
+    preceding: true,
     unit: "mph",
     threshold: 40,
     probTitle: "Probabilidad de ráfagas > 40 mph (64 km/h)",
@@ -563,6 +564,7 @@ const EURO_VARS = {
   rain: {
     hourly: "precipitation",
     agg: "sum",
+    preceding: true,
     unit: "mm",
     threshold: 25,
     probTitle: "Probabilidad de lluvia > 25 mm en 6 h (riesgo de inundaciones)",
@@ -596,27 +598,31 @@ const euro = {
 };
 window.__fdcEuro = euro; /* para depurar */
 
-/* Rejilla de puntos que cubre la vista actual, alineada al espaciado para
-   que pequeños desplazamientos del mapa reutilicen la caché. */
+/* Rejilla de puntos que SIEMPRE cubre la vista actual: el espaciado se
+   calcula en continuo (cuantizado a 0.25°, la malla nativa del IFS) para
+   que quepan dentro de los topes de filas/columnas sin dejar huecos, y se
+   alinea a múltiplos del espaciado para que pequeños desplazamientos del
+   mapa reutilicen la caché. */
 function euroGrid(maxCols, maxRows) {
   const b = map.getBounds();
-  const latN = Math.min(b.getNorth(), 75);
-  const latS = Math.max(b.getSouth(), -60);
+  const latN = Math.min(b.getNorth(), 78);
+  const latS = Math.max(b.getSouth(), -65);
   let lonW = b.getWest();
   let lonE = b.getEast();
   if (lonE - lonW >= 358) {
-    lonW = -178;
-    lonE = 178;
+    lonW = -179;
+    lonE = 179;
   }
-  const SPACINGS = [0.25, 0.5, 1, 2, 3, 4, 6, 8];
-  const sp =
-    SPACINGS.find(
-      (s) => (lonE - lonW) / s + 2 <= maxCols && (latN - latS) / s + 2 <= maxRows
-    ) || 10;
-  const lat0 = Math.min(75, Math.ceil(latN / sp) * sp);
+  const need = Math.max(
+    (lonE - lonW) / (maxCols - 2),
+    (latN - latS) / (maxRows - 2),
+    0.25
+  );
+  const sp = Math.ceil(need / 0.25) * 0.25;
+  const lat0 = Math.min(84, Math.ceil(latN / sp) * sp);
   const lon0 = Math.floor(lonW / sp) * sp;
-  const rows = Math.min(maxRows, Math.max(2, Math.floor((lat0 - latS) / sp) + 2));
-  const cols = Math.min(maxCols, Math.max(2, Math.floor((lonE - lon0) / sp) + 2));
+  const rows = Math.max(2, Math.ceil((lat0 - latS) / sp) + 1);
+  const cols = Math.max(2, Math.ceil((lonE - lon0) / sp) + 1);
   const lats = Array.from({ length: rows }, (_, r) => lat0 - r * sp);
   const lons = Array.from({ length: cols }, (_, c) => lon0 + c * sp);
   return { lats, lons, sp, key: `${sp}|${lat0}|${lon0}|${rows}x${cols}` };
@@ -637,17 +643,20 @@ function euroPointParams(grid) {
   return { latQ, lonQ };
 }
 
-/* agrega las horas de un período: máximo (viento) o suma (lluvia) */
-function euroWindow(values, agg, step) {
+/* agrega las horas de un período: máximo (viento) o suma (lluvia).
+   La lluvia y las ráfagas de Open-Meteo describen la HORA PRECEDENTE al
+   sello de tiempo, así que su ventana se corre un índice para que el
+   período etiquetado t…t+6 agregue exactamente esas seis horas. */
+function euroWindow(values, cfg, step) {
   if (!values) return null;
-  let out = agg === "sum" ? 0 : -Infinity;
+  let out = cfg.agg === "sum" ? 0 : -Infinity;
   let seen = false;
-  const from = step * EURO_HOURS;
+  const from = step * EURO_HOURS + (cfg.preceding ? 1 : 0);
   for (let h = from; h < from + EURO_HOURS && h < values.length; h++) {
     const v = values[h];
     if (v == null || Number.isNaN(v)) continue;
     seen = true;
-    if (agg === "sum") out += v;
+    if (cfg.agg === "sum") out += v;
     else if (v > out) out = v;
   }
   return seen ? out : null;
@@ -695,7 +704,7 @@ async function fetchEuroProb(varKey, grid, signal) {
       let hits = 0;
       let total = 0;
       for (const k of keys) {
-        const v = euroWindow(loc.hourly[k], cfg.agg, s);
+        const v = euroWindow(loc.hourly[k], cfg, s);
         if (v == null) continue;
         total++;
         if (v > cfg.threshold) hits++;
@@ -720,7 +729,7 @@ async function fetchEuroDet(varKey, grid, signal) {
   const times = euroTimes(list[0].hourly);
   const values = list.map((loc) =>
     times.map((_, s) => {
-      const v = euroWindow(loc.hourly[cfg.hourly], cfg.agg, s);
+      const v = euroWindow(loc.hourly[cfg.hourly], cfg, s);
       return v == null ? null : Math.round(v * 10) / 10;
     })
   );
@@ -772,20 +781,37 @@ function euroLegend(stops, ticks, unit) {
         `rgba(${c[0]},${c[1]},${c[2]},${(Math.max(c[3], 36) / 255).toFixed(2)}) ${pct(v)}%`
     )
     .join(",")})`;
+  /* los rótulos extremos se acotan para no salirse del panel */
+  const tickPos = (v) => Math.max(4, Math.min(94, Number(pct(v))));
   $("euro-legend-ticks").innerHTML = ticks
     .map(
       (v, i) =>
-        `<span style="left:${pct(v)}%">${v}${i === ticks.length - 1 ? ` ${unit}` : ""}</span>`
+        `<span style="left:${tickPos(v)}%">${v}${i === ticks.length - 1 ? ` ${unit}` : ""}</span>`
     )
     .join("");
 }
 
-/* pinta el paso actual: canvas pequeño → imagen suavizada sobre el mapa */
+/* proyección Mercator: latitud → y (y su inversa) */
+function mercY(lat) {
+  const r = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
+  return Math.log(Math.tan(Math.PI / 4 + r / 2));
+}
+function mercLat(y) {
+  return ((2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180) / Math.PI;
+}
+
+/* Pinta el paso actual. Leaflet estira la imagen linealmente en el espacio
+   Mercator del mapa, así que cada fila de píxeles se remuestrea según la
+   latitud que le corresponde en esa proyección (si no, el campo se corre
+   hacia el ecuador en vistas amplias). Interpolación bilineal de VALORES,
+   coloreada después con la rampa. */
 function euroRender() {
   const d = euro.data;
   if (!d || !map || !window.L) return;
-  const cfg = EURO_VARS[euro.variable];
-  const prob = euro.mode === "prob";
+  /* siempre según los datos mostrados (si una carga falló, la selección
+     de los controles puede ir por delante de lo que hay en pantalla) */
+  const cfg = EURO_VARS[d.variable];
+  const prob = d.mode === "prob";
   const stops = prob ? EURO_PROB_STOPS : cfg.detStops;
 
   if (euro.step == null) euro.step = euroDefaultStep(d.times);
@@ -793,16 +819,55 @@ function euroRender() {
 
   const rows = d.grid.lats.length;
   const cols = d.grid.lons.length;
+  const half = d.grid.sp / 2;
+  const step = euro.step;
+  const val = (r, c) => {
+    const point = d.values[r * cols + c];
+    return point ? point[step] : null;
+  };
+
+  const latTop = Math.min(85, d.grid.lats[0] + half);
+  const latBot = Math.max(-85, d.grid.lats[rows - 1] - half);
+  const yTop = mercY(latTop);
+  const yBot = mercY(latBot);
+
+  const W = Math.min(cols * 16, 512);
+  const H = Math.min(Math.max(rows * 16, 64), 512);
   const cv = document.createElement("canvas");
-  cv.width = cols;
-  cv.height = rows;
+  cv.width = W;
+  cv.height = H;
   const cctx = cv.getContext("2d");
-  const img = cctx.createImageData(cols, rows);
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const point = d.values[r * cols + c];
-      const [R, G, B, A] = euroColor(point ? point[euro.step] : null, stops);
-      const o = (r * cols + c) * 4;
+  const img = cctx.createImageData(W, H);
+
+  for (let oy = 0; oy < H; oy++) {
+    /* fila de píxeles → latitud real en Mercator → fila fraccional */
+    const lat = mercLat(yTop + ((yBot - yTop) * (oy + 0.5)) / H);
+    let g = (d.grid.lats[0] - lat) / d.grid.sp;
+    g = Math.max(0, Math.min(rows - 1, g));
+    const r0 = Math.floor(g);
+    const r1 = Math.min(rows - 1, r0 + 1);
+    const tr = g - r0;
+    for (let ox = 0; ox < W; ox++) {
+      let gx = ((ox + 0.5) / W) * cols - 0.5;
+      gx = Math.max(0, Math.min(cols - 1, gx));
+      const c0 = Math.floor(gx);
+      const c1 = Math.min(cols - 1, c0 + 1);
+      const tc = gx - c0;
+      /* media ponderada de los 4 vecinos, ignorando huecos */
+      let sum = 0;
+      let wsum = 0;
+      const acc = (v, w) => {
+        if (v != null && w > 0) {
+          sum += v * w;
+          wsum += w;
+        }
+      };
+      acc(val(r0, c0), (1 - tr) * (1 - tc));
+      acc(val(r0, c1), (1 - tr) * tc);
+      acc(val(r1, c0), tr * (1 - tc));
+      acc(val(r1, c1), tr * tc);
+      const [R, G, B, A] = euroColor(wsum > 0 ? sum / wsum : null, stops);
+      const o = (oy * W + ox) * 4;
       img.data[o] = R;
       img.data[o + 1] = G;
       img.data[o + 2] = B;
@@ -811,22 +876,12 @@ function euroRender() {
   }
   cctx.putImageData(img, 0, 0);
 
-  /* reescala con suavizado para que el campo se vea continuo */
-  const up = document.createElement("canvas");
-  up.width = cols * 16;
-  up.height = rows * 16;
-  const uctx = up.getContext("2d");
-  uctx.imageSmoothingEnabled = true;
-  uctx.imageSmoothingQuality = "high";
-  uctx.drawImage(cv, 0, 0, up.width, up.height);
-
-  const half = d.grid.sp / 2;
   const bounds = [
-    [d.grid.lats[0] + half, d.grid.lons[0] - half],
-    [d.grid.lats[rows - 1] - half, d.grid.lons[cols - 1] + half],
+    [latTop, d.grid.lons[0] - half],
+    [latBot, d.grid.lons[cols - 1] + half],
   ];
   if (euro.overlay) euro.overlay.remove();
-  euro.overlay = window.L.imageOverlay(up.toDataURL("image/png"), bounds, {
+  euro.overlay = window.L.imageOverlay(cv.toDataURL("image/png"), bounds, {
     opacity: 0.72,
     interactive: false,
   });
@@ -861,29 +916,39 @@ function euroReadout(lat, lng) {
   const point = d.values[r * cols + c];
   const v = point ? point[euro.step] : null;
   if (v == null) return "";
-  const cfg = EURO_VARS[euro.variable];
-  const label = euro.mode === "prob" ? cfg.probShort : cfg.detShort;
-  const value = euro.mode === "prob" ? `${v} %` : `${v} ${cfg.unit}`;
+  /* etiquetas según los datos en pantalla, no según la selección */
+  const cfg = EURO_VARS[d.variable];
+  const prob = d.mode === "prob";
+  const label = prob ? cfg.probShort : cfg.detShort;
+  const value = prob ? `${v} %` : `${v} ${cfg.unit}`;
   return `<br>${label}: <strong>${value}</strong> · ${euroStepLabel(d.times[euro.step])}`;
 }
 
 let euroMoveTimer = null;
 function euroRefreshSoon() {
   clearTimeout(euroMoveTimer);
-  euroMoveTimer = setTimeout(() => euroRefresh(), 550);
+  euroMoveTimer = setTimeout(() => euroRefresh(), 800);
 }
+
+const EURO_CACHE_TTL = 60 * 60 * 1000; /* el IFS se actualiza cada ~6 h */
 
 async function euroRefresh() {
   if (!euro.on || !map) return;
   /* la rejilla determinista es más fina: una sola pasada pesa poco */
-  const grid = euro.mode === "det" ? euroGrid(18, 12) : euroGrid(10, 7);
+  const grid = euro.mode === "det" ? euroGrid(16, 11) : euroGrid(10, 7);
   const key = `${euro.variable}|${euro.mode}|${grid.key}`;
   const cached = euro.cache.get(key);
-  if (cached) {
-    euro.data = cached;
+  if (cached && Date.now() - cached.at < EURO_CACHE_TTL) {
+    /* invalida cualquier petición en vuelo: si no, una respuesta tardía
+       de otra variable/modo pisaría lo que se acaba de mostrar */
+    euro.seq++;
+    if (euro.abort) euro.abort.abort();
+    $("euro-loading").hidden = true;
+    euro.data = cached.data;
     euroRender();
     return;
   }
+  if (cached) euro.cache.delete(key);
 
   const seq = ++euro.seq;
   if (euro.abort) euro.abort.abort();
@@ -894,7 +959,7 @@ async function euroRefresh() {
       euro.mode === "det"
         ? await fetchEuroDet(euro.variable, grid, euro.abort.signal)
         : await fetchEuroProb(euro.variable, grid, euro.abort.signal);
-    euro.cache.set(key, data);
+    euro.cache.set(key, { data, at: Date.now() });
     if (euro.cache.size > 30) euro.cache.delete(euro.cache.keys().next().value);
     if (seq === euro.seq && euro.on) {
       euro.data = data;
