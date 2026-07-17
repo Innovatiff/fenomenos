@@ -2,8 +2,18 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#000b33" />
+    <!-- App instalable (PWA): pantalla completa sin barra del navegador -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Fenómenos" />
+    <link rel="apple-touch-icon" href="img/icon-192.png" />
     <meta
       name="description"
       content="Fenómenos App: radar y satélite en vivo, pronóstico de 7 días y mapas interactivos del Caribe."
@@ -96,8 +106,21 @@
 
       <!-- ══════════════ CUERPO ══════════════ -->
       <main class="app__main">
-        <!-- Panel del pronóstico -->
+        <!-- Panel del pronóstico. En móvil es una hoja deslizante sobre el
+             mapa: la cabecera (asa + resumen) siempre asoma y se arrastra. -->
         <aside class="app__panel" id="panel">
+          <button class="sheet-head" id="sheet-head" type="button" aria-label="Abrir o cerrar el pronóstico">
+            <span class="sheet-head__bar" aria-hidden="true"></span>
+            <span class="sheet-head__row">
+              <span class="sheet-head__temp" id="sheet-temp">--°</span>
+              <span class="sheet-head__meta">
+                <strong id="sheet-desc">Pronóstico</strong>
+                <small id="sheet-place">Cargando…</small>
+              </span>
+              <ion-icon name="chevron-up-outline" class="sheet-head__chev" aria-hidden="true"></ion-icon>
+            </span>
+          </button>
+
           <!-- Condiciones actuales -->
           <section class="panel-block" id="now-block">
             <p class="panel-block__title">

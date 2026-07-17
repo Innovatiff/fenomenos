@@ -2017,3 +2017,157 @@
     background-position: -200% 0;
   }
 }
+
+/* ═════════════ MÓVIL COMO APP NATIVA ═════════════
+   Mapa a pantalla completa detrás de todo; el panel del pronóstico es una
+   hoja inferior deslizante (asa + resumen siempre visibles, se arrastra o
+   se toca para expandir). En escritorio nada de esto aplica. */
+
+.sheet-head {
+  display: none;
+}
+
+@media (max-width: 63.99em) {
+  .app {
+    height: 100dvh;
+  }
+
+  .app__main {
+    position: relative;
+    display: block;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .app__maparea {
+    position: absolute;
+    inset: 0;
+  }
+
+  .app__panel {
+    --sheet-peek: 10.8rem;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 640;
+    height: min(80dvh, 68rem);
+    padding: 0 var(--gutter) calc(3.2rem + env(safe-area-inset-bottom));
+    overflow: hidden;
+    background-color: rgba(4, 9, 24, 0.96);
+    backdrop-filter: blur(1.6rem);
+    -webkit-backdrop-filter: blur(1.6rem);
+    border-top: 0.1rem solid var(--line-2);
+    border-radius: 2rem 2rem 0 0;
+    box-shadow: 0 -1.2rem 3.6rem rgba(0, 0, 0, 0.55);
+    transform: translateY(calc(100% - var(--sheet-peek) - env(safe-area-inset-bottom)));
+    transition: transform 0.38s cubic-bezier(0.22, 0.9, 0.28, 1);
+    will-change: transform;
+  }
+  .app__panel.is-open {
+    transform: translateY(0);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .app__panel.is-dragging {
+    transition: none;
+  }
+
+  .sheet-head {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: calc(100% + 2 * var(--gutter));
+    margin: 0 calc(-1 * var(--gutter)) 1.4rem;
+    padding: 0.9rem var(--gutter) 1.1rem;
+    background: linear-gradient(rgba(4, 9, 24, 0.99), rgba(4, 9, 24, 0.92));
+    border: 0;
+    color: inherit;
+    text-align: left;
+    cursor: grab;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sheet-head:active {
+    cursor: grabbing;
+  }
+  .sheet-head__bar {
+    width: 4.4rem;
+    height: 0.45rem;
+    margin: 0 auto 1.1rem;
+    border-radius: 99rem;
+    background-color: var(--line-2);
+  }
+  .sheet-head__row {
+    display: flex;
+    align-items: center;
+    gap: 1.3rem;
+  }
+  .sheet-head__temp {
+    font-size: 3.2rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.05rem;
+  }
+  .sheet-head__meta {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    line-height: 1.3;
+  }
+  .sheet-head__meta strong {
+    font-size: 1.45rem;
+    color: #e7edf9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sheet-head__meta small {
+    font-size: 1.15rem;
+    color: var(--text-5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sheet-head__chev {
+    flex-shrink: 0;
+    font-size: 2rem;
+    color: var(--text-5);
+    transition: transform 0.3s;
+  }
+  .app__panel.is-open .sheet-head__chev {
+    transform: rotate(180deg);
+  }
+
+  /* los flotantes del mapa suben por encima del asomo de la hoja */
+  .map-playbar {
+    bottom: calc(10.8rem + 1.4rem + env(safe-area-inset-bottom));
+  }
+  .maplibregl-ctrl-top-left {
+    top: auto;
+    bottom: calc(10.8rem + 1.4rem + env(safe-area-inset-bottom));
+  }
+  .map-credit {
+    bottom: calc(10.8rem + 0.4rem + env(safe-area-inset-bottom));
+  }
+  .map-loading {
+    bottom: calc(10.8rem + 1.4rem + env(safe-area-inset-bottom));
+  }
+
+  /* con el mapa a pantalla completa, el panel de modelos respira más */
+  .euro-panel__body {
+    max-height: calc(100dvh - 32rem);
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app__panel,
+  .sheet-head__chev {
+    transition: none;
+  }
+}

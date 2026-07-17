@@ -233,6 +233,14 @@ function renderNow(data) {
   $("now-icon").innerHTML = `<ion-icon name="${info.icon}"></ion-icon>`;
   $("now-updated").textContent = `Actualizado a las ${fmtClock(new Date())}`;
 
+  /* espejo en la cabecera de la hoja móvil */
+  const st = $("sheet-temp");
+  if (st) {
+    st.textContent = `${Math.round(c.temperature_2m ?? 0)}${tempSymbol()}`;
+    $("sheet-desc").textContent = info.text;
+    $("sheet-place").textContent = $("now-place").textContent;
+  }
+
   const stats = [
     { icon: "thermometer-outline", label: "Sensación", value: `${Math.round(c.apparent_temperature ?? 0)}${tempSymbol()}` },
     { icon: "water-outline", label: "Humedad", value: `${Math.round(c.relative_humidity_2m ?? 0)}%` },
@@ -2491,6 +2499,92 @@ const wind = {
   retryTimer: null,
 };
 window.__fdcWind = wind; /* para depurar */
+
+/* ═══════════ 4d. HOJA INFERIOR MÓVIL (mapa a pantalla completa) ═════════
+   El panel del pronóstico se arrastra con el dedo desde su cabecera: sigue
+   el gesto en vivo y al soltar encaja abierto o cerrado según posición y
+   velocidad. Un toque simple alterna. Solo aplica en pantallas pequeñas. */
+const sheet = { open: false };
+
+function sheetSet(open) {
+  sheet.open = open;
+  const el = $("panel");
+  if (!el) return;
+  el.classList.toggle("is-open", open);
+  if (!open) el.scrollTop = 0;
+}
+
+function sheetInit() {
+  const el = $("panel");
+  const head = $("sheet-head");
+  if (!el || !head) return;
+  const mq = window.matchMedia("(max-width: 63.99em)");
+
+  let dragging = false;
+  let moved = false;
+  let startY = 0;
+  let baseY = 0;
+  let lastY = 0;
+  let t0 = 0;
+
+  const peekPx = () => head.offsetHeight + 14; /* asa + margen visual */
+  const closedY = () => el.clientHeight - peekPx();
+
+  head.addEventListener("pointerdown", (e) => {
+    if (!mq.matches) return;
+    dragging = true;
+    moved = false;
+    startY = e.clientY;
+    lastY = e.clientY;
+    baseY = sheet.open ? 0 : closedY();
+    t0 = performance.now();
+    el.classList.add("is-dragging");
+    try {
+      head.setPointerCapture(e.pointerId);
+    } catch (_) {}
+  });
+
+  head.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dy = e.clientY - startY;
+    if (Math.abs(dy) > 6) moved = true;
+    lastY = e.clientY;
+    const y = Math.max(0, Math.min(closedY(), baseY + dy));
+    el.style.transform = `translateY(${y}px)`;
+  });
+
+  const finish = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    el.classList.remove("is-dragging");
+    el.style.transform = "";
+    if (!moved) {
+      sheetSet(!sheet.open); /* toque simple: alternar */
+      return;
+    }
+    const dt = Math.max(1, performance.now() - t0);
+    const v = (lastY - startY) / dt; /* px/ms: + hacia abajo */
+    const y = Math.max(0, Math.min(closedY(), baseY + (lastY - startY)));
+    if (v < -0.45) return sheetSet(true);
+    if (v > 0.45) return sheetSet(false);
+    sheetSet(y < closedY() / 2);
+  };
+  head.addEventListener("pointerup", finish);
+  head.addEventListener("pointercancel", finish);
+
+  /* al pasar a escritorio, la hoja vuelve a ser panel normal */
+  mq.addEventListener?.("change", () => {
+    el.classList.remove("is-open", "is-dragging");
+    el.style.transform = "";
+    sheet.open = false;
+  });
+}
+sheetInit();
+
+/* PWA: instalable desde el navegador (el SW no cachea nada) */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
 
 function windCovered(reqGrid, modelKey) {
   const d = wind.data;
