@@ -31,7 +31,7 @@ jobs:
           cache: pip
 
       - name: Dependencias
-        run: pip install numpy xarray cfgrib eccodes ecmwf-opendata
+        run: pip install -r scripts/requirements.txt
 
       - name: Procesar modelos
         run: python scripts/build_model_data.py
