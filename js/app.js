@@ -1454,13 +1454,16 @@ function euroRender() {
   slider.value = String(euro.step);
   $("euro-step-label").textContent = euroStepLabel(d.times[euro.step]);
   euroLegend(stops, prob ? EURO_PROB_TICKS : cfg.detTicks, prob ? "%" : cfg.unit);
-  $("euro-note").textContent = isAir
+  const srcNote = d.staticKey
+    ? " Datos abiertos oficiales del centro, procesados por Fenómenos cada 6 h."
+    : "";
+  $("euro-note").textContent = (isAir
     ? `Índice de calidad del aire (AQI de EE. UU.) del CAMS de Copernicus: máximo de cada período de 6 h. 0–50 bueno · 51–100 moderado · 101–150 dañino para grupos sensibles · 151+ dañino. Rejilla de ${d.grid.sp}°.`
     : prob
       ? `Porcentaje de los ${d.members || modelCfg.fallbackMembers} escenarios del ${modelCfg.ensName} que superan el umbral en cada período de 6 h. Rejilla de ${d.grid.sp}°.`
       : `${modelCfg.detLabel}: ${
           cfg.agg === "sum" ? "total acumulado" : "valor máximo"
-        } de cada período de 6 h. Rejilla de ${d.grid.sp}°.`;
+        } de cada período de 6 h. Rejilla de ${d.grid.sp}°.`) + srcNote;
   windEnsure();
 }
 
@@ -1482,6 +1485,72 @@ function euroReadout(lat, lng) {
   const label = prob ? cfg.probShort : cfg.detShort;
   const value = prob ? `${v} %` : `${v} ${cfg.unit}`;
   return `<br>${label}: <strong>${value}</strong> · ${euroStepLabel(d.times[euro.step])}`;
+}
+
+/* ── Fuente propia (robot de GitHub Actions) ─────────────────────────────
+   Si el repositorio publica data/modelos/ (ver scripts/build_model_data.py),
+   los campos del modelo se leen de archivos estáticos del propio sitio:
+   cero llamadas a APIs externas por usuario, a cualquier escala. Si no
+   existen o están viejos, se usa Open-Meteo como respaldo automático. */
+
+const STATIC_BASE = "data/modelos";
+const staticSrc = { meta: null, checked: false, files: new Map() };
+
+async function staticMeta() {
+  if (staticSrc.checked) return staticSrc.meta;
+  staticSrc.checked = true;
+  try {
+    const res = await fetch(`${STATIC_BASE}/meta.json`, { cache: "no-cache" });
+    if (res.ok) {
+      const m = await res.json();
+      /* datos con más de 12 h se consideran vencidos */
+      if (m && m.generated && Date.now() / 1000 - m.generated < 12 * 3600)
+        staticSrc.meta = m;
+    }
+  } catch (_) {}
+  return staticSrc.meta;
+}
+
+async function staticFile(center, name) {
+  const key = `${center}/${name}`;
+  if (staticSrc.files.has(key)) return staticSrc.files.get(key);
+  const res = await fetch(`${STATIC_BASE}/${key}.json`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  staticSrc.files.set(key, data);
+  return data;
+}
+
+/* intenta servir la vista actual desde la fuente propia; true si lo hizo */
+async function staticUse(mode) {
+  const meta = await staticMeta();
+  const st = meta && meta.centers && meta.centers[euro.model];
+  if (!st || !(mode === "det" ? st.det : st.prob)) return false;
+  try {
+    const file = await staticFile(euro.model, mode);
+    const values = file[euro.variable];
+    if (!values || !file.grid || !file.times) return false;
+    const staticKey = `${euro.model}|${euro.variable}|${mode}`;
+    if (euro.data && euro.data.staticKey === staticKey) return true;
+    euro.seq++; /* invalida peticiones en vuelo */
+    if (euro.abort) euro.abort.abort();
+    $("euro-loading").hidden = true;
+    euro.data = {
+      grid: file.grid,
+      times: file.times,
+      values,
+      members: file.members || 1,
+      mode,
+      variable: euro.variable,
+      model: euro.model,
+      at: (file.generated || 0) * 1000,
+      staticKey,
+    };
+    euroRender();
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 let euroMoveTimer = null;
@@ -1535,6 +1604,9 @@ async function euroRefresh() {
   /* la calidad del aire no tiene ensemble: siempre es determinista */
   const isAir = euro.variable === "air";
   const mode = isAir ? "det" : euro.mode;
+
+  /* la fuente propia (datos procesados por el robot) tiene prioridad */
+  if (!isAir && (await staticUse(mode))) return;
   /* la rejilla determinista es más fina: una sola pasada pesa poco.
      La del ensemble es más pequeña: decenas de miembros por punto
      pesan en la cuota del servicio. */
@@ -1694,8 +1766,31 @@ function windEnsure() {
     windStop();
     return;
   }
-  const grid = euroGrid(12, 9);
   const modelKey = euro.variable === "air" ? "ecmwf" : euro.model;
+
+  /* fuente propia: el det.json ya trae u/v listos para las partículas */
+  const meta = staticSrc.meta;
+  const stc = meta && meta.centers && meta.centers[modelKey];
+  if (stc && stc.det) {
+    staticFile(modelKey, "det")
+      .then((file) => {
+        if (file.u && file.v && file.grid) {
+          wind.data = {
+            grid: file.grid,
+            u: file.u,
+            v: file.v,
+            steps: file.times.length,
+            model: modelKey,
+            at: Date.now(),
+          };
+          windStart();
+        }
+      })
+      .catch(() => {});
+    return;
+  }
+
+  const grid = euroGrid(12, 9);
   const key = `det|${modelKey}|${grid.key}`;
 
   /* el paquete determinista ya trae el viento: cero peticiones extra

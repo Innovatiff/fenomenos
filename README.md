@@ -133,6 +133,38 @@ de Firebase). Una vez dentro, `app.html` ofrece:
 Todos los servicios del mapa y del pronóstico son **gratuitos y sin clave**
 (CARTO basemaps, RainViewer, Open-Meteo).
 
+## Datos propios de modelos (robot de GitHub Actions)
+
+Para no depender de APIs de terceros a gran escala, el repositorio incluye
+un **pipeline propio** que procesa los datos ABIERTOS oficiales de los tres
+centros y los publica como archivos estáticos del sitio:
+
+- `scripts/build_model_data.py` — descarga solo los campos necesarios
+  (viento 10 m, ráfagas, lluvia) de **ECMWF** (AWS Open Data, con índices
+  de rango de bytes), **NOAA GFS/GEFS** (AWS Open Data, con `.idx`) y
+  **GEM/GEPS** (Datamart de ECCC, archivos pequeños por variable),
+  recorta la región del Caribe, precalcula los períodos de 6 h **y las
+  probabilidades del ensemble**, y escribe JSONs ligeros en
+  `data/modelos/`.
+- `.github/workflows/modelos.yml` — lo corre cada 6 horas (~2 h después
+  de cada corrida 00/06/12/18 UTC) y hace commit de los datos. En repos
+  privados consume ~600 de los 2,000 minutos/mes gratis.
+- La app comprueba `data/modelos/meta.json` al abrir la capa Modelo: si
+  hay datos propios frescos (<12 h) los usa — **cero llamadas a APIs por
+  usuario, a cualquier escala** — y si faltan (o falta una variable,
+  como ráfagas en los ensembles abiertos) cae sola a Open-Meteo.
+
+**Primera puesta en marcha**: el cron solo corre en la rama por defecto,
+así que tras hacer merge a `main` ve a **Actions → Datos de modelos →
+Run workflow** para la primera corrida manual. Si algún centro falla
+(las rutas de los buckets cambian de vez en cuando), el log lo dice por
+centro y los demás se publican igual.
+
+**A gran escala** (cientos de miles de usuarios): sirve el sitio detrás
+de un CDN con tráfico ilimitado gratis (Cloudflare Pages) y considera
+sustituir CARTO/RainViewer, cuyos niveles gratuitos están pensados para
+tráfico moderado.
+
 > ⚠️ **Las cuentas de la app NO entran al Estudio.** El Estudio solo abre
 > para las cuentas listadas en la colección `admins` de Firestore (ver
 > abajo); cualquier otra sesión —incluidos los invitados— es rechazada con

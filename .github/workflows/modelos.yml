@@ -1,0 +1,54 @@
+# Procesa los datos abiertos de ECMWF, NOAA y GEM (Canadá) a JSONs ligeros
+# que Fenómenos App sirve como archivos estáticos. Corre ~2 h después de
+# cada corrida sinóptica (00/06/12/18 UTC) y también a mano desde la
+# pestaña Actions con "Run workflow".
+name: Datos de modelos
+
+on:
+  schedule:
+    - cron: "50 2,8,14,20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: modelos
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Código
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Dependencias
+        run: pip install numpy xarray cfgrib eccodes ecmwf-opendata
+
+      - name: Procesar modelos
+        run: python scripts/build_model_data.py
+
+      - name: Publicar datos
+        run: |
+          git config user.name "fenomenos-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data/modelos
+          if git diff --cached --quiet; then
+            echo "sin cambios"
+            exit 0
+          fi
+          git commit -m "data: modelos $(date -u +'%Y-%m-%d %H:%M UTC')"
+          # reintentos por si alguien empujó mientras corría el job
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase && sleep 5
+          done
+          git push
