@@ -2130,8 +2130,10 @@ function euroRender() {
   const yTop = mercY(latTop);
   const yBot = mercY(latBot);
 
-  const W = Math.min(cols * 16, 512);
-  const H = Math.min(Math.max(rows * 16, 64), 512);
+  /* con la rejilla nativa de 0.25° el lienzo sube hasta 1600 px: los
+     campos se ven nítidos y específicos, no manchas gigantes */
+  const W = Math.min(cols * 12, 1600);
+  const H = Math.min(Math.max(rows * 12, 64), 1600);
   const cv = document.createElement("canvas");
   cv.width = W;
   cv.height = H;
@@ -2239,7 +2241,9 @@ function euroReadout(lat, lng) {
    cero llamadas a APIs externas por usuario, a cualquier escala. Si no
    existen o están viejos, se usa Open-Meteo como respaldo automático. */
 
-const STATIC_BASE = "data/modelos";
+/* los modelos viven en el repo público de datos (su historia se aplasta a
+   un commit, así el peso de cada corrida no acumula) */
+const STATIC_BASE = `${DATA_REPO}/modelos`;
 const staticSrc = { meta: null, checked: false, files: new Map() };
 
 async function staticMeta() {
@@ -2356,7 +2360,7 @@ async function euroRefresh() {
   /* la rejilla determinista es más fina: una sola pasada pesa poco.
      La del ensemble es más pequeña: decenas de miembros por punto
      pesan en la cuota del servicio. */
-  const grid = mode === "det" ? euroGrid(12, 9) : euroGrid(8, 5);
+  const grid = mode === "det" ? euroGrid(16, 11) : euroGrid(11, 7);
   /* el determinista se guarda como PAQUETE por centro+rejilla (sirve a las
      tres variables y a las partículas); el ensemble y el aire, por campo */
   const key = isAir
@@ -2533,7 +2537,7 @@ function windEnsure() {
     return;
   }
 
-  const grid = euroGrid(12, 9);
+  const grid = euroGrid(16, 11);
   const key = `det|${modelKey}|${grid.key}`;
 
   /* el paquete determinista ya trae el viento: cero peticiones extra
