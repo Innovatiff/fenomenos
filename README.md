@@ -109,11 +109,12 @@ de Firebase). Una vez dentro, `app.html` ofrece:
     intervalos mínimos, caché persistente en `localStorage` (recargar la
     página no vuelve a pedir nada) y enfriamiento de 2 minutos tras un
     429.
-- **Mapa profesional**: base oscura de CARTO **sin etiquetas** con los
-  nombres de lugares en una capa superior (siempre legibles sobre radar,
-  satélite y modelos), satélite infrarrojo con mezcla «screen» (solo
-  brillan las nubes), radar y satélite animados al abrirse, y escala de
-  distancias.
+- **Mapa profesional con MapLibre GL** (renderizado por GPU): paneo y
+  zoom fluidos con zoom fraccional, estilo vectorial oscuro de
+  **OpenFreeMap** (gratis e ilimitado; CARTO GL como respaldo
+  automático), capas de tiempo insertadas **debajo de los rótulos** del
+  estilo (los nombres de lugares siempre se leen), radar y satélite
+  animados al abrirse, y escala de distancias.
 - **Pronóstico** de Open-Meteo: condiciones actuales, próximas 24 horas y
   7 días, en las unidades elegidas.
 - **Riesgos y advertencias severas** (panel izquierdo): evaluación de las
@@ -131,7 +132,7 @@ de Firebase). Una vez dentro, `app.html` ofrece:
   a cualquier dispositivo.
 
 Todos los servicios del mapa y del pronóstico son **gratuitos y sin clave**
-(CARTO basemaps, RainViewer, Open-Meteo).
+(OpenFreeMap, CARTO, RainViewer, Open-Meteo).
 
 ## Datos propios de modelos (robot de GitHub Actions)
 

@@ -598,7 +598,6 @@ function renderRisks(risks) {
 /* ═══════════════════════════  4. MAPA  ══════════════════════════════════ */
 
 let map = null;
-let baseLayer = null;
 let weatherLayer = null;
 let clickMarker = null;
 
@@ -610,60 +609,73 @@ let playing = false;
 let playTimer = null;
 let activeKind = "radar";
 
-function waitForLeaflet(timeoutMs = 6000) {
+/* Estilos vectoriales oscuros, en orden de preferencia: OpenFreeMap
+   (gratis e ilimitado) y, de respaldo, el estilo GL oscuro de CARTO. */
+const MAP_STYLES = [
+  "https://tiles.openfreemap.org/styles/dark",
+  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+];
+
+function waitForMapLib(timeoutMs = 6000) {
   return new Promise((resolve) => {
     const started = Date.now();
     (function check() {
-      if (window.L) return resolve(window.L);
+      if (window.maplibregl) return resolve(window.maplibregl);
       if (Date.now() - started > timeoutMs) return resolve(null);
       setTimeout(check, 120);
     })();
   });
 }
 
+async function resolveMapStyle() {
+  for (const url of MAP_STYLES) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return url;
+    } catch (_) {}
+  }
+  return null;
+}
+
+/* MapLibre y Leaflet numeran el zoom con ~1 nivel de diferencia */
+function glZoom(z) {
+  return Math.max(2, z - 1);
+}
+
+let labelsAnchor; /* primera capa de rótulos del estilo base */
+
 async function initMap() {
-  const L = await waitForLeaflet();
-  if (!L) {
+  const gl = await waitForMapLib();
+  const styleUrl = gl ? await resolveMapStyle() : null;
+  if (!gl || !styleUrl) {
     $("map-fallback").classList.add("is-visible");
     return;
   }
 
   const c = COUNTRIES[settings.country];
-  map = L.map("map", {
-    center: [c.lat, c.lon],
-    zoom: c.zoom,
-    minZoom: 3,
-    maxZoom: 12,
-    zoomControl: true,
+  map = new gl.Map({
+    container: "map",
+    style: styleUrl,
+    center: [c.lon, c.lat],
+    zoom: glZoom(c.zoom),
+    minZoom: 2,
+    maxZoom: 11.5,
     attributionControl: false,
+    dragRotate: false,
+    pitchWithRotate: false,
   });
+  if (map.touchZoomRotate && map.touchZoomRotate.disableRotation)
+    map.touchZoomRotate.disableRotation();
+  map.addControl(new gl.NavigationControl({ showCompass: false }), "top-left");
+  map.addControl(new gl.ScaleControl({ unit: "metric" }), "bottom-left");
 
-  /* base sin etiquetas + etiquetas en un panel superior: los nombres de
-     ciudades siempre se leen por encima de radar, satélite y modelos */
-  baseLayer = L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png",
-    { subdomains: "abcd", maxZoom: 12 }
-  );
-  baseLayer.addTo(map);
+  await new Promise((resolve) => map.on("load", resolve));
 
-  const labelsPane = map.createPane("labels");
-  labelsPane.style.zIndex = 650;
-  labelsPane.style.pointerEvents = "none";
-  L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png",
-    { subdomains: "abcd", maxZoom: 12, pane: "labels" }
-  ).addTo(map);
-
-  if (L.control && L.control.scale)
-    L.control.scale({ imperial: true, position: "bottomleft" }).addTo(map);
-
-  /* si el mapa base no llega (red caída), avisar una sola vez */
-  let baseErrors = 0;
-  baseLayer.on("tileerror", () => {
-    baseErrors++;
-    if (baseErrors === 8)
-      toast("No se pudo cargar el mapa base. Revisa tu conexión.", "error");
-  });
+  /* las capas de tiempo se insertan DEBAJO de los rótulos del estilo:
+     los nombres de lugares siempre se leen encima de radar y modelos */
+  const styleLayers = (map.getStyle() && map.getStyle().layers) || [];
+  const sym = styleLayers.find((l) => l.type === "symbol");
+  labelsAnchor = sym ? sym.id : undefined;
 
   $("map-credit").hidden = false;
 
@@ -674,10 +686,16 @@ async function initMap() {
 
   /* las partículas se congelan mientras el mapa se mueve y se
      recolocan al soltar (si no, quedarían "pegadas" a la pantalla) */
-  map.on("movestart zoomstart", () => {
+  map.on("movestart", () => {
     if (wind.raf) windStop();
   });
-  map.on("moveend zoomend", () => {
+  map.on("zoomstart", () => {
+    if (wind.raf) windStop();
+  });
+  map.on("moveend", () => {
+    if (euro.on) windEnsure();
+  });
+  map.on("zoomend", () => {
     if (euro.on) windEnsure();
   });
 
@@ -685,15 +703,50 @@ async function initMap() {
   setLayer(settings.layer, { silent: true });
 }
 
+/* ── capas ráster del tiempo (radar/satélite) sobre el estilo ── */
+const WX_SOURCE = "wx-tiles";
+const WX_LAYER = "wx-tiles-layer";
+
+function weatherTilesRemove() {
+  if (!map || !map.getLayer) return;
+  if (map.getLayer(WX_LAYER)) map.removeLayer(WX_LAYER);
+  if (map.getSource(WX_SOURCE)) map.removeSource(WX_SOURCE);
+}
+
+function weatherTilesSet(url, opacity) {
+  weatherTilesRemove();
+  map.addSource(WX_SOURCE, {
+    type: "raster",
+    tiles: [url],
+    tileSize: 256,
+    maxzoom: 12,
+  });
+  map.addLayer(
+    {
+      id: WX_LAYER,
+      type: "raster",
+      source: WX_SOURCE,
+      paint: { "raster-opacity": opacity, "raster-fade-duration": 150 },
+    },
+    labelsAnchor
+  );
+}
+
 function onMapClick(e) {
-  const { lat, lng } = e.latlng;
+  const { lat, lng } = e.lngLat;
   const label = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
 
   if (clickMarker) clickMarker.remove();
-  clickMarker = window.L.marker([lat, lng]).addTo(map);
-  clickMarker
-    .bindPopup(`Pronóstico para <strong>${label}</strong>${euroReadout(lat, lng)}`)
-    .openPopup();
+  const gl = window.maplibregl;
+  clickMarker = new gl.Marker({ color: "#ffb020" })
+    .setLngLat([lng, lat])
+    .setPopup(
+      new gl.Popup({ offset: 18, closeButton: false }).setHTML(
+        `Pronóstico para <strong>${label}</strong>${euroReadout(lat, lng)}`
+      )
+    )
+    .addTo(map);
+  clickMarker.togglePopup();
 
   loadWeather(lat, lng, `Punto ${label}`);
   reverseGeocode(lat, lng);
@@ -752,7 +805,7 @@ function setLayer(kind, { silent = false } = {}) {
 
   stopPlayback();
   if (weatherLayer) {
-    weatherLayer.remove();
+    weatherTilesRemove();
     weatherLayer = null;
   }
 
@@ -782,13 +835,12 @@ function setLayer(kind, { silent = false } = {}) {
     : frames.length - 1;
 
   /* el infrarrojo del satélite es opaco (cielo despejado = negro): con
-     mezcla "screen" solo brillan las nubes y el mapa se sigue viendo */
-  weatherLayer = window.L.tileLayer(tileUrl(kind, frames[frameIndex]), {
-    opacity: kind === "satellite" ? 0.9 : 0.75,
-    className: kind === "satellite" ? "sat-tiles" : "",
-    maxZoom: 12,
-  });
-  weatherLayer.addTo(map);
+     el mapa base casi negro, media opacidad deja brillar solo las nubes */
+  weatherTilesSet(
+    tileUrl(kind, frames[frameIndex]),
+    kind === "satellite" ? 0.55 : 0.75
+  );
+  weatherLayer = true;
 
   $("frame-kind").textContent = kind === "radar" ? "Radar" : "Satélite";
   paintFrameLabel();
@@ -807,9 +859,11 @@ function paintFrameLabel() {
 }
 
 function stepFrame() {
-  if (!frames.length || !weatherLayer) return;
+  if (!frames.length || !weatherLayer || !map) return;
   frameIndex = (frameIndex + 1) % frames.length;
-  weatherLayer.setUrl(tileUrl(activeKind, frames[frameIndex]));
+  const src2 = map.getSource(WX_SOURCE);
+  if (src2 && src2.setTiles)
+    src2.setTiles([tileUrl(activeKind, frames[frameIndex])]);
   paintFrameLabel();
 }
 
@@ -1341,6 +1395,42 @@ function euroLegend(stops, ticks, unit) {
     .join("");
 }
 
+const EURO_SOURCE = "euro-field";
+const EURO_LAYER = "euro-field-layer";
+
+function euroOverlayRemove() {
+  if (!map || !map.getLayer) return;
+  if (map.getLayer(EURO_LAYER)) map.removeLayer(EURO_LAYER);
+  if (map.getSource(EURO_SOURCE)) map.removeSource(EURO_SOURCE);
+  euro.overlay = null;
+}
+
+function euroOverlaySet(url, west, south, east, north) {
+  const coords = [
+    [west, north],
+    [east, north],
+    [east, south],
+    [west, south],
+  ];
+  const src2 = map.getSource && map.getSource(EURO_SOURCE);
+  if (src2 && src2.updateImage) {
+    src2.updateImage({ url, coordinates: coords });
+  } else {
+    euroOverlayRemove();
+    map.addSource(EURO_SOURCE, { type: "image", url, coordinates: coords });
+    map.addLayer(
+      {
+        id: EURO_LAYER,
+        type: "raster",
+        source: EURO_SOURCE,
+        paint: { "raster-opacity": 0.72, "raster-fade-duration": 0 },
+      },
+      labelsAnchor
+    );
+  }
+  euro.overlay = true;
+}
+
 /* proyección Mercator: latitud → y (y su inversa) */
 function mercY(lat) {
   const r = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
@@ -1357,7 +1447,7 @@ function mercLat(y) {
    coloreada después con la rampa. */
 function euroRender() {
   const d = euro.data;
-  if (!d || !map || !window.L) return;
+  if (!d || !map) return;
   /* siempre según los datos mostrados (si una carga falló, la selección
      de los controles puede ir por delante de lo que hay en pantalla) */
   const cfg = EURO_VARS[d.variable];
@@ -1426,16 +1516,13 @@ function euroRender() {
   }
   cctx.putImageData(img, 0, 0);
 
-  const bounds = [
-    [latTop, d.grid.lons[0] - half],
-    [latBot, d.grid.lons[cols - 1] + half],
-  ];
-  if (euro.overlay) euro.overlay.remove();
-  euro.overlay = window.L.imageOverlay(cv.toDataURL("image/png"), bounds, {
-    opacity: 0.72,
-    interactive: false,
-  });
-  euro.overlay.addTo(map);
+  euroOverlaySet(
+    cv.toDataURL("image/png"),
+    d.grid.lons[0] - half,
+    latBot,
+    d.grid.lons[cols - 1] + half,
+    latTop
+  );
 
   /* controles */
   const isAir = euro.variable === "air";
@@ -1709,10 +1796,7 @@ function euroSetActive(on, { silent = false } = {}) {
     if (window.innerWidth < 768) $("euro-panel").classList.add("is-min");
   }
   if (!euro.on) {
-    if (euro.overlay) {
-      euro.overlay.remove();
-      euro.overlay = null;
-    }
+    euroOverlayRemove();
     if (euro.abort) euro.abort.abort();
     clearTimeout(euro.retryTimer);
     clearTimeout(wind.retryTimer);
@@ -1933,13 +2017,11 @@ function windFrame() {
   ctx.lineWidth = 1.2;
 
   const s = Math.max(0, Math.min(euro.step ?? 0, wind.data.steps - 1));
-  const zoom = map.getZoom ? map.getZoom() : 6;
-  const k = 0.055 * Math.pow(2, zoom - 6);
+  const zoom = map.getZoom ? map.getZoom() : 5;
+  const k = 0.055 * Math.pow(2, zoom - 5);
 
   for (const p of wind.particles) {
-    const ll = map.containerPointToLatLng
-      ? map.containerPointToLatLng([p.x, p.y])
-      : null;
+    const ll = map.unproject ? map.unproject([p.x, p.y]) : null;
     const vec = ll ? windVecAt(ll.lat, ll.lng, s) : null;
     p.age++;
     if (!vec || p.age > 90) {
@@ -2068,9 +2150,11 @@ async function searchPlaces(query) {
         const label = `${r.name}${r.admin1 ? ", " + r.admin1 : ""}`;
         loadWeather(r.latitude, r.longitude, label);
         if (map) {
-          map.flyTo([r.latitude, r.longitude], 9, { duration: 1.2 });
+          map.flyTo({ center: [r.longitude, r.latitude], zoom: glZoom(9), duration: 1200 });
           if (clickMarker) clickMarker.remove();
-          clickMarker = window.L.marker([r.latitude, r.longitude]).addTo(map);
+          clickMarker = new window.maplibregl.Marker({ color: "#ffb020" })
+            .setLngLat([r.longitude, r.latitude])
+            .addTo(map);
         }
       });
       holder.appendChild(btn);
@@ -2166,7 +2250,8 @@ $("settings-save").addEventListener("click", async () => {
     before.tempUnit !== settings.tempUnit || before.windUnit !== settings.windUnit;
 
   if (countryChanged) {
-    if (map) map.flyTo([c.lat, c.lon], c.zoom, { duration: 1.2 });
+    if (map)
+      map.flyTo({ center: [c.lon, c.lat], zoom: glZoom(c.zoom), duration: 1200 });
     if (clickMarker) {
       clickMarker.remove();
       clickMarker = null;
