@@ -776,6 +776,13 @@ async function initMap() {
     attributionControl: false,
     dragRotate: false,
     pitchWithRotate: false,
+    /* un solo mundo con bordes: sin copias infinitas a los lados y sin
+       poder arrastrar más allá de los polos */
+    renderWorldCopies: false,
+    maxBounds: [
+      [-180, -85],
+      [180, 85],
+    ],
   });
   if (map.touchZoomRotate && map.touchZoomRotate.disableRotation)
     map.touchZoomRotate.disableRotation();
