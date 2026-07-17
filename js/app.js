@@ -2765,54 +2765,128 @@ $("euro-collapse").addEventListener("click", () => {
   $("euro-panel").classList.toggle("is-min");
 });
 
-/* ═══════════════════════════  5. BUSCADOR  ══════════════════════════════ */
+/* ═══════════════════════════  5. BUSCADOR  ══════════════════════════════
+   Índice de ciudades propio (GeoNames procesado por el robot): búsqueda
+   instantánea en el navegador, sin depender de ninguna API. Si el índice
+   no carga, se cae a la API de geocoding de Open-Meteo. */
 
 let searchTimer = null;
+let cityIndex = null; /* {cities:[[nombre,admin1,cc,lat,lon,pob]], norm:[]} */
+let cityIndexPromise = null;
+let countryNamesES = null;
+
+function cityNorm(s) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function countryES(cc) {
+  try {
+    if (!countryNamesES)
+      countryNamesES = new Intl.DisplayNames(["es"], { type: "region" });
+    return countryNamesES.of(cc) || cc;
+  } catch (_) {
+    return cc;
+  }
+}
+
+function loadCityIndex() {
+  if (cityIndexPromise) return cityIndexPromise;
+  cityIndexPromise = (async () => {
+    try {
+      const res = await fetch(`${DATA_REPO}/cities/index.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const m = await res.json();
+      if (!m || !Array.isArray(m.cities) || m.cities.length < 1000)
+        throw new Error("índice vacío");
+      cityIndex = { cities: m.cities, norm: m.cities.map((c) => cityNorm(c[0])) };
+    } catch (_) {
+      cityIndexPromise = null; /* se reintenta en la próxima búsqueda */
+    }
+    return cityIndex;
+  })();
+  return cityIndexPromise;
+}
+
+/* las ciudades vienen ordenadas por población: con empate de calidad de
+   coincidencia, gana el lugar más poblado (índice más bajo) */
+function searchCityIndex(query, limit) {
+  const q = cityNorm(query);
+  const { cities, norm } = cityIndex;
+  const hits = [];
+  for (let i = 0; i < norm.length; i++) {
+    const pos = norm[i].indexOf(q);
+    if (pos < 0) continue;
+    /* 0 exacto · 1 prefijo · 2 prefijo de palabra · 3 dentro */
+    const score =
+      norm[i] === q ? 0 : pos === 0 ? 1 : norm[i][pos - 1] === " " ? 2 : 3;
+    hits.push([score, i]);
+  }
+  hits.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  return hits.slice(0, limit).map(([, i]) => {
+    const [name, admin1, cc, lat, lon] = cities[i];
+    return {
+      name,
+      admin1,
+      country: countryES(cc),
+      latitude: lat,
+      longitude: lon,
+    };
+  });
+}
 
 async function searchPlaces(query) {
   const holder = $("search-results");
-  try {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=es&format=json`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const results = data.results || [];
+  let results = null;
 
-    if (!results.length) {
-      holder.innerHTML = `<p class="app__search-empty">Sin resultados para tu búsqueda.</p>`;
+  await loadCityIndex();
+  if (cityIndex) {
+    results = searchCityIndex(query, 6);
+  } else {
+    /* respaldo: API de geocoding */
+    try {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=es&format=json`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      results = data.results || [];
+    } catch (_) {
+      holder.innerHTML = `<p class="app__search-empty">No se pudo buscar. Revisa tu conexión.</p>`;
       holder.classList.add("is-open");
       return;
     }
-
-    holder.innerHTML = "";
-    results.forEach((r) => {
-      const btn = document.createElement("button");
-      btn.className = "app__search-item";
-      btn.innerHTML = `<ion-icon name="location-outline"></ion-icon><span></span><small></small>`;
-      btn.querySelector("span").textContent = r.name;
-      btn.querySelector("small").textContent = [r.admin1, r.country]
-        .filter(Boolean)
-        .join(", ");
-      btn.addEventListener("click", () => {
-        closeSearch();
-        $("place-search").value = r.name;
-        const label = `${r.name}${r.admin1 ? ", " + r.admin1 : ""}`;
-        loadWeather(r.latitude, r.longitude, label);
-        if (map) {
-          map.flyTo({ center: [r.longitude, r.latitude], zoom: glZoom(9), duration: 1200 });
-          if (clickMarker) clickMarker.remove();
-          clickMarker = new window.maplibregl.Marker({ color: "#ffb020" })
-            .setLngLat([r.longitude, r.latitude])
-            .addTo(map);
-        }
-      });
-      holder.appendChild(btn);
-    });
-    holder.classList.add("is-open");
-  } catch (_) {
-    holder.innerHTML = `<p class="app__search-empty">No se pudo buscar. Revisa tu conexión.</p>`;
-    holder.classList.add("is-open");
   }
+
+  if (!results.length) {
+    holder.innerHTML = `<p class="app__search-empty">Sin resultados para tu búsqueda.</p>`;
+    holder.classList.add("is-open");
+    return;
+  }
+
+  holder.innerHTML = "";
+  results.forEach((r) => {
+    const btn = document.createElement("button");
+    btn.className = "app__search-item";
+    btn.innerHTML = `<ion-icon name="location-outline"></ion-icon><span></span><small></small>`;
+    btn.querySelector("span").textContent = r.name;
+    btn.querySelector("small").textContent = [r.admin1, r.country]
+      .filter(Boolean)
+      .join(", ");
+    btn.addEventListener("click", () => {
+      closeSearch();
+      $("place-search").value = r.name;
+      const label = `${r.name}${r.admin1 ? ", " + r.admin1 : ""}`;
+      loadWeather(r.latitude, r.longitude, label);
+      if (map) {
+        map.flyTo({ center: [r.longitude, r.latitude], zoom: glZoom(9), duration: 1200 });
+        if (clickMarker) clickMarker.remove();
+        clickMarker = new window.maplibregl.Marker({ color: "#ffb020" })
+          .setLngLat([r.longitude, r.latitude])
+          .addTo(map);
+      }
+    });
+    holder.appendChild(btn);
+  });
+  holder.classList.add("is-open");
 }
 
 function closeSearch() {
@@ -2828,6 +2902,9 @@ $("place-search").addEventListener("input", (e) => {
   }
   searchTimer = setTimeout(() => searchPlaces(q), 350);
 });
+
+/* precarga del índice al tocar el buscador: la primera búsqueda ya es local */
+$("place-search").addEventListener("focus", () => loadCityIndex());
 
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".app__search")) closeSearch();
