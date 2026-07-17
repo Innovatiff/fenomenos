@@ -601,6 +601,36 @@ let map = null;
 let weatherLayer = null;
 let clickMarker = null;
 
+/* Satélite GOES-19 desde el repo público de datos (fase AWS).
+   Si el robot aún no ha corrido o los datos están viejos, se cae
+   automáticamente al satélite de RainViewer. */
+const DATA_REPO =
+  "https://raw.githubusercontent.com/Innovatiff/fenomenos-datos/main";
+let goesData = null; /* {bbox, frames:[{time,url}]} */
+let satMode = null; /* "goes" cuando la capa activa usa GOES */
+
+async function loadGoes() {
+  try {
+    const res = await fetch(`${DATA_REPO}/goes/meta.json`, { cache: "no-cache" });
+    if (!res.ok) return;
+    const m = await res.json();
+    if (!m || !m.bbox || !m.frames || !m.frames.length) return;
+    if (Date.now() / 1000 - (m.updated || 0) > 2 * 3600) return; /* viejo */
+    goesData = {
+      bbox: m.bbox,
+      frames: m.frames.map((f) => ({
+        time: f.time,
+        url: `${DATA_REPO}/goes/${f.file}`,
+      })),
+    };
+    /* precarga: la primera vuelta de la animación sale fluida */
+    goesData.frames.forEach((f) => {
+      const img = new Image();
+      img.src = f.url;
+    });
+  } catch (_) {}
+}
+
 /* RainViewer */
 let rvData = null;
 let frames = [];
@@ -699,7 +729,7 @@ async function initMap() {
     if (euro.on) windEnsure();
   });
 
-  await loadRainViewer();
+  await Promise.all([loadRainViewer(), loadGoes()]);
   setLayer(settings.layer, { silent: true });
 }
 
@@ -808,11 +838,28 @@ function setLayer(kind, { silent = false } = {}) {
     weatherTilesRemove();
     weatherLayer = null;
   }
+  satOverlayRemove();
+  satMode = null;
 
   euroSetActive(kind === "euro", { silent });
 
   if (kind === "euro" || kind === "none" || !map) {
     $("playbar").classList.remove("is-visible");
+    return;
+  }
+
+  /* satélite: GOES-19 propio (transparente, más detalle); si no hay
+     datos frescos del robot, RainViewer como respaldo */
+  if (kind === "satellite" && goesData) {
+    satMode = "goes";
+    frames = goesData.frames;
+    frameIndex = frames.length - 1;
+    satOverlaySet(frames[frameIndex].url);
+    weatherLayer = true;
+    $("frame-kind").textContent = "Satélite · GOES-19";
+    paintFrameLabel();
+    $("playbar").classList.add("is-visible");
+    if (frames.length > 1) startPlayback();
     return;
   }
 
@@ -861,9 +908,13 @@ function paintFrameLabel() {
 function stepFrame() {
   if (!frames.length || !weatherLayer || !map) return;
   frameIndex = (frameIndex + 1) % frames.length;
-  const src2 = map.getSource(WX_SOURCE);
-  if (src2 && src2.setTiles)
-    src2.setTiles([tileUrl(activeKind, frames[frameIndex])]);
+  if (satMode === "goes") {
+    satOverlaySet(frames[frameIndex].url);
+  } else {
+    const src2 = map.getSource(WX_SOURCE);
+    if (src2 && src2.setTiles)
+      src2.setTiles([tileUrl(activeKind, frames[frameIndex])]);
+  }
   paintFrameLabel();
 }
 
@@ -1393,6 +1444,40 @@ function euroLegend(stops, ticks, unit) {
         `<span style="left:${tickPos(v)}%">${v}${i === ticks.length - 1 ? ` ${unit}` : ""}</span>`
     )
     .join("");
+}
+
+const SAT_SOURCE = "sat-img";
+const SAT_LAYER = "sat-img-layer";
+
+function satOverlayRemove() {
+  if (!map || !map.getLayer) return;
+  if (map.getLayer(SAT_LAYER)) map.removeLayer(SAT_LAYER);
+  if (map.getSource(SAT_SOURCE)) map.removeSource(SAT_SOURCE);
+}
+
+function satOverlaySet(url) {
+  const b = goesData.bbox;
+  const coords = [
+    [b.west, b.north],
+    [b.east, b.north],
+    [b.east, b.south],
+    [b.west, b.south],
+  ];
+  const src2 = map.getSource && map.getSource(SAT_SOURCE);
+  if (src2 && src2.updateImage) {
+    src2.updateImage({ url, coordinates: coords });
+  } else {
+    map.addSource(SAT_SOURCE, { type: "image", url, coordinates: coords });
+    map.addLayer(
+      {
+        id: SAT_LAYER,
+        type: "raster",
+        source: SAT_SOURCE,
+        paint: { "raster-opacity": 0.88, "raster-fade-duration": 0 },
+      },
+      labelsAnchor
+    );
+  }
 }
 
 const EURO_SOURCE = "euro-field";
