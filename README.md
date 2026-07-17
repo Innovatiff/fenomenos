@@ -86,8 +86,11 @@ de Firebase). Una vez dentro, `app.html` ofrece:
   región, **cielo despejado transparente**, animación de ~2 horas cada
   10 min. Si el robot no ha corrido o los datos están viejos, la app cae
   sola al satélite de RainViewer.
-- **Radar en vivo** (RainViewer) con animación (fotogramas pasados +
-  pronóstico inmediato).
+- **Radar híbrido propio**: reflectividad real **MRMS de NOAA (~1 km)**
+  donde existen radares (Puerto Rico, EE. UU. y Golfo) montada sobre la
+  **lluvia estimada por satélite GOES** que cubre el 100 % de la región
+  (RD, Cuba, Centroamérica…), animado y actualizado cada 10 min por el
+  robot. Respaldo automático a RainViewer si los datos propios faltan.
 - **Capa «Modelo» — tres centros mundiales**, enfocada en tiempo severo,
   con selector de modelo y dos modos:
   - **Modelos**: **ECMWF** (IFS determinista 0.25° + EPS de 51

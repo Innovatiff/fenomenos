@@ -631,6 +631,54 @@ async function loadGoes() {
   } catch (_) {}
 }
 
+/* Radar propio: MRMS real (~1 km, PR + EE. UU.) + lluvia estimada por
+   satélite (cobertura total). Si el robot no ha publicado o está viejo,
+   se cae al radar de RainViewer. */
+let radarOwn = null; /* {rain:{bbox,frames[]}, mrms:{bboxes,frames[]}|null} */
+let radarMode = null; /* "own" cuando la capa activa usa datos propios */
+
+async function loadOwnRadar() {
+  try {
+    const res = await fetch(`${DATA_REPO}/rain/meta.json`, { cache: "no-cache" });
+    if (!res.ok) return;
+    const m = await res.json();
+    if (!m || !m.bbox || !m.frames || !m.frames.length) return;
+    if (Date.now() / 1000 - (m.updated || 0) > 2 * 3600) return;
+    radarOwn = {
+      rain: {
+        bbox: m.bbox,
+        frames: m.frames.map((f) => ({
+          time: f.time,
+          url: `${DATA_REPO}/rain/${f.file}`,
+        })),
+      },
+      mrms: null,
+    };
+    radarOwn.rain.frames.slice(-5).forEach((f) => {
+      const img = new Image();
+      img.src = f.url;
+    });
+  } catch (_) {
+    return;
+  }
+  try {
+    const res = await fetch(`${DATA_REPO}/radar/meta.json`, { cache: "no-cache" });
+    if (!res.ok) return;
+    const m = await res.json();
+    if (!m || !m.frames || !m.frames.length) return;
+    if (Date.now() / 1000 - (m.updated || 0) > 2 * 3600) return;
+    radarOwn.mrms = {
+      bboxes: m.bboxes || {},
+      frames: m.frames.map((f) => ({
+        time: f.time,
+        files: Object.fromEntries(
+          Object.entries(f.files || {}).map(([d, p]) => [d, `${DATA_REPO}/radar/${p}`])
+        ),
+      })),
+    };
+  } catch (_) {}
+}
+
 /* RainViewer */
 let rvData = null;
 let frames = [];
@@ -729,7 +777,7 @@ async function initMap() {
     if (euro.on) windEnsure();
   });
 
-  await Promise.all([loadRainViewer(), loadGoes()]);
+  await Promise.all([loadRainViewer(), loadGoes(), loadOwnRadar()]);
   setLayer(settings.layer, { silent: true });
 }
 
@@ -840,11 +888,30 @@ function setLayer(kind, { silent = false } = {}) {
   }
   satOverlayRemove();
   satMode = null;
+  radarOwnRemove();
+  radarMode = null;
 
   euroSetActive(kind === "euro", { silent });
 
   if (kind === "euro" || kind === "none" || !map) {
     $("playbar").classList.remove("is-visible");
+    return;
+  }
+
+  /* radar: MRMS real (1 km) + lluvia estimada por satélite en toda la
+     región; si el robot no ha publicado, RainViewer como respaldo */
+  if (kind === "radar" && radarOwn) {
+    radarMode = "own";
+    frames = radarOwn.rain.frames;
+    frameIndex = frames.length - 1;
+    radarOwnShow(frames[frameIndex]);
+    weatherLayer = true;
+    $("frame-kind").textContent = radarOwn.mrms
+      ? "Radar · MRMS + satélite"
+      : "Radar · satélite";
+    paintFrameLabel();
+    $("playbar").classList.add("is-visible");
+    if (frames.length > 1) startPlayback();
     return;
   }
 
@@ -908,7 +975,9 @@ function paintFrameLabel() {
 function stepFrame() {
   if (!frames.length || !weatherLayer || !map) return;
   frameIndex = (frameIndex + 1) % frames.length;
-  if (satMode === "goes") {
+  if (radarMode === "own") {
+    radarOwnShow(frames[frameIndex]);
+  } else if (satMode === "goes") {
     satOverlaySet(frames[frameIndex].url);
   } else {
     const src2 = map.getSource(WX_SOURCE);
@@ -1446,37 +1515,79 @@ function euroLegend(stops, ticks, unit) {
     .join("");
 }
 
+/* capas de imagen georreferenciada (satélite, lluvia, radar) */
+function imageLayerRemove(srcId, layerId) {
+  if (!map || !map.getLayer) return;
+  if (map.getLayer(layerId)) map.removeLayer(layerId);
+  if (map.getSource(srcId)) map.removeSource(srcId);
+}
+
+function imageLayerSet(srcId, layerId, url, bbox, opacity) {
+  const coords = [
+    [bbox.west, bbox.north],
+    [bbox.east, bbox.north],
+    [bbox.east, bbox.south],
+    [bbox.west, bbox.south],
+  ];
+  const src2 = map.getSource && map.getSource(srcId);
+  if (src2 && src2.updateImage) {
+    src2.updateImage({ url, coordinates: coords });
+  } else {
+    imageLayerRemove(srcId, layerId);
+    map.addSource(srcId, { type: "image", url, coordinates: coords });
+    map.addLayer(
+      {
+        id: layerId,
+        type: "raster",
+        source: srcId,
+        paint: { "raster-opacity": opacity, "raster-fade-duration": 0 },
+      },
+      labelsAnchor
+    );
+  }
+}
+
 const SAT_SOURCE = "sat-img";
 const SAT_LAYER = "sat-img-layer";
 
 function satOverlayRemove() {
-  if (!map || !map.getLayer) return;
-  if (map.getLayer(SAT_LAYER)) map.removeLayer(SAT_LAYER);
-  if (map.getSource(SAT_SOURCE)) map.removeSource(SAT_SOURCE);
+  imageLayerRemove(SAT_SOURCE, SAT_LAYER);
 }
 
 function satOverlaySet(url) {
-  const b = goesData.bbox;
-  const coords = [
-    [b.west, b.north],
-    [b.east, b.north],
-    [b.east, b.south],
-    [b.west, b.south],
-  ];
-  const src2 = map.getSource && map.getSource(SAT_SOURCE);
-  if (src2 && src2.updateImage) {
-    src2.updateImage({ url, coordinates: coords });
-  } else {
-    map.addSource(SAT_SOURCE, { type: "image", url, coordinates: coords });
-    map.addLayer(
-      {
-        id: SAT_LAYER,
-        type: "raster",
-        source: SAT_SOURCE,
-        paint: { "raster-opacity": 0.88, "raster-fade-duration": 0 },
-      },
-      labelsAnchor
-    );
+  imageLayerSet(SAT_SOURCE, SAT_LAYER, url, goesData.bbox, 0.88);
+}
+
+/* radar propio: lluvia satelital debajo + MRMS real encima */
+function radarOwnRemove() {
+  imageLayerRemove("rain-img", "rain-img-layer");
+  imageLayerRemove("mrms-conus", "mrms-conus-layer");
+  imageLayerRemove("mrms-carib", "mrms-carib-layer");
+}
+
+function mrmsNearest(time) {
+  if (!radarOwn || !radarOwn.mrms) return null;
+  let best = null;
+  let bd = Infinity;
+  for (const f of radarOwn.mrms.frames) {
+    const d = Math.abs(f.time - time);
+    if (d < bd) {
+      bd = d;
+      best = f;
+    }
+  }
+  return bd <= 1800 ? best : null; /* hasta 30 min de desfase */
+}
+
+function radarOwnShow(frame) {
+  imageLayerSet("rain-img", "rain-img-layer", frame.url, radarOwn.rain.bbox, 0.7);
+  const m = mrmsNearest(frame.time);
+  for (const dom of ["conus", "carib"]) {
+    const url = m && m.files[dom];
+    const bbox = radarOwn.mrms && radarOwn.mrms.bboxes[dom];
+    if (url && bbox)
+      imageLayerSet(`mrms-${dom}`, `mrms-${dom}-layer`, url, bbox, 0.85);
+    else imageLayerRemove(`mrms-${dom}`, `mrms-${dom}-layer`);
   }
 }
 
