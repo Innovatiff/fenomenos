@@ -1611,7 +1611,7 @@ function satOverlayRemove() {
 function satShow(frame) {
   if (worldSat) {
     const w = nearestFrame(worldSat.ir, frame.time);
-    if (w) imageLayerSet("world-ir", "world-ir-layer", w.url, worldSat.bbox, 0.8);
+    if (w) imageLayerSet("world-ir", "world-ir-layer", w.url, worldSat.bbox, 0.88);
   }
   if (goesData) imageLayerSet(SAT_SOURCE, SAT_LAYER, frame.url, goesData.bbox, 0.88);
 }
@@ -1641,7 +1641,7 @@ function mrmsNearest(time) {
 function radarOwnShow(frame) {
   if (worldSat && worldSat.rain.length) {
     const w = nearestFrame(worldSat.rain, frame.time);
-    if (w) imageLayerSet("world-rain", "world-rain-layer", w.url, worldSat.bbox, 0.6);
+    if (w) imageLayerSet("world-rain", "world-rain-layer", w.url, worldSat.bbox, 0.7);
   }
   imageLayerSet("rain-img", "rain-img-layer", frame.url, radarOwn.rain.bbox, 0.7);
   const m = mrmsNearest(frame.time);
