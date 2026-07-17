@@ -49,6 +49,7 @@ const DEFAULT_SETTINGS = {
   tempUnit: "celsius",
   windUnit: "kmh",
   layer: "radar",
+  fronts: true,
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -71,6 +72,7 @@ function normalizeSettings(data) {
     if (data.tempUnit === "fahrenheit") out.tempUnit = "fahrenheit";
     if (data.windUnit === "mph") out.windUnit = "mph";
     if (["radar", "satellite", "none"].includes(data.layer)) out.layer = data.layer;
+    if (data.fronts === false) out.fronts = false;
   }
   return out;
 }
@@ -717,6 +719,24 @@ async function loadWorldSat() {
   } catch (_) {}
 }
 
+/* Frentes y centros de presión del análisis de superficie de NOAA/WPC
+   (el mismo que trazan sus meteorólogos cada 3 horas), ya convertidos a
+   JSON por el robot. Se dibujan nativos: líneas por tipo + triángulos y
+   semicírculos + letras H/L con su presión. */
+let frontsData = null; /* {valid, highs[], lows[], fronts[]} */
+
+async function loadFronts() {
+  try {
+    const res = await fetch(`${DATA_REPO}/fronts/meta.json`, { cache: "no-cache" });
+    if (!res.ok) return;
+    const m = await res.json();
+    if (!m || !Array.isArray(m.fronts)) return (frontsData = null);
+    /* el análisis sale cada 3 h; con más de 9 h se considera caído */
+    if (Date.now() / 1000 - (m.updated || 0) > 9 * 3600) return (frontsData = null);
+    frontsData = m;
+  } catch (_) {}
+}
+
 function nearestFrame(frames, time) {
   if (!frames || !frames.length) return null;
   let best = null;
@@ -746,7 +766,8 @@ async function refreshOwnData() {
   try {
     const hadRadar = !!radarOwn;
     const hadSat = !!(goesData || worldSat);
-    await Promise.all([loadGoes(), loadOwnRadar(), loadWorldSat()]);
+    await Promise.all([loadGoes(), loadOwnRadar(), loadWorldSat(), loadFronts()]);
+    frontsApply();
     if (ownFrameFailed.size > 400) ownFrameFailed.clear();
     if (radarMode === "own") {
       if (radarOwn) {
@@ -810,6 +831,7 @@ function glZoom(z) {
 }
 
 let labelsAnchor; /* primera capa de rótulos del estilo base */
+let weatherAnchor; /* capa base de los frentes: el tiempo se pinta debajo */
 
 async function initMap() {
   const gl = await waitForMapLib();
@@ -856,6 +878,8 @@ async function initMap() {
   const styleLayers = (map.getStyle() && map.getStyle().layers) || [];
   const sym = styleLayers.find((l) => l.type === "symbol");
   labelsAnchor = sym ? sym.id : undefined;
+  weatherAnchor = labelsAnchor;
+  frontsInitLayers();
 
   $("map-credit").hidden = false;
 
@@ -907,8 +931,15 @@ async function initMap() {
     if (euro.on) windEnsure();
   });
 
-  await Promise.all([loadRainViewer(), loadGoes(), loadOwnRadar(), loadWorldSat()]);
+  await Promise.all([
+    loadRainViewer(),
+    loadGoes(),
+    loadOwnRadar(),
+    loadWorldSat(),
+    loadFronts(),
+  ]);
   setLayer(settings.layer, { silent: true });
+  frontsApply();
 
   /* con la pestaña abierta mucho rato, las metas caducan: refresco cada
      5 min para que la animación siga siempre al día */
@@ -940,8 +971,280 @@ function weatherTilesSet(url, opacity) {
       source: WX_SOURCE,
       paint: { "raster-opacity": opacity, "raster-fade-duration": 150 },
     },
-    labelsAnchor
+    weatherAnchor
   );
+}
+
+/* ── 4a-bis. FRENTES DEL ANÁLISIS DE SUPERFICIE (NOAA WPC) ─────────────
+   Capas creadas una sola vez (vacías) justo debajo de los rótulos; las
+   capas de tiempo (radar, satélite, modelos) se insertan DEBAJO de ellas
+   para que los frentes siempre se lean encima. */
+const FRONT_COLD = "#5aa2ff";
+const FRONT_WARM = "#ff5a5a";
+const FRONT_OCC = "#c07ae8";
+const FRONT_TROF = "#ffb020";
+
+function frontPipImages() {
+  if (!map.addImage || typeof document === "undefined") return;
+  const mk = (w, h, draw) => {
+    const c = document.createElement("canvas");
+    c.width = w * 2;
+    c.height = h * 2;
+    const g = c.getContext("2d");
+    g.scale(2, 2);
+    draw(g);
+    return { width: w * 2, height: h * 2, data: g.getImageData(0, 0, w * 2, h * 2).data };
+  };
+  const tri = (g, x, y, up, color) => {
+    g.fillStyle = color;
+    g.beginPath();
+    g.moveTo(x - 7, y);
+    g.lineTo(x + 7, y);
+    g.lineTo(x, up ? y - 9 : y + 9);
+    g.closePath();
+    g.fill();
+  };
+  const semi = (g, x, y, up, color) => {
+    g.fillStyle = color;
+    g.beginPath();
+    g.arc(x, y, 7, up ? Math.PI : 0, up ? 0 : Math.PI);
+    g.closePath();
+    g.fill();
+  };
+  const imgs = {
+    "pip-cold": mk(16, 12, (g) => tri(g, 8, 11, true, FRONT_COLD)),
+    "pip-warm": mk(16, 12, (g) => semi(g, 8, 11, true, FRONT_WARM)),
+    "pip-ocfnt": mk(34, 12, (g) => {
+      tri(g, 8, 11, true, FRONT_OCC);
+      semi(g, 26, 11, true, FRONT_OCC);
+    }),
+    /* estacionario: triángulo azul a un lado, semicírculo rojo al otro */
+    "pip-stnry": mk(34, 22, (g) => {
+      tri(g, 8, 11, true, FRONT_COLD);
+      semi(g, 26, 11, false, FRONT_WARM);
+    }),
+  };
+  for (const [id, img] of Object.entries(imgs)) {
+    try {
+      if (!map.hasImage || !map.hasImage(id)) map.addImage(id, img, { pixelRatio: 2 });
+    } catch (_) {}
+  }
+}
+
+function frontsInitLayers() {
+  if (!map.addSource) return;
+  try {
+    const empty = { type: "FeatureCollection", features: [] };
+    map.addSource("fronts", { type: "geojson", data: empty });
+    map.addSource("front-centers", { type: "geojson", data: empty });
+    frontPipImages();
+
+    const vis = settings.fronts === false ? "none" : "visible";
+    const addL = (def) => {
+      def.layout = Object.assign({ visibility: vis }, def.layout || {});
+      map.addLayer(def, labelsAnchor);
+    };
+
+    /* líneas (la primera capa es también el ancla de las capas de tiempo) */
+    addL({
+      id: "front-lines",
+      type: "line",
+      source: "fronts",
+      filter: ["in", ["get", "type"], ["literal", ["cold", "warm", "ocfnt"]]],
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-width": 2.6,
+        "line-color": [
+          "match",
+          ["get", "type"],
+          "cold",
+          FRONT_COLD,
+          "warm",
+          FRONT_WARM,
+          FRONT_OCC,
+        ],
+      },
+    });
+    /* estacionario: base roja continua + trazos azules encima = alternado */
+    addL({
+      id: "front-stnry-base",
+      type: "line",
+      source: "fronts",
+      filter: ["==", ["get", "type"], "stnry"],
+      paint: { "line-width": 2.6, "line-color": FRONT_WARM },
+    });
+    addL({
+      id: "front-stnry-dash",
+      type: "line",
+      source: "fronts",
+      filter: ["==", ["get", "type"], "stnry"],
+      paint: {
+        "line-width": 2.6,
+        "line-color": FRONT_COLD,
+        "line-dasharray": [2.2, 2.2],
+      },
+    });
+    addL({
+      id: "front-trof",
+      type: "line",
+      source: "fronts",
+      filter: ["==", ["get", "type"], "trof"],
+      layout: { "line-cap": "round" },
+      paint: {
+        "line-width": 2.2,
+        "line-color": FRONT_TROF,
+        "line-dasharray": [2.6, 2.2],
+      },
+    });
+
+    /* pips a lo largo de la línea, girando con ella */
+    for (const t of ["cold", "warm", "ocfnt", "stnry"]) {
+      addL({
+        id: `front-pips-${t}`,
+        type: "symbol",
+        source: "fronts",
+        filter: ["==", ["get", "type"], t],
+        layout: {
+          "symbol-placement": "line",
+          "symbol-spacing": t === "cold" || t === "warm" ? 64 : 92,
+          "icon-image": `pip-${t}`,
+          "icon-size": 0.9,
+          "icon-rotation-alignment": "map",
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+          "icon-offset": [0, t === "stnry" ? 0 : -7],
+        },
+      });
+    }
+
+    /* centros de presión: H azul / L roja + presión debajo. La fuente se
+       toma del propio estilo base para no pedir glifos inexistentes */
+    let font = ["Noto Sans Regular"];
+    try {
+      const ls = (map.getStyle() && map.getStyle().layers) || [];
+      const s = ls.find(
+        (l) =>
+          l.type === "symbol" &&
+          l.layout &&
+          Array.isArray(l.layout["text-font"]) &&
+          l.layout["text-font"].length
+      );
+      if (s) font = s.layout["text-font"];
+    } catch (_) {}
+    addL({
+      id: "front-hl",
+      type: "symbol",
+      source: "front-centers",
+      layout: {
+        "text-field": ["get", "kind"],
+        "text-size": 24,
+        "text-font": font,
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": ["match", ["get", "kind"], "H", FRONT_COLD, FRONT_WARM],
+        "text-halo-color": "#0b1017",
+        "text-halo-width": 1.6,
+      },
+    });
+    addL({
+      id: "front-hl-p",
+      type: "symbol",
+      source: "front-centers",
+      filter: ["has", "p"],
+      layout: {
+        "text-field": ["to-string", ["get", "p"]],
+        "text-size": 10.5,
+        "text-font": font,
+        "text-offset": [0, 1.7],
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": "#c8d2e0",
+        "text-halo-color": "#0b1017",
+        "text-halo-width": 1.2,
+      },
+    });
+
+    weatherAnchor = "front-lines";
+  } catch (_) {
+    weatherAnchor = labelsAnchor;
+  }
+}
+
+/* suavizado de Chaikin: el boletín trae vértices cada ~1° y las rectas se
+   ven angulosas; dos pasadas dan la curva suave del análisis dibujado */
+function chaikin(points, iterations) {
+  let pts = points;
+  for (let it = 0; it < iterations; it++) {
+    if (pts.length < 3) break;
+    const out = [pts[0]];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [ax, ay] = pts[i];
+      const [bx, by] = pts[i + 1];
+      out.push([ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25]);
+      out.push([ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75]);
+    }
+    out.push(pts[pts.length - 1]);
+    pts = out;
+  }
+  return pts;
+}
+
+function frontsApply() {
+  if (!map || !map.getSource) return;
+  const src = map.getSource("fronts");
+  const ctr = map.getSource("front-centers");
+  if (!src || !src.setData || !ctr || !ctr.setData) return;
+  if (!frontsData) {
+    const empty = { type: "FeatureCollection", features: [] };
+    src.setData(empty);
+    ctr.setData(empty);
+    return;
+  }
+  src.setData({
+    type: "FeatureCollection",
+    features: frontsData.fronts.map((f) => ({
+      type: "Feature",
+      properties: { type: f.type },
+      geometry: { type: "LineString", coordinates: chaikin(f.points, 2) },
+    })),
+  });
+  const center = (kind) => (c) => ({
+    type: "Feature",
+    properties: c.p ? { kind, p: c.p } : { kind },
+    geometry: { type: "Point", coordinates: [c.lon, c.lat] },
+  });
+  ctr.setData({
+    type: "FeatureCollection",
+    features: [
+      ...(frontsData.highs || []).map(center("H")),
+      ...(frontsData.lows || []).map(center("L")),
+    ],
+  });
+}
+
+const FRONT_LAYER_IDS = [
+  "front-lines",
+  "front-stnry-base",
+  "front-stnry-dash",
+  "front-trof",
+  "front-pips-cold",
+  "front-pips-warm",
+  "front-pips-ocfnt",
+  "front-pips-stnry",
+  "front-hl",
+  "front-hl-p",
+];
+
+function frontsSetVisible(on) {
+  if (!map || !map.setLayoutProperty) return;
+  for (const id of FRONT_LAYER_IDS) {
+    try {
+      if (map.getLayer(id))
+        map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+    } catch (_) {}
+  }
 }
 
 function onMapClick(e) {
@@ -1681,7 +1984,7 @@ function imageLayerSet(srcId, layerId, url, bbox, opacity) {
         source: srcId,
         paint: { "raster-opacity": opacity, "raster-fade-duration": 0 },
       },
-      labelsAnchor
+      weatherAnchor
     );
   }
 }
@@ -1771,7 +2074,7 @@ function euroOverlaySet(url, west, south, east, north) {
         source: EURO_SOURCE,
         paint: { "raster-opacity": 0.72, "raster-fade-duration": 0 },
       },
-      labelsAnchor
+      weatherAnchor
     );
   }
   euro.overlay = true;
@@ -2555,6 +2858,7 @@ function openSettings() {
   setSegValue("set-temp", settings.tempUnit);
   setSegValue("set-wind", settings.windUnit);
   setSegValue("set-layer", settings.layer);
+  setSegValue("set-fronts", settings.fronts === false ? "off" : "on");
   $("settings-modal").classList.add("is-open");
 }
 
@@ -2562,7 +2866,7 @@ function closeSettings() {
   $("settings-modal").classList.remove("is-open");
 }
 
-["set-temp", "set-wind", "set-layer"].forEach((id) => {
+["set-temp", "set-wind", "set-layer", "set-fronts"].forEach((id) => {
   document.querySelectorAll(`#${id} .seg__btn`).forEach((btn) => {
     btn.addEventListener("click", () => setSegValue(id, btn.dataset.value));
   });
@@ -2584,9 +2888,11 @@ $("settings-save").addEventListener("click", async () => {
     tempUnit: segValue("set-temp"),
     windUnit: segValue("set-wind"),
     layer: segValue("set-layer"),
+    fronts: segValue("set-fronts") !== "off",
   });
   persistLocalSettings();
   saveRemoteSettings(auth.currentUser);
+  frontsSetVisible(settings.fronts !== false);
   closeSettings();
   toast("Ajustes guardados.");
 
