@@ -521,6 +521,23 @@ async function refreshRisks(data, lat, lon, signal) {
     computeStormRisk(data, start, end),
   ];
 
+  /* coherencia entre medidores: con ambiente de tormenta alto, la lluvia
+     convectiva puntual supera por mucho el acumulado del modelo (que puede
+     dar ~0 mm). El medidor de lluvia nunca contradice al de tormentas. */
+  const rainR = risks[1];
+  const stormR = risks[2];
+  if (rainR && stormR) {
+    const floor = stormR.level >= 3 ? 2 : stormR.level >= 2 ? 1 : 0;
+    if (floor > rainR.level) {
+      rainR.level = floor;
+      rainR.detail =
+        rainR.mm >= 2
+          ? `Hasta ${Math.round(rainR.mm)} mm en 6 h · aguaceros de tormenta localmente mucho mayores`
+          : "Aguaceros de tormenta posibles aunque el acumulado del modelo sea bajo";
+      if (stormR.when) rainR.when = stormR.when;
+    }
+  }
+
   /* la calidad del aire llega de otro servicio: que no bloquee el resto */
   let air = null;
   try {
@@ -614,8 +631,8 @@ async function loadGoes() {
     const res = await fetch(`${DATA_REPO}/goes/meta.json`, { cache: "no-cache" });
     if (!res.ok) return;
     const m = await res.json();
-    if (!m || !m.bbox || !m.frames || !m.frames.length) return;
-    if (Date.now() / 1000 - (m.updated || 0) > 2 * 3600) return; /* viejo */
+    if (!m || !m.bbox || !m.frames || !m.frames.length) return (goesData = null);
+    if (Date.now() / 1000 - (m.updated || 0) > 2 * 3600) return (goesData = null);
     goesData = {
       bbox: m.bbox,
       frames: m.frames.map((f) => ({
@@ -642,8 +659,8 @@ async function loadOwnRadar() {
     const res = await fetch(`${DATA_REPO}/rain/meta.json`, { cache: "no-cache" });
     if (!res.ok) return;
     const m = await res.json();
-    if (!m || !m.bbox || !m.frames || !m.frames.length) return;
-    if (Date.now() / 1000 - (m.updated || 0) > 2 * 3600) return;
+    if (!m || !m.bbox || !m.frames || !m.frames.length) return (radarOwn = null);
+    if (Date.now() / 1000 - (m.updated || 0) > 2 * 3600) return (radarOwn = null);
     radarOwn = {
       rain: {
         bbox: m.bbox,
@@ -687,8 +704,8 @@ async function loadWorldSat() {
     const res = await fetch(`${DATA_REPO}/world/meta.json`, { cache: "no-cache" });
     if (!res.ok) return;
     const m = await res.json();
-    if (!m || !m.bbox || !m.ir || !m.ir.length) return;
-    if (Date.now() / 1000 - (m.updated || 0) > 3 * 3600) return;
+    if (!m || !m.bbox || !m.ir || !m.ir.length) return (worldSat = null);
+    if (Date.now() / 1000 - (m.updated || 0) > 3 * 3600) return (worldSat = null);
     const toFrames = (list) =>
       (list || []).map((f) => ({ time: f.time, url: `${DATA_REPO}/world/${f.file}` }));
     worldSat = { bbox: m.bbox, ir: toFrames(m.ir), rain: toFrames(m.rain) };
@@ -705,6 +722,7 @@ function nearestFrame(frames, time) {
   let best = null;
   let bd = Infinity;
   for (const f of frames) {
+    if (ownFrameFailed.has(f.url)) continue;
     const d = Math.abs(f.time - time);
     if (d < bd) {
       bd = d;
@@ -712,6 +730,42 @@ function nearestFrame(frames, time) {
     }
   }
   return best;
+}
+
+/* fotogramas propios que dieron 404 (podados por el robot): no se vuelven
+   a pedir; el refresco de metas los saca de la lista en poco tiempo */
+const ownFrameFailed = new Set();
+let ownMetaRetryAt = 0;
+
+/* Re-lee las metas del repo de datos y reengancha la capa activa a la
+   lista nueva de fotogramas sin cortar la animación. */
+let ownRefreshBusy = false;
+async function refreshOwnData() {
+  if (ownRefreshBusy) return;
+  ownRefreshBusy = true;
+  try {
+    const hadRadar = !!radarOwn;
+    const hadSat = !!(goesData || worldSat);
+    await Promise.all([loadGoes(), loadOwnRadar(), loadWorldSat()]);
+    if (ownFrameFailed.size > 400) ownFrameFailed.clear();
+    if (radarMode === "own") {
+      if (radarOwn) {
+        frames = radarOwn.rain.frames;
+        if (frameIndex >= frames.length) frameIndex = frames.length - 1;
+      } else if (hadRadar) {
+        setLayer(settings.layer, { silent: true }); /* pasa al respaldo */
+      }
+    } else if (satMode === "goes") {
+      if (goesData || worldSat) {
+        frames = goesData ? goesData.frames : worldSat.ir;
+        if (frameIndex >= frames.length) frameIndex = frames.length - 1;
+      } else if (hadSat) {
+        setLayer(settings.layer, { silent: true });
+      }
+    }
+  } finally {
+    ownRefreshBusy = false;
+  }
 }
 
 /* RainViewer */
@@ -805,6 +859,34 @@ async function initMap() {
 
   $("map-credit").hidden = false;
 
+  /* algunos estilos de respaldo referencian iconos de sprite que no
+     existen (p. ej. "circle-11"): se responde con un pixel transparente
+     para que la consola no se llene de avisos */
+  map.on("styleimagemissing", (e) => {
+    try {
+      if (map.hasImage && map.hasImage(e.id)) return;
+      map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) });
+    } catch (_) {}
+  });
+
+  /* el robot re-publica cada 10 min y borra fotogramas viejos: si un
+     fotograma da 404 se marca para no volver a pedirlo y se re-leen las
+     metas (con freno) para engancharse a la lista nueva */
+  map.on("error", (e) => {
+    const err = e && e.error;
+    const url =
+      (err && err.url) ||
+      ((err && err.message && err.message.match(/https?:\/\/\S+/)) || [])[0] ||
+      "";
+    if (!url.includes("fenomenos-datos")) return;
+    ownFrameFailed.add(url);
+    const now = Date.now();
+    if (now > ownMetaRetryAt) {
+      ownMetaRetryAt = now + 60 * 1000;
+      refreshOwnData();
+    }
+  });
+
   map.on("click", onMapClick);
   map.on("moveend", () => {
     if (euro.on) euroRefreshSoon();
@@ -827,6 +909,10 @@ async function initMap() {
 
   await Promise.all([loadRainViewer(), loadGoes(), loadOwnRadar(), loadWorldSat()]);
   setLayer(settings.layer, { silent: true });
+
+  /* con la pestaña abierta mucho rato, las metas caducan: refresco cada
+     5 min para que la animación siga siempre al día */
+  setInterval(refreshOwnData, 5 * 60 * 1000);
 }
 
 /* ── capas ráster del tiempo (radar/satélite) sobre el estilo ── */
@@ -1575,6 +1661,7 @@ function imageLayerRemove(srcId, layerId) {
 }
 
 function imageLayerSet(srcId, layerId, url, bbox, opacity) {
+  if (ownFrameFailed.has(url)) return; /* podado por el robot: no insistir */
   const coords = [
     [bbox.west, bbox.north],
     [bbox.east, bbox.north],
