@@ -81,11 +81,12 @@ de Firebase). Una vez dentro, `app.html` ofrece:
 
 - **Mapa interactivo** (MapLibre GL + estilo vectorial oscuro) centrado en
   el país elegido; al tocar cualquier punto se carga su pronóstico.
-- **Satélite GOES-19 propio** (NOAA vía AWS, procesado por el robot del
-  repo público `fenomenos-datos`): infrarrojo canal 13 reproyectado a la
-  región, **cielo despejado transparente**, animación de ~2 horas cada
-  10 min. Si el robot no ha corrido o los datos están viejos, la app cae
-  sola al satélite de RainViewer.
+- **Satélite propio en dos niveles**: el **mosaico mundial GMGSI** de
+  NOAA (todos los geoestacionarios: GOES-E/O, Himawari, Meteosat; cada
+  hora, planeta entero) como base, y encima el **GOES-19 regional** a
+  2400 px cada 10 min con cielo transparente. La lluvia estimada también
+  tiene versión mundial bajo la regional. Respaldo automático a
+  RainViewer si el robot no ha publicado.
 - **Radar híbrido propio**: reflectividad real **MRMS de NOAA (~1 km)**
   donde existen radares (Puerto Rico, EE. UU. y Golfo) montada sobre la
   **lluvia estimada por satélite GOES** que cubre el 100 % de la región

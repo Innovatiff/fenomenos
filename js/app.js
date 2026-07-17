@@ -679,6 +679,41 @@ async function loadOwnRadar() {
   } catch (_) {}
 }
 
+/* Mosaico mundial GMGSI (horario): capa planetaria bajo las regionales */
+let worldSat = null; /* {bbox, ir:[{time,url}], rain:[{time,url}]} */
+
+async function loadWorldSat() {
+  try {
+    const res = await fetch(`${DATA_REPO}/world/meta.json`, { cache: "no-cache" });
+    if (!res.ok) return;
+    const m = await res.json();
+    if (!m || !m.bbox || !m.ir || !m.ir.length) return;
+    if (Date.now() / 1000 - (m.updated || 0) > 3 * 3600) return;
+    const toFrames = (list) =>
+      (list || []).map((f) => ({ time: f.time, url: `${DATA_REPO}/world/${f.file}` }));
+    worldSat = { bbox: m.bbox, ir: toFrames(m.ir), rain: toFrames(m.rain) };
+    const last = worldSat.ir[worldSat.ir.length - 1];
+    if (last) {
+      const img = new Image();
+      img.src = last.url;
+    }
+  } catch (_) {}
+}
+
+function nearestFrame(frames, time) {
+  if (!frames || !frames.length) return null;
+  let best = null;
+  let bd = Infinity;
+  for (const f of frames) {
+    const d = Math.abs(f.time - time);
+    if (d < bd) {
+      bd = d;
+      best = f;
+    }
+  }
+  return best;
+}
+
 /* RainViewer */
 let rvData = null;
 let frames = [];
@@ -777,7 +812,7 @@ async function initMap() {
     if (euro.on) windEnsure();
   });
 
-  await Promise.all([loadRainViewer(), loadGoes(), loadOwnRadar()]);
+  await Promise.all([loadRainViewer(), loadGoes(), loadOwnRadar(), loadWorldSat()]);
   setLayer(settings.layer, { silent: true });
 }
 
@@ -917,13 +952,17 @@ function setLayer(kind, { silent = false } = {}) {
 
   /* satélite: GOES-19 propio (transparente, más detalle); si no hay
      datos frescos del robot, RainViewer como respaldo */
-  if (kind === "satellite" && goesData) {
+  if (kind === "satellite" && (goesData || worldSat)) {
     satMode = "goes";
-    frames = goesData.frames;
+    frames = goesData ? goesData.frames : worldSat.ir;
     frameIndex = frames.length - 1;
-    satOverlaySet(frames[frameIndex].url);
+    satShow(frames[frameIndex]);
     weatherLayer = true;
-    $("frame-kind").textContent = "Satélite · GOES-19";
+    $("frame-kind").textContent = goesData
+      ? worldSat
+        ? "Satélite · GOES-19 + mundial"
+        : "Satélite · GOES-19"
+      : "Satélite · mundial";
     paintFrameLabel();
     $("playbar").classList.add("is-visible");
     if (frames.length > 1) startPlayback();
@@ -978,7 +1017,7 @@ function stepFrame() {
   if (radarMode === "own") {
     radarOwnShow(frames[frameIndex]);
   } else if (satMode === "goes") {
-    satOverlaySet(frames[frameIndex].url);
+    satShow(frames[frameIndex]);
   } else {
     const src2 = map.getSource(WX_SOURCE);
     if (src2 && src2.setTiles)
@@ -1551,15 +1590,22 @@ const SAT_SOURCE = "sat-img";
 const SAT_LAYER = "sat-img-layer";
 
 function satOverlayRemove() {
+  imageLayerRemove("world-ir", "world-ir-layer");
   imageLayerRemove(SAT_SOURCE, SAT_LAYER);
 }
 
-function satOverlaySet(url) {
-  imageLayerSet(SAT_SOURCE, SAT_LAYER, url, goesData.bbox, 0.88);
+/* mundo (horario) primero para que quede DEBAJO de la región (10 min) */
+function satShow(frame) {
+  if (worldSat) {
+    const w = nearestFrame(worldSat.ir, frame.time);
+    if (w) imageLayerSet("world-ir", "world-ir-layer", w.url, worldSat.bbox, 0.8);
+  }
+  if (goesData) imageLayerSet(SAT_SOURCE, SAT_LAYER, frame.url, goesData.bbox, 0.88);
 }
 
 /* radar propio: lluvia satelital debajo + MRMS real encima */
 function radarOwnRemove() {
+  imageLayerRemove("world-rain", "world-rain-layer");
   imageLayerRemove("rain-img", "rain-img-layer");
   imageLayerRemove("mrms-conus", "mrms-conus-layer");
   imageLayerRemove("mrms-carib", "mrms-carib-layer");
@@ -1580,6 +1626,10 @@ function mrmsNearest(time) {
 }
 
 function radarOwnShow(frame) {
+  if (worldSat && worldSat.rain.length) {
+    const w = nearestFrame(worldSat.rain, frame.time);
+    if (w) imageLayerSet("world-rain", "world-rain-layer", w.url, worldSat.bbox, 0.6);
+  }
   imageLayerSet("rain-img", "rain-img-layer", frame.url, radarOwn.rain.bbox, 0.7);
   const m = mrmsNearest(frame.time);
   for (const dom of ["conus", "carib"]) {
