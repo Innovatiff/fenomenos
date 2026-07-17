@@ -2459,3 +2459,89 @@
   outline: 0.2rem solid #7aa2ff;
   outline-offset: 0.2rem;
 }
+
+/* ═════════════ PULIDO MÓVIL COMPLETO (sin tocar el mapa) ═════════════ */
+
+@media (max-width: 63.99em) {
+  /* barra superior: respeta el notch y respira como app */
+  .app__topbar {
+    padding-top: calc(1rem + env(safe-area-inset-top));
+    gap: 1rem;
+  }
+  .app__iconbtn,
+  .app__search-box {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* el modal de configuración sube desde abajo como hoja nativa */
+  .amodal {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .amodal__card {
+    width: 100%;
+    max-height: 92dvh;
+    padding: 2rem var(--gutter) calc(3rem + env(safe-area-inset-bottom));
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 2rem 2rem 0 0;
+    animation: amodalUp 0.34s cubic-bezier(0.22, 0.9, 0.28, 1);
+  }
+
+  /* horas con imán al deslizar y sin barra de scroll */
+  .hours {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 0.9rem;
+  }
+  .hours::-webkit-scrollbar {
+    display: none;
+  }
+  .hour {
+    scroll-snap-align: start;
+    min-width: 7rem;
+    padding: 1.2rem 0.8rem;
+    border-radius: 1.1rem;
+  }
+
+  /* filas de días más táctiles */
+  .day {
+    padding: 1.3rem 0.4rem;
+  }
+
+  /* respuesta táctil en todos los controles */
+  .seg__btn,
+  .app__iconbtn,
+  .map-play,
+  .euro-time__btn,
+  .amodal__close,
+  .amodal__save {
+    transition: transform 0.12s;
+  }
+  .seg__btn:active,
+  .app__iconbtn:active,
+  .map-play:active,
+  .euro-time__btn:active,
+  .amodal__close:active,
+  .amodal__save:active {
+    transform: scale(0.93);
+  }
+
+  /* los avisos flotan por encima de la hoja, no debajo */
+  .toasts {
+    bottom: calc(11.6rem + env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes amodalUp {
+  from {
+    transform: translateY(14%);
+    opacity: 0.5;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

@@ -3087,9 +3087,20 @@ document.querySelectorAll("#modal-layer [data-value]").forEach((btn) => {
     settingsSync();
   });
 });
+/* elegir cualquier modelo/variable/modo ENCIENDE la capa de modelos al
+   momento: lo que tocas es lo que ves en el mapa */
+function ensureEuroLayer() {
+  const active = document.querySelector("#layer-seg .seg__btn.is-active");
+  if (!active || active.dataset.layer !== "euro") {
+    const src = document.querySelector('#layer-seg [data-layer="euro"]');
+    if (src) src.click();
+  }
+}
+
 for (const id of ["euro-model", "euro-var", "euro-mode"]) {
   document.querySelectorAll(`#modal-${id} [data-value]`).forEach((btn) => {
     btn.addEventListener("click", () => {
+      ensureEuroLayer();
       const src = document.querySelector(`#${id} [data-value="${btn.dataset.value}"]`);
       if (src) src.click();
       settingsSync();
