@@ -79,8 +79,8 @@ El botón **«Lanzar app»** del header lleva a `acceso.html`, donde se puede
 **iniciar sesión, crear una cuenta o entrar como invitado** (sesión anónima
 de Firebase). Una vez dentro, `app.html` ofrece:
 
-- **Mapa interactivo** (Leaflet + mapa base oscuro de CARTO) centrado en el
-  país elegido; al tocar cualquier punto se carga su pronóstico.
+- **Mapa interactivo** (MapLibre GL + estilo vectorial oscuro) centrado en
+  el país elegido; al tocar cualquier punto se carga su pronóstico.
 - **Radar y satélite en vivo** (RainViewer) con animación reproducible
   (fotogramas pasados + pronóstico inmediato del radar).
 - **Capa «Modelo» — tres centros mundiales**, enfocada en tiempo severo,
