@@ -323,57 +323,105 @@
 
         <!-- ── Pestaña: Capas (aplica al instante) ── -->
         <div class="amodal__tab" id="stab-capas" hidden>
-          <div class="field">
-            <span class="field__label">Capa activa del mapa</span>
-            <div class="seg seg--wrap" id="modal-layer">
-              <button class="seg__btn" data-value="radar"><ion-icon name="rainy-outline"></ion-icon> Radar</button>
-              <button class="seg__btn" data-value="satellite"><ion-icon name="globe-outline"></ion-icon> Satélite</button>
-              <button class="seg__btn" data-value="euro"><ion-icon name="stats-chart-outline"></ion-icon> Modelo</button>
-              <button class="seg__btn" data-value="none"><ion-icon name="map-outline"></ion-icon> Sin capa</button>
-            </div>
+          <span class="field__label">Capa activa del mapa</span>
+          <div class="lgrid" id="modal-layer">
+            <button class="lcard" data-value="radar" type="button">
+              <span class="lcard__icon"><ion-icon name="rainy-outline"></ion-icon></span>
+              <span class="lcard__text">
+                <strong>Radar</strong>
+                <small>Precipitación en vivo: radar MRMS de 1 km + lluvia estimada por satélite en toda la región</small>
+              </span>
+            </button>
+            <button class="lcard" data-value="satellite" type="button">
+              <span class="lcard__icon"><ion-icon name="globe-outline"></ion-icon></span>
+              <span class="lcard__text">
+                <strong>Satélite</strong>
+                <small>Nubes en infrarrojo: GOES-19 cada 10 minutos + mosaico mundial horario</small>
+              </span>
+            </button>
           </div>
           <p class="amodal__hint">
-            El cambio se aplica al instante. Radar: MRMS + lluvia por satélite ·
-            Satélite: GOES-19 + mosaico mundial · Modelo: campos de pronóstico.
+            El cambio se aplica al instante. La capa de
+            <strong>modelos de pronóstico</strong> se enciende en la pestaña
+            Modelos.
           </p>
         </div>
 
         <!-- ── Pestaña: Modelos (aplica al instante) ── -->
         <div class="amodal__tab" id="stab-modelos" hidden>
-          <div class="field">
-            <span class="field__label">Centro de modelos</span>
-            <div class="seg seg--wrap" id="modal-euro-model">
-              <button class="seg__btn" data-value="ecmwf">ECMWF</button>
-              <button class="seg__btn" data-value="noaa">NOAA</button>
-              <button class="seg__btn" data-value="gem">GEM</button>
-              <button class="seg__btn" data-value="aifs">AIFS (IA)</button>
-            </div>
+          <label class="mswitch">
+            <span class="mswitch__text">
+              <strong>Capa de modelos en el mapa</strong>
+              <small>Pronóstico de tiempo severo a 4 días</small>
+            </span>
+            <input type="checkbox" id="modal-euro-on" />
+            <span class="euro-switch__track" aria-hidden="true"></span>
+          </label>
+
+          <span class="field__label">Centro de modelos</span>
+          <div class="mgrid" id="modal-euro-model">
+            <button class="mcard" data-value="ecmwf" type="button">
+              <strong>ECMWF</strong>
+              <small>Europa · IFS 0.25° · el estándar mundial, con 51 escenarios</small>
+            </button>
+            <button class="mcard" data-value="noaa" type="button">
+              <strong>NOAA</strong>
+              <small>EE. UU. · GFS 0.25° · con 31 escenarios del GEFS</small>
+            </button>
+            <button class="mcard" data-value="gem" type="button">
+              <strong>GEM</strong>
+              <small>Canadá · GDPS 15 km · con 21 escenarios del GEPS</small>
+            </button>
+            <button class="mcard" data-value="aifs" type="button">
+              <strong>AIFS <span class="mcard__badge">IA</span></strong>
+              <small>ECMWF · inteligencia artificial · 51 escenarios</small>
+            </button>
           </div>
-          <div class="field">
-            <span class="field__label">Variable</span>
-            <div class="seg seg--wrap" id="modal-euro-var">
-              <button class="seg__btn" data-value="wind">Viento</button>
-              <button class="seg__btn" data-value="gusts">Ráfagas</button>
-              <button class="seg__btn" data-value="rain">Lluvia</button>
-              <button class="seg__btn" data-value="air">Aire</button>
-            </div>
+
+          <span class="field__label">Variable</span>
+          <div class="vgrid" id="modal-euro-var">
+            <button class="vcard" data-value="wind" type="button">
+              <ion-icon name="flag-outline"></ion-icon>
+              <strong>Viento</strong>
+              <small>sostenido</small>
+            </button>
+            <button class="vcard" data-value="gusts" type="button">
+              <ion-icon name="flash-outline"></ion-icon>
+              <strong>Ráfagas</strong>
+              <small>máximas</small>
+            </button>
+            <button class="vcard" data-value="rain" type="button">
+              <ion-icon name="rainy-outline"></ion-icon>
+              <strong>Lluvia</strong>
+              <small>en 6 horas</small>
+            </button>
+            <button class="vcard" data-value="air" type="button">
+              <ion-icon name="leaf-outline"></ion-icon>
+              <strong>Aire</strong>
+              <small>índice AQI</small>
+            </button>
           </div>
-          <div class="field">
-            <span class="field__label">Modo</span>
-            <div class="seg seg--wrap" id="modal-euro-mode">
-              <button class="seg__btn" data-value="prob">Probabilidad</button>
-              <button class="seg__btn" data-value="det">Determinista</button>
-            </div>
+
+          <span class="field__label">Modo</span>
+          <div class="mgrid" id="modal-euro-mode">
+            <button class="mcard" data-value="prob" type="button">
+              <strong>Probabilidad</strong>
+              <small>% de escenarios del ensemble que superan el umbral peligroso</small>
+            </button>
+            <button class="mcard" data-value="det" type="button">
+              <strong>Determinista</strong>
+              <small>la pasada oficial de alta resolución del modelo</small>
+            </button>
           </div>
-          <label class="euro-switch amodal__switch">
+
+          <label class="mswitch mswitch--minor">
+            <span class="mswitch__text">
+              <strong>Viento en movimiento</strong>
+              <small>Partículas animadas sobre el mapa</small>
+            </span>
             <input type="checkbox" id="modal-wind-toggle" checked />
             <span class="euro-switch__track" aria-hidden="true"></span>
-            Viento en movimiento
           </label>
-          <p class="amodal__hint">
-            Se aplican al instante cuando la capa <strong>Modelo</strong> está
-            activa. La línea de tiempo vive sobre el mapa.
-          </p>
         </div>
 
         <!-- ── Pestaña: General (se guarda con el botón) ── -->

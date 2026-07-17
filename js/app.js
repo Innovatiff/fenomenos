@@ -3039,12 +3039,20 @@ function setSegValue(id, value) {
 }
 
 /* refleja el estado real de los controles del mapa en los espejos del modal */
+function markActive(containerId, value) {
+  document
+    .querySelectorAll(`#${containerId} [data-value]`)
+    .forEach((b) => b.classList.toggle("is-active", b.dataset.value === value));
+}
+
 function settingsSync() {
   const activeLayer = document.querySelector("#layer-seg .seg__btn.is-active");
-  if (activeLayer) setSegValue("modal-layer", activeLayer.dataset.layer);
+  const layer = activeLayer ? activeLayer.dataset.layer : "";
+  markActive("modal-layer", layer); /* con euro/none, ninguna tarjeta activa */
+  $("modal-euro-on").checked = layer === "euro";
   for (const src of ["euro-model", "euro-var", "euro-mode"]) {
     const a = document.querySelector(`#${src} .seg__btn.is-active`);
-    if (a) setSegValue(`modal-${src}`, a.dataset.value);
+    if (a) markActive(`modal-${src}`, a.dataset.value);
   }
   const wt = $("euro-wind-toggle");
   const mt = $("modal-wind-toggle");
@@ -3070,9 +3078,9 @@ document.querySelectorAll("#settings-tabs .seg__btn").forEach((btn) => {
   });
 });
 
-/* espejos: los botones del modal accionan los controles reales del mapa,
+/* espejos: las tarjetas del modal accionan los controles reales del mapa,
    así toda la lógica existente (capas, modelos, cuotas) se reutiliza */
-document.querySelectorAll("#modal-layer .seg__btn").forEach((btn) => {
+document.querySelectorAll("#modal-layer [data-value]").forEach((btn) => {
   btn.addEventListener("click", () => {
     const src = document.querySelector(`#layer-seg [data-layer="${btn.dataset.value}"]`);
     if (src) src.click();
@@ -3080,7 +3088,7 @@ document.querySelectorAll("#modal-layer .seg__btn").forEach((btn) => {
   });
 });
 for (const id of ["euro-model", "euro-var", "euro-mode"]) {
-  document.querySelectorAll(`#modal-${id} .seg__btn`).forEach((btn) => {
+  document.querySelectorAll(`#modal-${id} [data-value]`).forEach((btn) => {
     btn.addEventListener("click", () => {
       const src = document.querySelector(`#${id} [data-value="${btn.dataset.value}"]`);
       if (src) src.click();
@@ -3088,6 +3096,13 @@ for (const id of ["euro-model", "euro-var", "euro-mode"]) {
     });
   });
 }
+/* la capa Modelo se enciende/apaga desde su propia pestaña */
+$("modal-euro-on").addEventListener("change", (e) => {
+  const target = e.target.checked ? "euro" : "radar";
+  const src = document.querySelector(`#layer-seg [data-layer="${target}"]`);
+  if (src) src.click();
+  settingsSync();
+});
 $("modal-wind-toggle").addEventListener("change", () => {
   const wt = $("euro-wind-toggle");
   if (wt && wt.checked !== $("modal-wind-toggle").checked) wt.click();
