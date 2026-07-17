@@ -2171,3 +2171,91 @@
     transition: none;
   }
 }
+
+/* ═════════════ CONFIGURACIÓN CON PESTAÑAS ═════════════ */
+
+.amodal__tabs {
+  display: flex;
+  margin-bottom: 1.8rem;
+}
+.amodal__tabs .seg__btn {
+  flex: 1;
+  justify-content: center;
+}
+.amodal__tab {
+  animation: tabIn 0.25s ease;
+}
+@keyframes tabIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.seg--wrap {
+  flex-wrap: wrap;
+}
+.seg--wrap .seg__btn {
+  flex: 1 1 40%;
+  justify-content: center;
+}
+.amodal__hint {
+  margin: 0.4rem 0 1.4rem;
+  font-size: 1.2rem;
+  line-height: 1.5;
+  color: var(--text-5);
+}
+.amodal__switch {
+  margin: 0.4rem 0 1.2rem;
+}
+
+/* ═════ Móvil: mapa limpio — capas y modelos viven en Configuración ═════ */
+
+@media (max-width: 63.99em) {
+  /* sin botones +/- (queda el gesto de pellizcar) */
+  .maplibregl-ctrl-top-left {
+    display: none;
+  }
+
+  /* sin barra flotante de capas */
+  .map-controls {
+    display: none;
+  }
+
+  /* el panel de modelos se reduce a una línea de tiempo compacta sobre la
+     hoja: sin cabecera, sin selectores, sin interruptor (todo eso está en
+     Configuración → Modelos) */
+  .euro-panel {
+    top: auto;
+    bottom: calc(10.8rem + 6.4rem + env(safe-area-inset-bottom));
+    left: 1.2rem;
+    right: 1.2rem;
+    width: auto;
+    padding: 1rem 1.2rem 0.9rem;
+  }
+  .euro-panel__head,
+  .euro-panel #euro-model,
+  .euro-panel #euro-var,
+  .euro-panel #euro-mode,
+  .euro-panel .euro-switch,
+  .euro-panel #euro-note {
+    display: none;
+  }
+  .euro-panel__body,
+  .euro-panel.is-min .euro-panel__body {
+    display: block;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+  .euro-panel .euro-title {
+    font-size: 1.15rem;
+    margin-bottom: 0.6rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

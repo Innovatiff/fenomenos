@@ -3038,14 +3038,60 @@ function setSegValue(id, value) {
     .forEach((b) => b.classList.toggle("is-active", b.dataset.value === value));
 }
 
+/* refleja el estado real de los controles del mapa en los espejos del modal */
+function settingsSync() {
+  const activeLayer = document.querySelector("#layer-seg .seg__btn.is-active");
+  if (activeLayer) setSegValue("modal-layer", activeLayer.dataset.layer);
+  for (const src of ["euro-model", "euro-var", "euro-mode"]) {
+    const a = document.querySelector(`#${src} .seg__btn.is-active`);
+    if (a) setSegValue(`modal-${src}`, a.dataset.value);
+  }
+  const wt = $("euro-wind-toggle");
+  const mt = $("modal-wind-toggle");
+  if (wt && mt) mt.checked = wt.checked;
+}
+
 function openSettings() {
   $("set-country").value = settings.country;
   setSegValue("set-temp", settings.tempUnit);
   setSegValue("set-wind", settings.windUnit);
   setSegValue("set-layer", settings.layer);
   setSegValue("set-fronts", settings.fronts === false ? "off" : "on");
+  settingsSync();
   $("settings-modal").classList.add("is-open");
 }
+
+/* pestañas del modal de configuración */
+document.querySelectorAll("#settings-tabs .seg__btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setSegValue("settings-tabs", btn.dataset.value);
+    for (const t of ["general", "capas", "modelos"])
+      $(`stab-${t}`).hidden = t !== btn.dataset.value;
+  });
+});
+
+/* espejos: los botones del modal accionan los controles reales del mapa,
+   así toda la lógica existente (capas, modelos, cuotas) se reutiliza */
+document.querySelectorAll("#modal-layer .seg__btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const src = document.querySelector(`#layer-seg [data-layer="${btn.dataset.value}"]`);
+    if (src) src.click();
+    settingsSync();
+  });
+});
+for (const id of ["euro-model", "euro-var", "euro-mode"]) {
+  document.querySelectorAll(`#modal-${id} .seg__btn`).forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const src = document.querySelector(`#${id} [data-value="${btn.dataset.value}"]`);
+      if (src) src.click();
+      settingsSync();
+    });
+  });
+}
+$("modal-wind-toggle").addEventListener("change", () => {
+  const wt = $("euro-wind-toggle");
+  if (wt && wt.checked !== $("modal-wind-toggle").checked) wt.click();
+});
 
 function closeSettings() {
   $("settings-modal").classList.remove("is-open");

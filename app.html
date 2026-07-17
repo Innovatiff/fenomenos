@@ -307,14 +307,77 @@
       <div class="amodal__card">
         <div class="amodal__head">
           <div>
-            <h2>Ajustes</h2>
-            <p>Personaliza tu país, tus unidades y tu capa del mapa.</p>
+            <h2>Configuración</h2>
+            <p>Capas del mapa, modelos y preferencias.</p>
           </div>
           <button class="amodal__close" id="settings-close" aria-label="Cerrar">
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
 
+        <div class="seg amodal__tabs" id="settings-tabs" role="tablist">
+          <button class="seg__btn is-active" data-value="general">General</button>
+          <button class="seg__btn" data-value="capas">Capas</button>
+          <button class="seg__btn" data-value="modelos">Modelos</button>
+        </div>
+
+        <!-- ── Pestaña: Capas (aplica al instante) ── -->
+        <div class="amodal__tab" id="stab-capas" hidden>
+          <div class="field">
+            <span class="field__label">Capa activa del mapa</span>
+            <div class="seg seg--wrap" id="modal-layer">
+              <button class="seg__btn" data-value="radar"><ion-icon name="rainy-outline"></ion-icon> Radar</button>
+              <button class="seg__btn" data-value="satellite"><ion-icon name="globe-outline"></ion-icon> Satélite</button>
+              <button class="seg__btn" data-value="euro"><ion-icon name="stats-chart-outline"></ion-icon> Modelo</button>
+              <button class="seg__btn" data-value="none"><ion-icon name="map-outline"></ion-icon> Sin capa</button>
+            </div>
+          </div>
+          <p class="amodal__hint">
+            El cambio se aplica al instante. Radar: MRMS + lluvia por satélite ·
+            Satélite: GOES-19 + mosaico mundial · Modelo: campos de pronóstico.
+          </p>
+        </div>
+
+        <!-- ── Pestaña: Modelos (aplica al instante) ── -->
+        <div class="amodal__tab" id="stab-modelos" hidden>
+          <div class="field">
+            <span class="field__label">Centro de modelos</span>
+            <div class="seg seg--wrap" id="modal-euro-model">
+              <button class="seg__btn" data-value="ecmwf">ECMWF</button>
+              <button class="seg__btn" data-value="noaa">NOAA</button>
+              <button class="seg__btn" data-value="gem">GEM</button>
+              <button class="seg__btn" data-value="aifs">AIFS (IA)</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field__label">Variable</span>
+            <div class="seg seg--wrap" id="modal-euro-var">
+              <button class="seg__btn" data-value="wind">Viento</button>
+              <button class="seg__btn" data-value="gusts">Ráfagas</button>
+              <button class="seg__btn" data-value="rain">Lluvia</button>
+              <button class="seg__btn" data-value="air">Aire</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field__label">Modo</span>
+            <div class="seg seg--wrap" id="modal-euro-mode">
+              <button class="seg__btn" data-value="prob">Probabilidad</button>
+              <button class="seg__btn" data-value="det">Determinista</button>
+            </div>
+          </div>
+          <label class="euro-switch amodal__switch">
+            <input type="checkbox" id="modal-wind-toggle" checked />
+            <span class="euro-switch__track" aria-hidden="true"></span>
+            Viento en movimiento
+          </label>
+          <p class="amodal__hint">
+            Se aplican al instante cuando la capa <strong>Modelo</strong> está
+            activa. La línea de tiempo vive sobre el mapa.
+          </p>
+        </div>
+
+        <!-- ── Pestaña: General (se guarda con el botón) ── -->
+        <div class="amodal__tab" id="stab-general">
         <label class="field">
           <span class="field__label">País principal</span>
           <span class="field__select-wrap">
@@ -359,6 +422,7 @@
         <button class="btn btn--primary amodal__save" id="settings-save">
           <ion-icon name="checkmark-outline"></ion-icon> Guardar ajustes
         </button>
+        </div><!-- /stab-general -->
 
         <p class="amodal__guest-note" id="settings-guest-note" hidden>
           <ion-icon name="information-circle-outline"></ion-icon>
