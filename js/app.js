@@ -776,16 +776,22 @@ async function initMap() {
     attributionControl: false,
     dragRotate: false,
     pitchWithRotate: false,
-    /* un solo mundo con bordes: sin copias infinitas a los lados y sin
-       poder arrastrar más allá de los polos */
+    /* un solo mundo: sin copias infinitas a los lados */
     renderWorldCopies: false,
-    maxBounds: [
-      [-180, -85],
-      [180, 85],
-    ],
   });
   if (map.touchZoomRotate && map.touchZoomRotate.disableRotation)
     map.touchZoomRotate.disableRotation();
+  /* bordes de arrastre: un pelo por dentro de ±180°/±85° — el mundo
+     completo exacto hace fallar el constreñimiento interno de MapLibre */
+  try {
+    map.setMaxBounds([
+      [-179.9, -80],
+      [179.9, 84],
+    ]);
+  } catch (_) {
+    /* si algún navegador no lo soporta, el mapa sigue vivo sin límites */
+  }
+  window.__fdcMap = map; /* para depurar */
   map.addControl(new gl.NavigationControl({ showCompass: false }), "top-left");
   map.addControl(new gl.ScaleControl({ unit: "metric" }), "bottom-left");
 
