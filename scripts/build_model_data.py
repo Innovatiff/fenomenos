@@ -192,15 +192,18 @@ def prob_pack(member_series, threshold, npoints):
 
 # ═══════════════════════════════ ECMWF ═══════════════════════════════════
 
-def build_ecmwf(outdir):
+def build_ecmwf(outdir, model=None, subdir="ecmwf", with_ens=True):
     """IFS determinista + ENS vía el cliente oficial de datos abiertos
-    (usa los .index para bajar solo los campos pedidos)."""
+    (usa los .index para bajar solo los campos pedidos). Con model=
+    "aifs-single" produce el determinista del AIFS (la IA de ECMWF);
+    su ensemble no está en datos abiertos, así que with_ens=False."""
     from ecmwf.opendata import Client
 
     steps = list(range(0, HOURS_MAX + 1, SNAP_STEP))
     steps6 = list(range(0, HOURS_MAX + 1, PERIOD))
 
-    client = Client(source="aws")  # bucket de AWS Open Data
+    # bucket de AWS Open Data
+    client = Client(source="aws", model=model) if model else Client(source="aws")
     lat_d, lon_d = grid_axes(DET_SP)
     npoints_d = len(lat_d) * len(lon_d)
 
@@ -212,7 +215,7 @@ def build_ecmwf(outdir):
         param=["10u", "10v", "10fg6", "tp"], target=det_path,
     )
     run_dt = dt.datetime.combine(res.datetime.date(), dt.time(res.datetime.hour), dt.timezone.utc)
-    log(f"[ecmwf] corrida {run_dt:%Y-%m-%d %Hz} descargada")
+    log(f"[{subdir}] corrida {run_dt:%Y-%m-%d %Hz} descargada")
 
     import xarray as xr
 
@@ -257,7 +260,7 @@ def build_ecmwf(outdir):
     try:
         gust = [g * MS_TO_MPH if g is not None else None for g in series_for("10fg6", DET_SP, "max")]
     except Exception:
-        log("[ecmwf] sin 10fg6; ráfagas ≈ viento × 1.5")
+        log(f"[{subdir}] sin 10fg6; ráfagas ≈ viento × 1.5")
         gust = [s_ * 1.5 if s_ is not None else None for s_ in speed]
     rain = [r * 1000.0 if r is not None else None for r in series_for("tp", DET_SP, "diff")]
 
@@ -273,7 +276,10 @@ def build_ecmwf(outdir):
         "generated": int(dt.datetime.now(dt.timezone.utc).timestamp()),
         "run": f"{run_dt:%Y%m%d%H}",
     }
-    write_json(os.path.join(outdir, "ecmwf", "det.json"), det)
+    write_json(os.path.join(outdir, subdir, "det.json"), det)
+
+    if not with_ens:
+        return {"det": True, "prob": False, "run": f"{run_dt:%Y%m%d%H}", "members": 1}
 
     # ── ensemble (ENS): 51 miembros, pasos de 6 h ──
     with tempfile.NamedTemporaryFile(suffix=".grib2", delete=False) as f:
@@ -282,7 +288,7 @@ def build_ecmwf(outdir):
         type=["cf", "pf"], stream="enfo", step=steps6,
         param=["10u", "10v", "tp"], target=ens_path,
     )
-    log("[ecmwf] ENS descargado")
+    log(f"[{subdir}] ENS descargado")
     lat_p, lon_p = grid_axes(PROB_SP)
     npoints_p = len(lat_p) * len(lon_p)
 
@@ -329,7 +335,7 @@ def build_ecmwf(outdir):
         "generated": int(dt.datetime.now(dt.timezone.utc).timestamp()),
         "run": f"{run_dt:%Y%m%d%H}",
     }
-    write_json(os.path.join(outdir, "ecmwf", "prob.json"), prob)
+    write_json(os.path.join(outdir, subdir, "prob.json"), prob)
     return {"det": True, "prob": True, "run": f"{run_dt:%Y%m%d%H}", "members": len(mspeed)}
 
 
@@ -641,7 +647,13 @@ def write_json(path, obj):
 def main():
     outdir = os.path.abspath(OUT_DIR)
     centers = {}
-    for name, builder in (("ecmwf", build_ecmwf), ("noaa", build_noaa), ("gem", build_gem)):
+    build_aifs = lambda o: build_ecmwf(o, model="aifs-single", subdir="aifs", with_ens=False)
+    for name, builder in (
+        ("ecmwf", build_ecmwf),
+        ("noaa", build_noaa),
+        ("gem", build_gem),
+        ("aifs", build_aifs),
+    ):
         try:
             centers[name] = builder(outdir)
             log(f"[{name}] OK")

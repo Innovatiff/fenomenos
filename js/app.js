@@ -1486,6 +1486,16 @@ const EURO_MODELS_CFG = {
     ensName: "GEPS de Canadá",
     fallbackMembers: 21,
   },
+  /* el modelo de inteligencia artificial de ECMWF (operacional desde
+     2025): determinista AIFS Single + ensemble AIFS-ENS */
+  aifs: {
+    name: "AIFS (IA)",
+    det: "ecmwf_aifs025_single",
+    ens: "ecmwf_aifs025",
+    detLabel: "AIFS de ECMWF · IA determinista (0.25°)",
+    ensName: "AIFS-ENS de ECMWF (IA)",
+    fallbackMembers: 51,
+  },
 };
 
 /* rampa de colores para probabilidades (0–100 %) */
