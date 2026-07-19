@@ -2338,11 +2338,16 @@ async function staticFile(center, name) {
    Mercator (mapa.json): cobertura de todo el planeta y nitidez sin que el
    teléfono calcule nada. Si no está disponible, la app cae al camino
    clásico (rejilla regional + lienzo). ── */
-const mapaSrc = { data: null, checked: false };
+const mapaSrc = { data: null, checked: false, at: 0 };
 
 async function mapaMeta() {
-  if (mapaSrc.checked) return mapaSrc.data;
+  /* si aún no está publicado, se reintenta cada 10 min: una pestaña
+     abierta engancha el mapa mundial sin recargar */
+  const now = Date.now();
+  if (mapaSrc.data || (mapaSrc.checked && now - mapaSrc.at < 10 * 60 * 1000))
+    return mapaSrc.data;
   mapaSrc.checked = true;
+  mapaSrc.at = now;
   try {
     const res = await fetch(`${STATIC_BASE}/ecmwf/mapa.json`, { cache: "no-cache" });
     if (res.ok) {
