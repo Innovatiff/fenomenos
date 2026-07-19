@@ -856,7 +856,9 @@ async function initMap() {
     center: [c.lon, c.lat],
     zoom: glZoom(c.zoom),
     minZoom: 2,
-    maxZoom: 11.5,
+    /* el estilo vectorial es nítido a cualquier zoom y la base satelital
+       llega a ~19: acercarse mucho ya no se ve pixelado */
+    maxZoom: 18,
     attributionControl: false,
     dragRotate: false,
     pitchWithRotate: false,
@@ -887,6 +889,12 @@ async function initMap() {
   const sym = styleLayers.find((l) => l.type === "symbol");
   labelsAnchor = sym ? sym.id : undefined;
   weatherAnchor = labelsAnchor;
+  /* la base satelital se mete bajo fronteras y rótulos: tapa los rellenos
+     del estilo pero deja leer límites y nombres encima, como una app real */
+  const satAnchor = styleLayers.find(
+    (l) => l.type === "symbol" || /boundary|admin/i.test(l.id)
+  );
+  satBaseAnchor = satAnchor ? satAnchor.id : labelsAnchor;
   frontsInitLayers();
 
   $("map-credit").hidden = false;
@@ -955,6 +963,47 @@ async function initMap() {
 }
 
 /* ── capas ráster del tiempo (radar/satélite) sobre el estilo ── */
+/* ── base satelital de alta resolución (solo con la capa Satélite) ──
+   Imágenes de Esri World Imagery: nítidas hasta zoom ~19 en todo el
+   mundo. Se crea una vez y solo se alterna su visibilidad. */
+const SAT_BASE_SRC = "sat-base";
+const SAT_BASE_LAYER = "sat-base-layer";
+let satBaseAnchor;
+
+function satBaseShow(on) {
+  if (!map || !map.getLayer) return;
+  try {
+    if (!map.getSource(SAT_BASE_SRC)) {
+      map.addSource(SAT_BASE_SRC, {
+        type: "raster",
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: "© Esri · Maxar · Earthstar Geographics",
+      });
+      map.addLayer(
+        {
+          id: SAT_BASE_LAYER,
+          type: "raster",
+          source: SAT_BASE_SRC,
+          layout: { visibility: "none" },
+          paint: { "raster-fade-duration": 150 },
+        },
+        satBaseAnchor
+      );
+    }
+    map.setLayoutProperty(
+      SAT_BASE_LAYER,
+      "visibility",
+      on ? "visible" : "none"
+    );
+  } catch (_) {
+    /* sin base satelital el mapa vectorial sigue siendo válido */
+  }
+}
+
 const WX_SOURCE = "wx-tiles";
 const WX_LAYER = "wx-tiles-layer";
 
@@ -1335,6 +1384,9 @@ function setLayer(kind, { silent = false } = {}) {
   satMode = null;
   radarOwnRemove();
   radarMode = null;
+
+  /* con Satélite el suelo es imagen real de alta resolución */
+  satBaseShow(kind === "satellite");
 
   euroSetActive(kind === "euro", { silent });
 
