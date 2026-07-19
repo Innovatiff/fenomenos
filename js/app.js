@@ -1388,83 +1388,11 @@ function setLayer(kind, { silent = false } = {}) {
   /* con Satélite el suelo es imagen real de alta resolución */
   satBaseShow(kind === "satellite");
 
-  /* el modelo ECMWF acompaña siempre al radar y al satélite; "Sin capa"
-     deja el mapa limpio */
+  /* Radar = mapa cartográfico · Satélite = imagen real: en ambos el
+     protagonista es SOLO el modelo ECMWF, sin nubes ni radar encima.
+     "Sin capa" deja el mapa limpio. */
   euroSetActive(kind === "radar" || kind === "satellite", { silent });
-
-  if (kind === "none" || !map) {
-    $("playbar").classList.remove("is-visible");
-    return;
-  }
-
-  /* radar: MRMS real (1 km) + lluvia estimada por satélite en toda la
-     región; si el robot no ha publicado, RainViewer como respaldo */
-  if (kind === "radar" && radarOwn) {
-    radarMode = "own";
-    frames = radarOwn.rain.frames;
-    frameIndex = frames.length - 1;
-    radarOwnShow(frames[frameIndex]);
-    weatherLayer = true;
-    $("frame-kind").textContent = radarOwn.mrms
-      ? "Radar · MRMS + satélite"
-      : "Radar · satélite";
-    paintFrameLabel();
-    $("playbar").classList.add("is-visible");
-    if (frames.length > 1) startPlayback();
-    return;
-  }
-
-  /* satélite: GOES-19 propio (transparente, más detalle); si no hay
-     datos frescos del robot, RainViewer como respaldo */
-  if (kind === "satellite" && (goesData || worldSat)) {
-    satMode = "goes";
-    frames = goesData ? goesData.frames : worldSat.ir;
-    frameIndex = frames.length - 1;
-    satShow(frames[frameIndex]);
-    weatherLayer = true;
-    $("frame-kind").textContent = goesData
-      ? worldSat
-        ? "Satélite · GOES-19 + mundial"
-        : "Satélite · GOES-19"
-      : "Satélite · mundial";
-    paintFrameLabel();
-    $("playbar").classList.add("is-visible");
-    if (frames.length > 1) startPlayback();
-    return;
-  }
-
-  frames = framesFor(kind);
-  if (!frames.length) {
-    $("playbar").classList.remove("is-visible");
-    if (!silent)
-      toast(
-        kind === "radar"
-          ? "El radar no está disponible ahora mismo."
-          : "El satélite no está disponible ahora mismo.",
-        "error"
-      );
-    return;
-  }
-
-  /* arranca en el último fotograma "pasado" (el más actual) */
-  frameIndex = kind === "radar" && rvData.radar && rvData.radar.past
-    ? Math.max(rvData.radar.past.length - 1, 0)
-    : frames.length - 1;
-
-  /* el infrarrojo del satélite es opaco (cielo despejado = negro): con
-     el mapa base casi negro, media opacidad deja brillar solo las nubes */
-  weatherTilesSet(
-    tileUrl(kind, frames[frameIndex]),
-    kind === "satellite" ? 0.55 : 0.75
-  );
-  weatherLayer = true;
-
-  $("frame-kind").textContent = kind === "radar" ? "Radar" : "Satélite";
-  paintFrameLabel();
-  $("playbar").classList.add("is-visible");
-
-  /* el radar y el satélite arrancan animados: el mapa se siente vivo */
-  if (frames.length > 1) startPlayback();
+  $("playbar").classList.remove("is-visible");
 }
 
 function paintFrameLabel() {
@@ -2540,6 +2468,15 @@ async function euroRefresh() {
      La del ensemble es más pequeña: decenas de miembros por punto
      pesan en la cuota del servicio. */
   const grid = mode === "det" ? euroGrid(16, 11) : euroGrid(11, 7);
+  /* el respaldo por API solo sirve de cerca: a escala planetaria saldrían
+     manchas gigantes sin detalle, no un modelo — mejor nada que feo */
+  if (!isAir && grid.sp > 2) {
+    euroOverlayRemove();
+    $("euro-loading").hidden = true;
+    $("euro-note").textContent =
+      "El mapa mundial del modelo se está actualizando; acércate para ver el detalle de tu zona mientras tanto.";
+    return;
+  }
   /* el determinista se guarda como PAQUETE por centro+rejilla (sirve a las
      tres variables y a las partículas); el ensemble y el aire, por campo */
   const key = isAir

@@ -181,7 +181,7 @@
           <div class="map-controls">
             <div class="seg map-layers" role="tablist" id="layer-seg">
               <button class="seg__btn is-active" data-layer="radar">
-                <ion-icon name="rainy-outline"></ion-icon> Radar
+                <ion-icon name="map-outline"></ion-icon> Mapa
               </button>
               <button class="seg__btn" data-layer="satellite">
                 <ion-icon name="globe-outline"></ion-icon> Satélite
@@ -316,24 +316,24 @@
           <span class="field__label">Capa activa del mapa</span>
           <div class="lgrid" id="modal-layer">
             <button class="lcard" data-value="radar" type="button">
-              <span class="lcard__icon"><ion-icon name="rainy-outline"></ion-icon></span>
+              <span class="lcard__icon"><ion-icon name="map-outline"></ion-icon></span>
               <span class="lcard__text">
-                <strong>Radar</strong>
-                <small>Precipitación en vivo: radar MRMS de 1 km + lluvia estimada por satélite en toda la región</small>
+                <strong>Mapa</strong>
+                <small>Fondo cartográfico oscuro con el modelo europeo ECMWF encima</small>
               </span>
             </button>
             <button class="lcard" data-value="satellite" type="button">
               <span class="lcard__icon"><ion-icon name="globe-outline"></ion-icon></span>
               <span class="lcard__text">
                 <strong>Satélite</strong>
-                <small>Nubes en infrarrojo: GOES-19 cada 10 minutos + mosaico mundial horario</small>
+                <small>Imagen satelital real del terreno con el modelo europeo ECMWF encima</small>
               </span>
             </button>
           </div>
           <p class="amodal__hint">
             El cambio se aplica al instante. El <strong>modelo ECMWF</strong>
-            se muestra siempre sobre el Radar y el Satélite; se configura en
-            la pestaña Modelo.
+            se muestra siempre sobre ambos fondos; se configura en la pestaña
+            Modelo.
           </p>
         </div>
 
@@ -421,7 +421,7 @@
         <div class="field">
           <span class="field__label">Capa del mapa al iniciar</span>
           <div class="seg" id="set-layer">
-            <button class="seg__btn is-active" data-value="radar">Radar</button>
+            <button class="seg__btn is-active" data-value="radar">Mapa</button>
             <button class="seg__btn" data-value="satellite">Satélite</button>
             <button class="seg__btn" data-value="none">Sin capa</button>
           </div>
