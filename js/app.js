@@ -1388,9 +1388,11 @@ function setLayer(kind, { silent = false } = {}) {
   /* con Satélite el suelo es imagen real de alta resolución */
   satBaseShow(kind === "satellite");
 
-  euroSetActive(kind === "euro", { silent });
+  /* el modelo ECMWF acompaña siempre al radar y al satélite; "Sin capa"
+     deja el mapa limpio */
+  euroSetActive(kind === "radar" || kind === "satellite", { silent });
 
-  if (kind === "euro" || kind === "none" || !map) {
+  if (kind === "none" || !map) {
     $("playbar").classList.remove("is-visible");
     return;
   }
@@ -2124,6 +2126,21 @@ function euroOverlayRemove() {
   euro.overlay = null;
 }
 
+/* el modelo va DEBAJO de radar/satélite/nubes: acompaña, no tapa */
+function euroBeforeId() {
+  const above = [
+    "world-rain-layer",
+    "rain-img-layer",
+    "mrms-conus-layer",
+    "mrms-carib-layer",
+    "world-ir-layer",
+    "sat-img-layer",
+    "wx-tiles-layer",
+  ];
+  for (const id of above) if (map.getLayer && map.getLayer(id)) return id;
+  return weatherAnchor;
+}
+
 function euroOverlaySet(url, west, south, east, north) {
   const coords = [
     [west, north],
@@ -2144,7 +2161,7 @@ function euroOverlaySet(url, west, south, east, north) {
         source: EURO_SOURCE,
         paint: { "raster-opacity": 0.72, "raster-fade-duration": 0 },
       },
-      weatherAnchor
+      euroBeforeId()
     );
   }
   euro.overlay = true;
@@ -2164,9 +2181,68 @@ function mercLat(y) {
    latitud que le corresponde en esa proyección (si no, el campo se corre
    hacia el ecuador en vistas amplias). Interpolación bilineal de VALORES,
    coloreada después con la rampa. */
+/* pinta un período del mapa mundial pre-renderizado (imágenes del robot) */
+function euroRenderMapa(files, mode) {
+  const m = mapaSrc.data;
+  const cfg = EURO_VARS[euro.variable];
+  const prob = mode === "prob";
+  const stops = prob ? EURO_PROB_STOPS : cfg.detStops;
+
+  if (euro.step == null) euro.step = euroDefaultStep(m.times);
+  euro.step = Math.max(0, Math.min(euro.step, m.times.length - 1));
+  /* si el período exacto no tiene imagen (hueco), usa la más cercana */
+  let idx = euro.step;
+  if (!files[idx]) {
+    for (let k = 1; k < files.length; k++) {
+      if (files[idx - k]) {
+        idx -= k;
+        break;
+      }
+      if (files[idx + k]) {
+        idx += k;
+        break;
+      }
+    }
+  }
+  if (!files[idx]) return;
+  const b = m.bbox;
+  euroOverlaySet(`${STATIC_BASE}/ecmwf/${files[idx]}`, b.west, b.south, b.east, b.north);
+  $("euro-loading").hidden = true;
+
+  $("euro-title").textContent = prob ? cfg.probTitle : cfg.detTitle;
+  $("euro-sub").textContent = prob
+    ? `EPS de ECMWF · ${m.members || 51} escenarios · mundial`
+    : "IFS de ECMWF · determinista (0.25°) · mundial";
+  $("euro-mode").style.display = "";
+  const slider = $("euro-slider");
+  slider.max = String(m.times.length - 1);
+  slider.value = String(euro.step);
+  $("euro-step-label").textContent = euroStepLabel(m.times[euro.step]);
+  euroLegend(stops, prob ? EURO_PROB_TICKS : cfg.detTicks, prob ? "%" : cfg.unit);
+  $("euro-note").textContent =
+    (prob
+      ? `Porcentaje de los ${m.members || 51} escenarios del EPS de ECMWF que superan el umbral en cada período de 6 h.`
+      : `IFS de ECMWF (0.25°): ${
+          cfg.agg === "sum" ? "total acumulado" : "valor máximo"
+        } de cada período de 6 h.`) +
+    " Cobertura mundial. Datos abiertos oficiales procesados por Fenómenos cada 6 h.";
+  windEnsure();
+}
+
 function euroRender() {
+  if (!map) return;
+  /* el mapa mundial en imágenes tiene prioridad (mejor calidad y global);
+     la calidad del aire no tiene imágenes y sigue el camino clásico */
+  if (euro.variable !== "air") {
+    const modeSel = euro.mode;
+    const files = mapaFrames(modeSel, euro.variable);
+    if (files) {
+      euroRenderMapa(files, modeSel);
+      return;
+    }
+  }
   const d = euro.data;
-  if (!d || !map) return;
+  if (!d) return;
   /* siempre según los datos mostrados (si una carga falló, la selección
      de los controles puede ir por delante de lo que hay en pantalla) */
   const cfg = EURO_VARS[d.variable];
@@ -2254,8 +2330,7 @@ function euroRender() {
     : prob
       ? `${modelCfg.ensName} · ${d.members || modelCfg.fallbackMembers} escenarios`
       : modelCfg.detLabel;
-  /* el aire no tiene ensemble ni centros alternativos */
-  $("euro-model").style.display = isAir ? "none" : "";
+  /* el aire no tiene ensemble */
   $("euro-mode").style.display = isAir ? "none" : "";
   const slider = $("euro-slider");
   slider.max = String(d.times.length - 1);
@@ -2329,6 +2404,39 @@ async function staticFile(center, name) {
   const data = await res.json();
   staticSrc.files.set(key, data);
   return data;
+}
+
+/* ── mapa mundial: el robot pinta el ECMWF global como imágenes webp en
+   Mercator (mapa.json): cobertura de todo el planeta y nitidez sin que el
+   teléfono calcule nada. Si no está disponible, la app cae al camino
+   clásico (rejilla regional + lienzo). ── */
+const mapaSrc = { data: null, checked: false };
+
+async function mapaMeta() {
+  if (mapaSrc.checked) return mapaSrc.data;
+  mapaSrc.checked = true;
+  try {
+    const res = await fetch(`${STATIC_BASE}/ecmwf/mapa.json`, { cache: "no-cache" });
+    if (res.ok) {
+      const m = await res.json();
+      if (
+        m &&
+        m.generated &&
+        Date.now() / 1000 - m.generated < 12 * 3600 &&
+        m.bbox &&
+        m.times
+      )
+        mapaSrc.data = m;
+    }
+  } catch (_) {}
+  return mapaSrc.data;
+}
+
+function mapaFrames(mode, variable) {
+  const m = mapaSrc.data;
+  const set = m && (mode === "prob" ? m.prob : m.det);
+  const files = set && set[variable];
+  return files && files.some(Boolean) ? files : null;
 }
 
 /* intenta servir la vista actual desde la fuente propia; true si lo hizo */
@@ -2414,6 +2522,17 @@ async function euroRefresh() {
   /* la calidad del aire no tiene ensemble: siempre es determinista */
   const isAir = euro.variable === "air";
   const mode = isAir ? "det" : euro.mode;
+
+  /* mapa mundial en imágenes: cero API y cero cálculo en el cliente; la
+     rejilla regional se carga aparte solo para el popup de valores */
+  if (!isAir) {
+    await mapaMeta();
+    if (mapaFrames(mode, euro.variable)) {
+      staticUse(mode);
+      euroRender();
+      return;
+    }
+  }
 
   /* la fuente propia (datos procesados por el robot) tiene prioridad */
   if (!isAir && (await staticUse(mode))) return;
@@ -2889,14 +3008,13 @@ window.addEventListener("resize", () => {
   }, 300);
 });
 
-/* controles del panel */
-["euro-var", "euro-mode", "euro-model"].forEach((id) => {
+/* controles del panel (solo ECMWF: sin selector de centros) */
+["euro-var", "euro-mode"].forEach((id) => {
   document.querySelectorAll(`#${id} .seg__btn`).forEach((btn) => {
     btn.addEventListener("click", () => {
       setSegValue(id, btn.dataset.value);
       if (id === "euro-var") euro.variable = btn.dataset.value;
-      else if (id === "euro-mode") euro.mode = btn.dataset.value;
-      else euro.model = btn.dataset.value;
+      else euro.mode = btn.dataset.value;
       /* acción deliberada del usuario: salta el intervalo entre peticiones
          (el enfriamiento por 429 sí se respeta) */
       euro.lastFetch = { prob: 0, det: 0 };
@@ -2904,6 +3022,12 @@ window.addEventListener("resize", () => {
     });
   });
 });
+
+function euroStepMax() {
+  const m = mapaSrc.data;
+  if (m && mapaFrames(euro.mode, euro.variable)) return m.times.length - 1;
+  return euro.data ? euro.data.times.length - 1 : 0;
+}
 
 $("euro-slider").addEventListener("input", (e) => {
   euro.step = Number(e.target.value);
@@ -2916,7 +3040,7 @@ $("euro-prev").addEventListener("click", () => {
   }
 });
 $("euro-next").addEventListener("click", () => {
-  if (euro.data && euro.step < euro.data.times.length - 1) {
+  if (euro.step < euroStepMax()) {
     euro.step++;
     euroRender();
   }
@@ -3100,9 +3224,8 @@ function markActive(containerId, value) {
 function settingsSync() {
   const activeLayer = document.querySelector("#layer-seg .seg__btn.is-active");
   const layer = activeLayer ? activeLayer.dataset.layer : "";
-  markActive("modal-layer", layer); /* con euro/none, ninguna tarjeta activa */
-  $("modal-euro-on").checked = layer === "euro";
-  for (const src of ["euro-model", "euro-var", "euro-mode"]) {
+  markActive("modal-layer", layer); /* con none, ninguna tarjeta activa */
+  for (const src of ["euro-var", "euro-mode"]) {
     const a = document.querySelector(`#${src} .seg__btn.is-active`);
     if (a) markActive(`modal-${src}`, a.dataset.value);
   }
@@ -3139,33 +3262,17 @@ document.querySelectorAll("#modal-layer [data-value]").forEach((btn) => {
     settingsSync();
   });
 });
-/* elegir cualquier modelo/variable/modo ENCIENDE la capa de modelos al
-   momento: lo que tocas es lo que ves en el mapa */
-function ensureEuroLayer() {
-  const active = document.querySelector("#layer-seg .seg__btn.is-active");
-  if (!active || active.dataset.layer !== "euro") {
-    const src = document.querySelector('#layer-seg [data-layer="euro"]');
-    if (src) src.click();
-  }
-}
-
-for (const id of ["euro-model", "euro-var", "euro-mode"]) {
+/* variable y modo del ECMWF: el modelo acompaña siempre a Radar/Satélite,
+   así que el cambio se ve al instante sobre la capa activa */
+for (const id of ["euro-var", "euro-mode"]) {
   document.querySelectorAll(`#modal-${id} [data-value]`).forEach((btn) => {
     btn.addEventListener("click", () => {
-      ensureEuroLayer();
       const src = document.querySelector(`#${id} [data-value="${btn.dataset.value}"]`);
       if (src) src.click();
       settingsSync();
     });
   });
 }
-/* la capa Modelo se enciende/apaga desde su propia pestaña */
-$("modal-euro-on").addEventListener("change", (e) => {
-  const target = e.target.checked ? "euro" : "radar";
-  const src = document.querySelector(`#layer-seg [data-layer="${target}"]`);
-  if (src) src.click();
-  settingsSync();
-});
 $("modal-wind-toggle").addEventListener("change", () => {
   const wt = $("euro-wind-toggle");
   if (wt && wt.checked !== $("modal-wind-toggle").checked) wt.click();

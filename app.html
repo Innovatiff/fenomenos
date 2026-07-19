@@ -186,9 +186,6 @@
               <button class="seg__btn" data-layer="satellite">
                 <ion-icon name="globe-outline"></ion-icon> Satélite
               </button>
-              <button class="seg__btn" data-layer="euro">
-                <ion-icon name="stats-chart-outline"></ion-icon> Modelo
-              </button>
               <button class="seg__btn" data-layer="none">
                 <ion-icon name="map-outline"></ion-icon> Sin capa
               </button>
@@ -201,20 +198,13 @@
           <aside class="euro-panel" id="euro-panel" hidden>
             <button class="euro-panel__head" id="euro-collapse" type="button">
               <span>
-                <strong>Modelos · tiempo severo</strong>
+                <strong>Modelo ECMWF · tiempo severo</strong>
                 <span class="euro-panel__sub" id="euro-sub">EPS de ECMWF · 51 escenarios</span>
               </span>
               <ion-icon name="chevron-up-outline" id="euro-collapse-icon"></ion-icon>
             </button>
 
             <div class="euro-panel__body" id="euro-body">
-              <div class="seg seg--tight" id="euro-model" role="tablist">
-                <button class="seg__btn is-active" data-value="ecmwf" title="Modelo europeo (IFS/EPS)">ECMWF</button>
-                <button class="seg__btn" data-value="noaa" title="Modelo americano (GFS/GEFS)">NOAA</button>
-                <button class="seg__btn" data-value="gem" title="Modelo canadiense (GEM/GEPS)">GEM</button>
-                <button class="seg__btn" data-value="aifs" title="Modelo de inteligencia artificial de ECMWF (AIFS/AIFS-ENS)">AIFS</button>
-              </div>
-
               <div class="seg seg--tight" id="euro-var" role="tablist">
                 <button class="seg__btn is-active" data-value="wind">Viento</button>
                 <button class="seg__btn" data-value="gusts">Ráfagas</button>
@@ -318,7 +308,7 @@
         <div class="seg amodal__tabs" id="settings-tabs" role="tablist">
           <button class="seg__btn is-active" data-value="general">General</button>
           <button class="seg__btn" data-value="capas">Capas</button>
-          <button class="seg__btn" data-value="modelos">Modelos</button>
+          <button class="seg__btn" data-value="modelos">Modelo</button>
         </div>
 
         <!-- ── Pestaña: Capas (aplica al instante) ── -->
@@ -341,42 +331,20 @@
             </button>
           </div>
           <p class="amodal__hint">
-            El cambio se aplica al instante. La capa de
-            <strong>modelos de pronóstico</strong> se enciende en la pestaña
-            Modelos.
+            El cambio se aplica al instante. El <strong>modelo ECMWF</strong>
+            se muestra siempre sobre el Radar y el Satélite; se configura en
+            la pestaña Modelo.
           </p>
         </div>
 
-        <!-- ── Pestaña: Modelos (aplica al instante) ── -->
+        <!-- ── Pestaña: Modelo ECMWF (aplica al instante) ── -->
         <div class="amodal__tab" id="stab-modelos" hidden>
-          <label class="mswitch">
-            <span class="mswitch__text">
-              <strong>Capa de modelos en el mapa</strong>
-              <small>Pronóstico de tiempo severo a 4 días</small>
-            </span>
-            <input type="checkbox" id="modal-euro-on" />
-            <span class="euro-switch__track" aria-hidden="true"></span>
-          </label>
-
-          <span class="field__label">Centro de modelos</span>
-          <div class="mgrid" id="modal-euro-model">
-            <button class="mcard" data-value="ecmwf" type="button">
-              <strong>ECMWF</strong>
-              <small>Europa · IFS 0.25° · el estándar mundial, con 51 escenarios</small>
-            </button>
-            <button class="mcard" data-value="noaa" type="button">
-              <strong>NOAA</strong>
-              <small>EE. UU. · GFS 0.25° · con 31 escenarios del GEFS</small>
-            </button>
-            <button class="mcard" data-value="gem" type="button">
-              <strong>GEM</strong>
-              <small>Canadá · GDPS 15 km · con 21 escenarios del GEPS</small>
-            </button>
-            <button class="mcard" data-value="aifs" type="button">
-              <strong>AIFS <span class="mcard__badge">IA</span></strong>
-              <small>ECMWF · inteligencia artificial · 51 escenarios</small>
-            </button>
-          </div>
+          <p class="amodal__hint">
+            El <strong>modelo europeo ECMWF</strong> — el estándar mundial del
+            pronóstico — se muestra en todo el planeta sobre las capas Radar y
+            Satélite, con su pasada determinista de 0.25° y las probabilidades
+            de sus 51 escenarios.
+          </p>
 
           <span class="field__label">Variable</span>
           <div class="vgrid" id="modal-euro-var">
