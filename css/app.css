@@ -1037,6 +1037,13 @@
   color: var(--text-4);
   margin: 0 0 0.8rem;
 }
+.eps-fanvars {
+  margin: 0 0 0.8rem;
+}
+.eps-fanvars .seg__btn {
+  flex: 1;
+  justify-content: center;
+}
 .eps-fan {
   display: block;
   width: 100%;
@@ -1113,6 +1120,67 @@
   line-height: 1.5;
   color: var(--text-5);
   margin: 0.4rem 0 0;
+}
+
+/* ciclones tropicales (ENS) */
+.tc-sys {
+  padding: 0.7rem 0.8rem;
+  margin: 0.5rem 0;
+  border-radius: 0.9rem;
+  background: linear-gradient(180deg, rgba(20, 29, 58, 0.6), rgba(9, 14, 32, 0.9));
+  border: 0.1rem solid var(--line-2);
+  cursor: pointer;
+}
+.tc-sys:hover {
+  border-color: var(--text-5);
+}
+.tc-sys__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.3rem 0.8rem;
+  font-size: 1.1rem;
+  color: var(--text-2);
+}
+.tc-sys__top span {
+  color: var(--text-5);
+  font-size: 1rem;
+}
+.tc-sys__mid {
+  margin-top: 0.25rem;
+  font-size: 1.05rem;
+  color: var(--text-4, var(--text-5));
+}
+.tc-sys__mid em {
+  color: var(--text-5);
+  font-style: normal;
+  opacity: 0.85;
+}
+.tc-esc {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1rem;
+  color: var(--text-5);
+}
+.tc-sys a {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 1.02rem;
+  color: #7fb8ff;
+  text-decoration: none;
+}
+.tc-sys a:hover {
+  text-decoration: underline;
+}
+.tc-warn {
+  margin: 0.6rem 0 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: 0.8rem;
+  border: 0.1rem solid rgba(255, 176, 32, 0.45);
+  background: rgba(255, 176, 32, 0.08);
+  color: var(--text-4, var(--text-2));
+  font-size: 1.02rem;
+  line-height: 1.45;
 }
 
 /* ──────────────────────────────  MAPA  ───────────────────────────────── */

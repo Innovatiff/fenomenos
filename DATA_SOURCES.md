@@ -62,12 +62,22 @@ Perth y McMurdo (−77.85°).
 
 ## 7 · Open-Meteo Historical — ERA5 (climatología para EFI)
 
-- `GET https://archive-api.open-meteo.com/v1/archive` con `models=era5` (`era5-sd.json`): **10 624 días** (1991-07-01 → 2020-07-31, ventana de julios de 30 años) en **una** petición de ~245 KB. Viable para percentiles climatológicos por punto, con caché. Aún no integrado (pendiente de fase, ver informe).
+- `GET https://archive-api.open-meteo.com/v1/archive` con `models=era5` (`era5-sd.json`): **10 624 días** (1991-07-01 → 2020-07-31, ventana de julios de 30 años) en **una** petición de ~245 KB. Serie completa 1991-01-01 → 2020-12-31 verificada en la corrida 29924088008: **10 958 días, 0 nulos, 247 KB, ~2 s**. **Integrado**: bloque «Vs. climatología» del panel — una petición por punto (redondeado a 0.5°, con caché), percentil calculado en el cliente contra los mismos ±10 días de calendario de los 30 años (~630 muestras, el chip enseña cuántas).
 
 ## 8 · ECMWF Open Data (AWS Open Data) — GRIB2 crudo, vía el robot
 
 - **Uso real y en producción**: `scripts/build_model_data.py` del repo `fenomenos-datos` descarga IFS det (00/06/12/18z) + ENS 51 miembros (~2 GB/corrida, ~600 kB/s por conexión → descarga por paso en 6 hilos) con el cliente oficial `ecmwf-opendata` y publica: mapa mundial pre-proyectado (74°N–60°S, 0.25°, 16 períodos, det+prob) + rejillas JSON regionales. El cliente web **no** decodifica GRIB: consume webp/JSON estáticos (respuesta práctica a la decisión D4 de AUDIT.md).
 - Ciclo del robot: 4×/día (cron 02:50/08:50/14:50/20:50 UTC); `mapa.json.run` lleva la pasada exacta.
+- **Campos extra para el rastreador de ciclones** (verificados en la corrida 29924088008 del sondeo): ENS `param=msl` → **25 MB/paso**, 50 miembros pf de 721×1440 (el tipo `cf` **no existe** en el índice del ENS de datos abiertos: «No index entries for type=cf»); ENS `param=t, levtype=pl, levelist=850` → **28 MB/paso**, 50 miembros pf. El det (`stream=oper`) sí trae `msl` y `t850`.
+
+## 9 · Ciclones tropicales — producto propio `modelos/ecmwf/ciclones.json`
+
+- **Entrada**: solo rejillas del ENS/HRES de ECMWF ya descargadas por el robot (10u, 10v, msl, t850). Ningún dato de otro modelo ni de agencias.
+- **Método (publicado en el propio JSON, campo `criteria`)**: mínimo de presión **cerrado** (profundidad ≥2 hPa frente al entorno de 14°), vorticidad relativa ciclónica a 10 m ≥3·10⁻⁵ s⁻¹, núcleo cálido en 850 hPa ≥0.5 K, banda |lat|≤40°, enlace entre pasos de 6 h a ≤450 km, sistemas con ≥3 miembros o señal HRES. Detector validado con vórtices sintéticos en ambos hemisferios (posición exacta, cero falsos positivos en campo plano).
+- **Salida**: sistemas (cuenca, génesis, nº de miembros y %, máx. mediano en kt, escenarios de rumbo), trayectorias por miembro (`ens`), trayectoria HRES (`det`), y prob. de impacto 34/64 kt en webp (centro a <120 km, sobre rejilla de 0.5°).
+- **En la UI**: espaguetis + trayectoria HRES en el mapa, bloque «Ciclones tropicales» en el panel con el descargo permanente «NO es un aviso oficial» y enlace al RSMC de la cuenca. Producto con >12 h se retira (nunca trayectorias viejas como actuales).
+- **Enlaces RSMC verificados en vivo** (corrida 29924088008, todos HTTP 200): NHC `nhc.noaa.gov`, JMA `jma.go.jp/bosai/map.html`, IMD `rsmcnewdelhi.imd.gov.in`, Météo-France Reunión `meteofrance.re/fr`, BoM `bom.gov.au/cyclone/`, FMS `met.gov.fj`, MetService NZ `metservice.com/warnings/home`.
+- **Las categorías son «equivalentes»**: se derivan del viento máximo a 10 m del modelo (kt brutos); los avisos reales usan promedios de 1/10 min y análisis humano — por eso la UI rotula siempre «equivalente (viento bruto del modelo)».
 
 ## Límites y atribución
 

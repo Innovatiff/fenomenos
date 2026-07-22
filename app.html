@@ -184,11 +184,16 @@
               Probabilidades · <span id="eps-title">EPS de ECMWF</span>
             </p>
             <p class="eps-head" id="eps-head">—</p>
+            <div class="seg seg--tight eps-fanvars" id="eps-fanvar" role="tablist">
+              <button class="seg__btn is-active" data-value="temp">Temperatura</button>
+              <button class="seg__btn" data-value="rain">Lluvia</button>
+              <button class="seg__btn" data-value="gusts">Ráfagas</button>
+            </div>
             <canvas
               class="eps-fan"
               id="eps-fan"
               height="180"
-              aria-label="Abanico de percentiles de temperatura de los 51 escenarios"
+              aria-label="Abanico de percentiles de los 51 escenarios"
             ></canvas>
             <div class="eps-legendrow" id="eps-legend" hidden>
               <span><i class="eps-sw eps-sw--b1"></i> p10–p90</span>
@@ -198,6 +203,40 @@
             </div>
             <div id="eps-thresholds"></div>
             <p class="eps-note" id="eps-note" hidden></p>
+          </section>
+
+          <!-- Anomalía frente a la climatología ERA5 (¿qué tan raro es
+               este pronóstico para esta fecha en este lugar?) -->
+          <section class="panel-block" id="climo-block" hidden>
+            <p class="panel-block__title">
+              <ion-icon name="analytics-outline"></ion-icon>
+              Vs. climatología · ERA5 1991–2020
+            </p>
+            <div class="eps-chips" id="climo-chips"></div>
+            <p class="eps-note" id="climo-note" hidden></p>
+          </section>
+
+          <!-- Ciclones tropicales del ENS de ECMWF: trayectorias por miembro
+               detectadas por nuestro rastreador (criterios publicados en
+               ciclones.json). NUNCA es un aviso oficial. -->
+          <section class="panel-block" id="tc-block" hidden>
+            <p class="panel-block__title">
+              <ion-icon name="warning-outline"></ion-icon>
+              Ciclones tropicales · ENS de ECMWF
+            </p>
+            <p class="eps-head" id="tc-head">—</p>
+            <div id="tc-list"></div>
+            <div class="seg seg--tight eps-fanvars" id="tc-strike" hidden>
+              <button class="seg__btn is-active" data-value="off">Sin prob.</button>
+              <button class="seg__btn" data-value="img34">Prob. ≥34 kt</button>
+              <button class="seg__btn" data-value="img64">Prob. ≥64 kt</button>
+            </div>
+            <p class="tc-warn">
+              Trayectorias del modelo ECMWF — <strong>NO es un aviso
+              oficial</strong>. Consulta siempre a tu servicio meteorológico
+              nacional.
+            </p>
+            <p class="eps-note" id="tc-note" hidden></p>
           </section>
 
           <p class="panel-note">

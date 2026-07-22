@@ -273,6 +273,7 @@ async function loadWeather(lat, lon, label) {
       aifsSel ? "ECMWF AIFS (IA)" : "ECMWF IFS"
     );
     loadEps(lat, lon);
+    renderClimo(data, lat, lon);
   } catch (err) {
     if (err && err.name === "AbortError") return;
     $("now-updated").textContent = "No se pudo cargar el pronóstico.";
@@ -467,7 +468,14 @@ async function provRender(modelId, label) {
    ECMWF que superan un umbral, y el conteo (N/51) se muestra al lado para
    que cualquiera pueda verificarlo. Nada de probabilidades de caja negra. */
 
-const eps = { key: null, abort: null, data: null };
+const eps = { key: null, abort: null, data: null, fanVar: "temp" };
+
+/* variables disponibles en el abanico de percentiles */
+const EPS_FAN_VARS = {
+  temp: { base: "temperature_2m", unit: "°" },
+  rain: { base: "precipitation", unit: " mm/h" },
+  gusts: { base: "wind_gusts_10m", unit: " km/h" },
+};
 
 function epsSeries(base) {
   const h = (eps.data && eps.data.hourly) || {};
@@ -644,7 +652,7 @@ function epsRender() {
     cb.dataset.level = conf || "";
   }
 
-  epsDrawFan(times, temps, fan);
+  epsDrawCurrentFan();
   $("eps-legend").hidden = false;
 
   /* ── tablas de umbral con conteos reproducibles ── */
@@ -715,8 +723,18 @@ function epsRender() {
   window.__fdcEpsCalc = { members: N, sdMean, conf, days };
 }
 
+/* abanico de la variable elegida (temperatura / lluvia / ráfagas) */
+function epsDrawCurrentFan() {
+  if (!eps.data) return;
+  const cfgF = EPS_FAN_VARS[eps.fanVar] || EPS_FAN_VARS.temp;
+  const members = epsSeries(cfgF.base);
+  const times = (eps.data.hourly && eps.data.hourly.time) || [];
+  if (!members.length || !times.length) return;
+  epsDrawFan(times, members, epsFanData(members), cfgF.unit);
+}
+
 /* abanico de percentiles + espagueti de todos los miembros */
-function epsDrawFan(times, members, fan) {
+function epsDrawFan(times, members, fan, unit = "°") {
   const cv = $("eps-fan");
   if (!cv || !cv.getContext) return;
   const dpr = window.devicePixelRatio || 1;
@@ -782,11 +800,399 @@ function epsDrawFan(times, members, fan) {
   ctx.lineWidth = 1.6;
   ctx.stroke();
 
-  /* eje: mín y máx */
+  /* eje: mín y máx (en la unidad de la variable) */
   ctx.fillStyle = "rgba(196,208,240,0.7)";
-  ctx.fillText(`${Math.round(hi - pad)}°`, 4, 14);
-  ctx.fillText(`${Math.round(lo + pad)}°`, 4, H - 20);
+  ctx.fillText(`${Math.round(hi - pad)}${unit}`, 4, 14);
+  ctx.fillText(`${Math.round(lo + pad)}${unit}`, 4, H - 20);
 }
+
+/* ═══════  3a-quater. ANOMALÍA VS CLIMATOLOGÍA (ERA5 1991–2020)  ══════════
+   ¿Qué tan raro es este pronóstico para esta fecha en este lugar? Se baja
+   UNA vez por punto la serie diaria ERA5 de 30 años (verificado: una sola
+   petición) y el percentil se calcula aquí, contra los mismos ±10 días de
+   calendario de esos 30 años (~630 muestras). */
+
+const climoCache = new Map(); /* "lat|lon" → {byDay: Map("MM-DD"→{tmax[],psum[]})} */
+
+async function loadClimo(lat, lon) {
+  const key = `${(Math.round(lat * 2) / 2).toFixed(1)}|${(Math.round(lon * 2) / 2).toFixed(1)}`;
+  if (climoCache.has(key)) return climoCache.get(key);
+  const params = new URLSearchParams({
+    latitude: lat.toFixed(4),
+    longitude: lon.toFixed(4),
+    start_date: "1991-01-01",
+    end_date: "2020-12-31",
+    daily: "temperature_2m_max,precipitation_sum",
+    timezone: "auto",
+    models: "era5",
+  });
+  const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const d = await res.json();
+  const t = (d.daily && d.daily.time) || [];
+  const tmax = d.daily.temperature_2m_max || [];
+  const psum = d.daily.precipitation_sum || [];
+  const byDay = new Map();
+  for (let i = 0; i < t.length; i++) {
+    const md = t[i].slice(5); /* "MM-DD" */
+    let e = byDay.get(md);
+    if (!e) {
+      e = { tmax: [], psum: [] };
+      byDay.set(md, e);
+    }
+    if (tmax[i] != null) e.tmax.push(tmax[i]);
+    if (psum[i] != null) e.psum.push(psum[i]);
+  }
+  const entry = { byDay };
+  climoCache.set(key, entry);
+  return entry;
+}
+
+/* muestra climatológica: mismos ±window días de calendario, 30 años */
+function climoSample(byDay, isoDate, field, windowDays = 10) {
+  const base = new Date(`${isoDate}T12:00:00Z`);
+  const out = [];
+  for (let k = -windowDays; k <= windowDays; k++) {
+    const d = new Date(base.getTime() + k * 86400000);
+    const md = `${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    const e = byDay.get(md);
+    if (e) out.push(...e[field]);
+  }
+  return out.sort((a, b) => a - b);
+}
+
+function pctRank(sortedSample, v) {
+  if (!sortedSample.length || v == null) return null;
+  let below = 0;
+  for (const x of sortedSample) if (x < v) below++;
+  return Math.round((100 * below) / sortedSample.length);
+}
+
+function climoTag(p) {
+  if (p == null) return "";
+  if (p >= 98 || p <= 2) return " · excepcional";
+  if (p >= 90 || p <= 10) return " · inusual";
+  return "";
+}
+
+/* el pronóstico diario llega en la unidad del usuario; ERA5 se pide en °C:
+   se normaliza a °C para comparar peras con peras */
+function toC(v) {
+  return settings.tempUnit === "fahrenheit" ? ((v - 32) * 5) / 9 : v;
+}
+
+let climoSeq = 0;
+async function renderClimo(data, lat, lon) {
+  const block = $("climo-block");
+  if (!block) return;
+  const seq = ++climoSeq;
+  const daily = data.daily || {};
+  const days = daily.time || [];
+  if (!days.length) {
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  $("climo-chips").innerHTML = `<div class="eps-chip"><strong>…</strong><span>calculando</span></div>`;
+  let cl;
+  try {
+    cl = await loadClimo(lat, lon);
+  } catch (_) {
+    if (seq !== climoSeq) return;
+    $("climo-chips").innerHTML = "";
+    $("climo-note").hidden = false;
+    $("climo-note").textContent = "Sin climatología disponible ahora mismo (ERA5 no respondió).";
+    return;
+  }
+  if (seq !== climoSeq) return; /* ya se pidió otro punto */
+
+  const chips = [];
+  const labels = ["hoy", "mañana"];
+  for (let i = 0; i < 2 && i < days.length; i++) {
+    const tS = climoSample(cl.byDay, days[i], "tmax");
+    const pT = pctRank(tS, toC(daily.temperature_2m_max?.[i]));
+    if (pT != null)
+      chips.push(
+        `<div class="eps-chip" title="frente a ${tS.length} días de 1991-2020 (±10 días de calendario)"><strong>p${pT}</strong><span>máx. ${labels[i]}${climoTag(pT)}</span><small>${tS.length} muestras</small></div>`
+      );
+    const pS = climoSample(cl.byDay, days[i], "psum");
+    const pP = pctRank(pS, daily.precipitation_sum?.[i]);
+    if (pP != null && (daily.precipitation_sum?.[i] ?? 0) > 0)
+      chips.push(
+        `<div class="eps-chip" title="frente a ${pS.length} días de 1991-2020"><strong>p${pP}</strong><span>lluvia ${labels[i]}${climoTag(pP)}</span><small>${pS.length} muestras</small></div>`
+      );
+  }
+  $("climo-chips").innerHTML = chips.join("") || "";
+  const note = $("climo-note");
+  note.hidden = false;
+  note.textContent = chips.length
+    ? "Percentil del pronóstico ECMWF frente a los mismos ±10 días de calendario en ERA5 1991–2020 (reanálisis de ECMWF). ≥p90 inusual · ≥p98 excepcional para la fecha y el lugar."
+    : "Sin valores comparables hoy (p. ej. lluvia pronosticada 0 mm).";
+}
+
+/* ═══════════  3a-quinquies. CICLONES TROPICALES (ENS de ECMWF)  ══════════
+   Trayectorias por miembro detectadas por el rastreador del robot
+   (mínimo cerrado + vorticidad + núcleo cálido; criterios publicados en
+   ciclones.json). Espaguetis en el mapa + resumen por sistema en el
+   panel. NUNCA se presenta como aviso oficial. */
+
+const TC_BASINS = {
+  atl: { name: "Atlántico", scale: "ss", rsmc: "NHC (EE. UU.)", url: "https://www.nhc.noaa.gov/" },
+  epac: { name: "Pacífico este", scale: "ss", rsmc: "NHC (EE. UU.)", url: "https://www.nhc.noaa.gov/" },
+  wpac: { name: "Pacífico oeste", scale: "jma", rsmc: "JMA (Japón)", url: "https://www.jma.go.jp/bosai/map.html" },
+  nio: { name: "Índico norte", scale: "imd", rsmc: "IMD (India)", url: "https://rsmcnewdelhi.imd.gov.in/" },
+  sio: { name: "Índico sur", scale: "mfr", rsmc: "Météo-France La Réunion", url: "https://meteofrance.re/fr" },
+  aus: { name: "Región australiana", scale: "bom", rsmc: "BoM (Australia)", url: "http://www.bom.gov.au/cyclone/" },
+  spac: { name: "Pacífico sur", scale: "bom", rsmc: "FMS (Fiyi)", url: "https://www.met.gov.fj/" },
+};
+
+/* categoría EQUIVALENTE según la escala de la cuenca, a partir del viento
+   máximo a 10 m del modelo (kt). Los avisos reales usan promedios de 1 ó
+   10 min y análisis humanos: por eso siempre se rotula "equivalente". */
+function tcScaleLabel(scaleId, kt) {
+  if (scaleId === "ss") {
+    if (kt >= 137) return "huracán cat. 5 (Saffir-Simpson)";
+    if (kt >= 113) return "huracán cat. 4 (Saffir-Simpson)";
+    if (kt >= 96) return "huracán cat. 3 (Saffir-Simpson)";
+    if (kt >= 83) return "huracán cat. 2 (Saffir-Simpson)";
+    if (kt >= 64) return "huracán cat. 1 (Saffir-Simpson)";
+    if (kt >= 34) return "tormenta tropical";
+    return "depresión tropical";
+  }
+  if (scaleId === "jma") {
+    if (kt >= 64) return "tifón (escala JMA)";
+    if (kt >= 48) return "tormenta tropical severa (JMA)";
+    if (kt >= 34) return "tormenta tropical (JMA)";
+    return "depresión tropical (JMA)";
+  }
+  if (scaleId === "imd") {
+    if (kt >= 120) return "supertormenta ciclónica (IMD)";
+    if (kt >= 90) return "torm. ciclónica extrem. severa (IMD)";
+    if (kt >= 64) return "torm. ciclónica muy severa (IMD)";
+    if (kt >= 48) return "tormenta ciclónica severa (IMD)";
+    if (kt >= 34) return "tormenta ciclónica (IMD)";
+    return "depresión (IMD)";
+  }
+  if (scaleId === "mfr") {
+    if (kt >= 115) return "ciclón muy intenso (RSMC Reunión)";
+    if (kt >= 90) return "ciclón intenso (RSMC Reunión)";
+    if (kt >= 64) return "ciclón tropical (RSMC Reunión)";
+    if (kt >= 48) return "torm. tropical fuerte (Reunión)";
+    if (kt >= 34) return "torm. tropical moderada (Reunión)";
+    return "depresión tropical";
+  }
+  /* escala australiana (BoM/FMS) */
+  if (kt >= 108) return "ciclón cat. 5 (escala australiana)";
+  if (kt >= 86) return "ciclón cat. 4 (escala australiana)";
+  if (kt >= 64) return "ciclón cat. 3 (escala australiana)";
+  if (kt >= 48) return "ciclón cat. 2 (escala australiana)";
+  if (kt >= 34) return "ciclón cat. 1 (escala australiana)";
+  return "baja tropical";
+}
+
+const tc = { data: null, strike: "off" };
+
+async function loadCiclones() {
+  try {
+    const res = await fetch(`${STATIC_BASE}/ecmwf/ciclones.json`, { cache: "no-cache" });
+    if (!res.ok) return (tc.data = null);
+    const d = await res.json();
+    /* el producto sale con cada pasada (cada ~6 h); con más de 12 h se
+       considera caído y se retira — nunca trayectorias viejas como nuevas */
+    if (!d || Date.now() / 1000 - (d.generated || 0) > 12 * 3600) return (tc.data = null);
+    tc.data = d;
+  } catch (_) {
+    tc.data = null;
+  }
+}
+
+/* asa de pruebas: recarga y repinta el producto de ciclones */
+window.__fdcLoadCiclones = async () => {
+  await loadCiclones();
+  tcApply();
+  tcRender();
+};
+
+function tcInitLayers() {
+  if (!map.addSource) return;
+  try {
+    const empty = { type: "FeatureCollection", features: [] };
+    map.addSource("tc-ens", { type: "geojson", data: empty });
+    map.addSource("tc-det", { type: "geojson", data: empty });
+    map.addLayer(
+      {
+        id: "tc-ens-lines",
+        type: "line",
+        source: "tc-ens",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-width": 1, "line-color": "rgba(255,255,255,0.18)" },
+      },
+      labelsAnchor
+    );
+    map.addLayer(
+      {
+        id: "tc-det-line",
+        type: "line",
+        source: "tc-det",
+        filter: ["==", ["geometry-type"], "LineString"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: { "line-width": 2.6, "line-color": "#ffd75e" },
+      },
+      labelsAnchor
+    );
+    map.addLayer(
+      {
+        id: "tc-det-point",
+        type: "circle",
+        source: "tc-det",
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-radius": 4.5,
+          "circle-color": "#ffd75e",
+          "circle-stroke-width": 1.5,
+          "circle-stroke-color": "#1b2432",
+        },
+      },
+      labelsAnchor
+    );
+  } catch (_) {}
+}
+
+/* pts: [h, lat, lon, presión, kt] → coordenadas [lon, lat] */
+function tcLine(pts, props) {
+  return {
+    type: "Feature",
+    properties: props || {},
+    geometry: { type: "LineString", coordinates: pts.map((p) => [p[2], p[1]]) },
+  };
+}
+
+function tcApply() {
+  if (!map || !map.getSource) return;
+  const sEns = map.getSource("tc-ens");
+  const sDet = map.getSource("tc-det");
+  if (!sEns || !sDet) return;
+  const d = tc.data;
+  const ensF = [];
+  const detF = [];
+  if (d) {
+    for (const tr of d.ens || []) if (tr.pts?.length > 1) ensF.push(tcLine(tr.pts, { sys: tr.sys }));
+    for (const tr of d.det || []) {
+      if (!tr.pts?.length) continue;
+      if (tr.pts.length > 1) detF.push(tcLine(tr.pts, { sys: tr.sys }));
+      const last = tr.pts[tr.pts.length - 1];
+      detF.push({
+        type: "Feature",
+        properties: { sys: tr.sys },
+        geometry: { type: "Point", coordinates: [last[2], last[1]] },
+      });
+    }
+  }
+  sEns.setData({ type: "FeatureCollection", features: ensF });
+  sDet.setData({ type: "FeatureCollection", features: detF });
+  tcStrikeApply();
+}
+
+/* superposición de probabilidad de impacto (webp del robot) */
+function tcStrikeApply() {
+  const d = tc.data;
+  const rel = d && tc.strike !== "off" ? d.strike?.[tc.strike] : null;
+  const src = map.getSource && map.getSource("tc-strike-src");
+  if (!rel) {
+    try {
+      if (map.getLayer && map.getLayer("tc-strike-layer")) map.removeLayer("tc-strike-layer");
+      if (src) map.removeSource("tc-strike-src");
+    } catch (_) {}
+    return;
+  }
+  const b = d.strike.bbox;
+  const coords = [
+    [b.west, b.north],
+    [b.east, b.north],
+    [b.east, b.south],
+    [b.west, b.south],
+  ];
+  const url = `${STATIC_BASE}/ecmwf/${rel}`;
+  if (src && src.updateImage) {
+    src.updateImage({ url, coordinates: coords });
+  } else {
+    try {
+      map.addSource("tc-strike-src", { type: "image", url, coordinates: coords });
+      map.addLayer(
+        {
+          id: "tc-strike-layer",
+          type: "raster",
+          source: "tc-strike-src",
+          paint: { "raster-opacity": 0.6, "raster-fade-duration": 0 },
+        },
+        "tc-ens-lines"
+      );
+    } catch (_) {}
+  }
+}
+
+function tcRender() {
+  const block = $("tc-block");
+  if (!block) return;
+  const d = tc.data;
+  if (!d) {
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  const run = d.run
+    ? `pasada ${d.run.slice(8)}z (${d.run.slice(6, 8)}/${d.run.slice(4, 6)})`
+    : "";
+  $("tc-head").textContent = d.sistemas?.length
+    ? `${d.sistemas.length} sistema${d.sistemas.length > 1 ? "s" : ""} · ${d.members} escenarios del ENS · ${run}`
+    : `El ENS de ECMWF (${d.members} escenarios) no señala ciclones tropicales ahora · ${run}`;
+
+  const items = [];
+  for (const s of d.sistemas || []) {
+    const b = TC_BASINS[s.basin] || TC_BASINS.atl;
+    const esc = s.escenarios
+      ? `<span class="tc-esc">rumbos: ${s.escenarios.map((e) => `${e.n} al ${e.rumbo}`).join(" · ")}</span>`
+      : "";
+    items.push(
+      `<div class="tc-sys" data-lat="${s.genesis[0]}" data-lon="${s.genesis[1]}" role="button" tabindex="0">
+        <div class="tc-sys__top"><strong>Sistema ${s.id} · ${b.name}</strong>
+          <span>${s.members}/${d.members} escenarios (${s.pct} %)${s.det ? " · HRES lo ve" : ""}</span></div>
+        <div class="tc-sys__mid">Máx. mediano ${s.max_kt_med} kt · equivalente
+          ${tcScaleLabel(b.scale, s.max_kt_med)} <em>(viento bruto del modelo)</em></div>
+        ${esc}
+        <a href="${b.url}" target="_blank" rel="noopener">Avisos oficiales: ${b.rsmc} ↗</a>
+      </div>`
+    );
+  }
+  $("tc-list").innerHTML = items.join("");
+  for (const el of document.querySelectorAll("#tc-list .tc-sys")) {
+    el.addEventListener("click", (ev) => {
+      if (ev.target.closest("a")) return;
+      const la = parseFloat(el.dataset.lat);
+      const lo = parseFloat(el.dataset.lon);
+      if (map && isFinite(la)) map.flyTo({ center: [lo, la], zoom: 4.2 });
+    });
+  }
+  const seg = $("tc-strike");
+  const hasStrike = !!(d.strike && (d.strike.img34 || d.strike.img64));
+  seg.hidden = !hasStrike || !(d.sistemas || []).length;
+  const note = $("tc-note");
+  note.hidden = false;
+  const c = d.criteria || {};
+  note.textContent =
+    `Rastreador propio sobre las rejillas del ENS: mínimo de presión cerrado (≥${c.min_cerrado_hPa ?? 2} hPa), ` +
+    `vorticidad ciclónica a 10 m y núcleo cálido en 850 hPa (≥${c.nucleo_calido_850_K ?? 0.5} K). ` +
+    `Sistemas con ≥${c.min_miembros_sistema ?? 3} escenarios o señal HRES.`;
+}
+
+document.addEventListener("click", (ev) => {
+  const btn = ev.target.closest && ev.target.closest("#tc-strike .seg__btn");
+  if (!btn) return;
+  for (const b of document.querySelectorAll("#tc-strike .seg__btn"))
+    b.classList.toggle("is-active", b === btn);
+  tc.strike = btn.dataset.value;
+  tcStrikeApply();
+});
 
 /* ═══════════════  3b. RIESGOS Y ADVERTENCIAS SEVERAS  ═══════════════════
    Evaluación de tiempo peligroso para el punto activo en las próximas
@@ -1255,8 +1661,17 @@ async function refreshOwnData() {
   try {
     /* frentes: lo único vivo del bloque de datos observacionales; el
        resto (GOES/MRMS/mosaico) duerme hasta la decisión de Fase 2 */
-    await loadFronts();
-    frontsApply();
+    try {
+      await loadFronts();
+      frontsApply();
+    } catch (_) {}
+    /* ciclones tropicales del ENS (producto de cada pasada); un fallo de
+       un producto no debe bloquear al otro */
+    try {
+      await loadCiclones();
+      tcApply();
+      tcRender();
+    } catch (_) {}
     if (ownFrameFailed.size > 400) ownFrameFailed.clear();
   } finally {
     ownRefreshBusy = false;
@@ -1373,6 +1788,8 @@ async function initMap() {
   );
   satBaseAnchor = satAnchor ? satAnchor.id : labelsAnchor;
   frontsInitLayers();
+  tcInitLayers();
+  tcApply();
 
   $("map-credit").hidden = false;
 
@@ -1430,6 +1847,10 @@ async function initMap() {
   await loadFronts();
   setLayer(settings.layer, { silent: true });
   frontsApply();
+  /* ciclones tropicales del ENS: producto propio de cada pasada */
+  await loadCiclones();
+  tcApply();
+  tcRender();
 
   /* con la pestaña abierta mucho rato, las metas caducan: refresco cada
      5 min para que los frentes sigan siempre al día */
@@ -3445,6 +3866,15 @@ function euroStepMax() {
     return m.times.length - 1;
   return euro.data ? euro.data.times.length - 1 : 0;
 }
+
+/* variable del abanico EPS */
+document.querySelectorAll("#eps-fanvar .seg__btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setSegValue("eps-fanvar", btn.dataset.value);
+    eps.fanVar = btn.dataset.value;
+    epsDrawCurrentFan();
+  });
+});
 
 $("euro-slider").addEventListener("input", (e) => {
   euro.step = Number(e.target.value);
