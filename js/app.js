@@ -80,6 +80,8 @@ const DEFAULT_SETTINGS = {
   windUnit: "kmh",
   layer: "radar",
   fronts: true,
+  globe: true /* proyección globo (MapLibre v5); false = Mercator plano */,
+  isobars: false /* isobaras del MSLP del HRES sobre el modelo */,
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -101,8 +103,10 @@ function normalizeSettings(data) {
     if (COUNTRIES[data.country]) out.country = data.country;
     if (data.tempUnit === "fahrenheit") out.tempUnit = "fahrenheit";
     if (data.windUnit === "mph") out.windUnit = "mph";
-    if (["radar", "satellite", "none"].includes(data.layer)) out.layer = data.layer;
+    if (["radar", "satellite", "clouds", "none"].includes(data.layer)) out.layer = data.layer;
     if (data.fronts === false) out.fronts = false;
+    if (data.globe === false) out.globe = false;
+    if (data.isobars === true) out.isobars = true;
   }
   return out;
 }
@@ -1675,6 +1679,25 @@ async function refreshOwnData() {
       tcApply();
       tcRender();
     } catch (_) {}
+    /* capa Nubes activa: engancha los fotogramas nuevos sin cortar nada */
+    try {
+      if (activeKind === "clouds" && weatherLayer === "obs") {
+        const wasPlaying = playing;
+        await Promise.all([loadWorldSat(), loadGoes()]);
+        const base = goesData ? goesData.frames : worldSat ? worldSat.ir : [];
+        if (base.length && activeKind === "clouds") {
+          const atEnd = frameIndex >= frames.length - 1;
+          frames = base;
+          frameIndex = atEnd ? frames.length - 1 : Math.min(frameIndex, frames.length - 1);
+          const os = $("obs-slider");
+          if (os) os.max = String(frames.length - 1);
+          if (!wasPlaying) {
+            satShow(frames[frameIndex]);
+            paintFrameLabel();
+          }
+        }
+      }
+    } catch (_) {}
     if (ownFrameFailed.size > 400) ownFrameFailed.clear();
   } finally {
     ownRefreshBusy = false;
@@ -1732,6 +1755,32 @@ function glZoom(z) {
 let labelsAnchor; /* primera capa de rótulos del estilo base */
 let weatherAnchor; /* capa base de los frentes: el tiempo se pinta debajo */
 
+/* ── proyección: globo (v5) o Mercator plano, a elección del usuario ──
+   En globo no hay copias del mundo ni bordes: se quitan los límites de
+   arrastre. En Mercator vuelven los límites un pelo por dentro de ±180°
+   (el mundo completo exacto hacía fallar el constreñimiento interno). */
+function projectionApply() {
+  if (!map) return;
+  const globo = settings.globe !== false;
+  try {
+    if (map.setProjection) map.setProjection({ type: globo ? "globe" : "mercator" });
+    if (map.setMaxBounds) {
+      map.setMaxBounds(
+        globo
+          ? null
+          : [
+              [-179.9, -80],
+              [179.9, 84],
+            ]
+      );
+    }
+  } catch (_) {
+    /* si el navegador/versión no lo soporta, el mapa sigue vivo plano */
+  }
+  const btn = $("globe-btn");
+  if (btn) btn.classList.toggle("is-active", globo);
+}
+
 async function initMap() {
   if (map) return; /* reintento con el mapa ya vivo: nada que hacer */
   const gl = await waitForMapLib();
@@ -1762,16 +1811,7 @@ async function initMap() {
   });
   if (map.touchZoomRotate && map.touchZoomRotate.disableRotation)
     map.touchZoomRotate.disableRotation();
-  /* bordes de arrastre: un pelo por dentro de ±180°/±85° — el mundo
-     completo exacto hace fallar el constreñimiento interno de MapLibre */
-  try {
-    map.setMaxBounds([
-      [-179.9, -80],
-      [179.9, 84],
-    ]);
-  } catch (_) {
-    /* si algún navegador no lo soporta, el mapa sigue vivo sin límites */
-  }
+  projectionApply();
   window.__fdcMap = map; /* para depurar */
   map.addControl(new gl.NavigationControl({ showCompass: false }), "top-left");
   map.addControl(new gl.ScaleControl({ unit: "metric" }), "bottom-left");
@@ -1793,6 +1833,8 @@ async function initMap() {
   frontsInitLayers();
   tcInitLayers();
   tcApply();
+  /* el estilo puede traer su propia proyección: se re-aplica la elegida */
+  projectionApply();
 
   $("map-credit").hidden = false;
 
@@ -2286,11 +2328,49 @@ function setLayer(kind, { silent = false } = {}) {
   /* con Satélite el suelo es imagen real de alta resolución */
   satBaseShow(kind === "satellite");
 
-  /* Radar = mapa cartográfico · Satélite = imagen real: en ambos el
-     protagonista es SOLO el modelo ECMWF, sin nubes ni radar encima.
+  /* Mapa = cartográfico · Satélite = imagen real: en ambos el protagonista
+     es SOLO el modelo ECMWF. «Nubes» es OBSERVACIÓN pura: satélite
+     GOES/mosaico mundial real, sin modelo encima (y así se rotula).
      "Sin capa" deja el mapa limpio. */
   euroSetActive(kind === "radar" || kind === "satellite", { silent });
-  $("playbar").classList.remove("is-visible");
+  if (kind === "clouds") cloudsEnable();
+  else $("playbar").classList.remove("is-visible");
+}
+
+/* ═══ capa «Nubes»: satélite OBSERVACIONAL (decisión Fase 2 del dueño) ═══
+   Mosaico mundial GMGSI (horario, ±72°) debajo y GOES-19 (cada 10 min,
+   América) encima. Es observación de NOAA — no es el modelo ECMWF y por
+   eso vive en su propia capa, sin mezclarse con el pronóstico. */
+async function cloudsEnable() {
+  await Promise.all([loadWorldSat(), loadGoes()]);
+  if (activeKind !== "clouds") return; /* el usuario ya cambió de capa */
+  const base = goesData ? goesData.frames : worldSat ? worldSat.ir : [];
+  if (!base.length) {
+    frames = [];
+    weatherLayer = null;
+    $("frame-time").textContent = "sin datos";
+    $("frame-kind").textContent = "Satélite (obs)";
+    $("playbar").classList.add("is-visible");
+    const os = $("obs-slider");
+    if (os) os.hidden = true;
+    return;
+  }
+  frames = base;
+  weatherLayer = "obs";
+  satMode = "goes"; /* stepFrame reutiliza el camino GOES+mundo */
+  frameIndex = frames.length - 1; /* arranca en lo más reciente */
+  satShow(frames[frameIndex]);
+  $("frame-kind").textContent = goesData
+    ? "GOES-19 + mosaico IR (obs)"
+    : "Mosaico mundial IR (obs)";
+  paintFrameLabel();
+  const os = $("obs-slider");
+  if (os) {
+    os.hidden = false;
+    os.max = String(frames.length - 1);
+    os.value = String(frameIndex);
+  }
+  $("playbar").classList.add("is-visible");
 }
 
 function paintFrameLabel() {
@@ -2299,6 +2379,8 @@ function paintFrameLabel() {
   const date = new Date(frame.time * 1000);
   const isFuture = frame.time * 1000 > Date.now();
   $("frame-time").textContent = `${fmtClock(date)}${isFuture ? " (pronóstico)" : ""}`;
+  const os = $("obs-slider");
+  if (os && !os.hidden) os.value = String(frameIndex);
 }
 
 function stepFrame() {
@@ -2447,6 +2529,34 @@ const EURO_VARS = {
     ],
     detTicks: [2, 25, 60, 100],
   },
+  /* Temperatura a 2 m: campo continuo, solo determinista (un umbral de
+     probabilidad no significa nada útil aquí). Las imágenes mundiales
+     vienen del robot en °C; la rampa es la misma de allá. */
+  temp: {
+    hourly: "temperature_2m",
+    agg: "max",
+    unit: "°C",
+    threshold: null,
+    detTitle: "Temperatura a 2 m (máx. del período, °C)",
+    detShort: "Temp.",
+    detStops: [
+      [-40, [130, 60, 180, 215]],
+      [-30, [90, 70, 200, 215]],
+      [-20, [60, 110, 230, 215]],
+      [-10, [70, 160, 240, 215]],
+      [0, [90, 200, 220, 215]],
+      [5, [80, 210, 160, 215]],
+      [10, [110, 220, 110, 215]],
+      [15, [180, 230, 90, 215]],
+      [20, [235, 225, 80, 215]],
+      [25, [250, 180, 60, 215]],
+      [30, [250, 120, 50, 215]],
+      [35, [235, 60, 45, 215]],
+      [40, [180, 30, 60, 215]],
+      [45, [120, 20, 60, 215]],
+    ],
+    detTicks: [-20, 0, 20, 40],
+  },
   /* Calidad del aire: índice AQI de EE. UU. del CAMS (Copernicus).
      No es un modelo meteorológico con ensemble: solo modo determinista. */
   air: {
@@ -2469,6 +2579,11 @@ const EURO_VARS = {
     detTicks: [50, 100, 150, 200, 300],
   },
 };
+
+/* variables SIN ensemble (siempre deterministas): aire y temperatura */
+function euroDetOnly(v) {
+  return v === "air" || v === "temp";
+}
 
 const euro = {
   on: false,
@@ -2530,8 +2645,9 @@ function euroCovered(reqGrid) {
   const d = euro.data;
   if (!d || !d.at || Date.now() - d.at > EURO_CACHE_TTL) return false;
   const isAir = euro.variable === "air";
+  const effMode = euroDetOnly(euro.variable) ? "det" : euro.mode;
   if (d.variable !== euro.variable) return false;
-  if (!isAir && (d.mode !== euro.mode || d.model !== euro.model)) return false;
+  if (!isAir && (d.mode !== effMode || d.model !== euro.model)) return false;
   if (d.grid.sp > reqGrid.sp * 1.7) return false; /* muy grueso para este zoom */
   const h = d.grid.sp / 2;
   const dN = d.grid.lats[0] + h;
@@ -2678,11 +2794,12 @@ async function fetchDetBundle(modelKey, grid, signal) {
   const params = new URLSearchParams({
     latitude: latQ.join(","),
     longitude: lonQ.join(","),
-    hourly: "wind_speed_10m,wind_gusts_10m,precipitation,wind_direction_10m",
+    hourly: "wind_speed_10m,wind_gusts_10m,precipitation,wind_direction_10m,temperature_2m",
     forecast_days: String(EURO_DAYS),
     timeformat: "unixtime",
     timezone: "UTC",
     wind_speed_unit: "mph",
+    temperature_unit: "celsius" /* la capa de temperatura va en °C */,
     models: model.det,
   });
   const raw = await euroFetchJson(
@@ -2696,6 +2813,7 @@ async function fetchDetBundle(modelKey, grid, signal) {
     speed: (loc.hourly.wind_speed_10m || []).map(round1),
     gusts: (loc.hourly.wind_gusts_10m || []).map(round1),
     precip: (loc.hourly.precipitation || []).map(round1),
+    temp: (loc.hourly.temperature_2m || []).map(round1),
     dir: (loc.hourly.wind_direction_10m || []).map((v) =>
       v == null ? null : Math.round(v)
     ),
@@ -2703,7 +2821,7 @@ async function fetchDetBundle(modelKey, grid, signal) {
   return { kind: "bundle", grid, times, hourly, model: modelKey, at: Date.now() };
 }
 
-const BUNDLE_VAR = { wind: "speed", gusts: "gusts", rain: "precip" };
+const BUNDLE_VAR = { wind: "speed", gusts: "gusts", rain: "precip", temp: "temp" };
 
 /* campo determinista de una variable, calculado del paquete */
 function deriveDetData(bundle, varKey) {
@@ -2932,6 +3050,7 @@ function euroOverlayRemove() {
   if (map.getLayer(EURO_LAYER)) map.removeLayer(EURO_LAYER);
   if (map.getSource(EURO_SOURCE)) map.removeSource(EURO_SOURCE);
   euro.overlay = null;
+  isoHide();
 }
 
 /* el modelo va DEBAJO de radar/satélite/nubes: acompaña, no tapa */
@@ -2975,6 +3094,109 @@ function euroOverlaySet(url, west, south, east, north) {
   euro.overlay = true;
 }
 
+/* ═══ isobaras del MSLP (GeoJSON por período, generado por el robot) ═══
+   Solo existen para el producto mundial del IFS: se pintan encima del
+   campo de color y debajo de los rótulos, con su valor en hPa. */
+const iso = { cache: new Map(), url: null };
+
+function isoLayersEnsure() {
+  if (!map || !map.getSource || map.getSource("iso-src")) return;
+  try {
+    map.addSource("iso-src", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+    let font = ["Noto Sans Regular"];
+    try {
+      const ls = (map.getStyle() && map.getStyle().layers) || [];
+      const sSym = ls.find(
+        (l) =>
+          l.type === "symbol" &&
+          l.layout &&
+          Array.isArray(l.layout["text-font"]) &&
+          l.layout["text-font"].length
+      );
+      if (sSym) font = sSym.layout["text-font"];
+    } catch (_) {}
+    map.addLayer(
+      {
+        id: "iso-lines",
+        type: "line",
+        source: "iso-src",
+        paint: { "line-color": "rgba(235,240,255,0.55)", "line-width": 1 },
+      },
+      labelsAnchor
+    );
+    map.addLayer(
+      {
+        id: "iso-labels",
+        type: "symbol",
+        source: "iso-src",
+        layout: {
+          "symbol-placement": "line",
+          "text-field": ["to-string", ["get", "p"]],
+          "text-size": 10,
+          "text-font": font,
+          "symbol-spacing": 320,
+        },
+        paint: {
+          "text-color": "#cfd8ef",
+          "text-halo-color": "#0b1017",
+          "text-halo-width": 1.4,
+        },
+      },
+      labelsAnchor
+    );
+  } catch (_) {}
+}
+
+function isoHide() {
+  const src = map && map.getSource && map.getSource("iso-src");
+  if (src && src.setData) src.setData({ type: "FeatureCollection", features: [] });
+  iso.url = null;
+}
+
+async function isoApply(step) {
+  if (!map) return;
+  if (settings.isobars !== true) return isoHide();
+  const m = mapaSrc.data;
+  const files = m && m.isobars;
+  if (!files || !files.length) return isoHide();
+  let idx = Math.max(0, Math.min(step ?? 0, files.length - 1));
+  if (!files[idx]) {
+    for (let k = 1; k < files.length; k++) {
+      if (files[idx - k]) {
+        idx -= k;
+        break;
+      }
+      if (files[idx + k]) {
+        idx += k;
+        break;
+      }
+    }
+  }
+  if (!files[idx]) return isoHide();
+  const url = `${STATIC_BASE}/ecmwf/${files[idx]}`;
+  if (iso.url === url) return;
+  iso.url = url;
+  let gj = iso.cache.get(url);
+  if (!gj) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return isoHide();
+      gj = await res.json();
+      iso.cache.set(url, gj);
+      if (iso.cache.size > 24) iso.cache.delete(iso.cache.keys().next().value);
+    } catch (_) {
+      return isoHide();
+    }
+  }
+  if (iso.url !== url) return; /* el usuario ya movió el período */
+  isoLayersEnsure();
+  const src = map.getSource && map.getSource("iso-src");
+  if (src && src.setData) src.setData(gj);
+}
+
 /* proyección Mercator: latitud → y (y su inversa) */
 function mercY(lat) {
   const r = (Math.max(-85, Math.min(85, lat)) * Math.PI) / 180;
@@ -3015,13 +3237,14 @@ function euroRenderMapa(files, mode) {
   if (!files[idx]) return;
   const b = m.bbox;
   euroOverlaySet(`${STATIC_BASE}/ecmwf/${files[idx]}`, b.west, b.south, b.east, b.north);
+  isoApply(euro.step);
   $("euro-loading").hidden = true;
 
   $("euro-title").textContent = prob ? cfg.probTitle : cfg.detTitle;
   $("euro-sub").textContent = prob
     ? `EPS de ECMWF · ${m.members || 51} escenarios · mundial`
     : "IFS de ECMWF · determinista (0.25°) · mundial";
-  $("euro-mode").style.display = "";
+  $("euro-mode").style.display = euroDetOnly(euro.variable) ? "none" : "";
   const slider = $("euro-slider");
   slider.max = String(m.times.length - 1);
   slider.value = String(euro.step);
@@ -3043,7 +3266,7 @@ function euroRender() {
      SOLO existe para el IFS — con la variante AIFS o la capa de aire se
      sigue el camino clásico (rejilla del robot / API) */
   if (euro.variable !== "air" && euro.model === "ecmwf") {
-    const modeSel = euro.mode;
+    const modeSel = euroDetOnly(euro.variable) ? "det" : euro.mode;
     const files = mapaFrames(modeSel, euro.variable);
     if (files) {
       euroRenderMapa(files, modeSel);
@@ -3051,6 +3274,7 @@ function euroRender() {
     }
   }
   const d = euro.data;
+  isoHide(); /* las isobaras solo existen para el producto mundial del IFS */
   if (!d) return;
   /* siempre según los datos mostrados (si una carga falló, la selección
      de los controles puede ir por delante de lo que hay en pantalla) */
@@ -3139,8 +3363,8 @@ function euroRender() {
     : prob
       ? `${modelCfg.ensName} · ${d.members || modelCfg.fallbackMembers} escenarios`
       : modelCfg.detLabel;
-  /* el aire no tiene ensemble */
-  $("euro-mode").style.display = isAir ? "none" : "";
+  /* aire y temperatura no tienen ensemble */
+  $("euro-mode").style.display = euroDetOnly(euro.variable) ? "none" : "";
   const slider = $("euro-slider");
   slider.max = String(d.times.length - 1);
   slider.value = String(euro.step);
@@ -3333,9 +3557,9 @@ euroCacheLoad();
 
 async function euroRefresh() {
   if (!euro.on || !map) return;
-  /* la calidad del aire no tiene ensemble: siempre es determinista */
+  /* aire y temperatura no tienen ensemble: siempre deterministas */
   const isAir = euro.variable === "air";
-  const mode = isAir ? "det" : euro.mode;
+  const mode = euroDetOnly(euro.variable) ? "det" : euro.mode;
 
   /* mapa mundial en imágenes (solo IFS): cero API y cero cálculo en el
      cliente; la rejilla regional se carga aparte para el popup de valores */
@@ -4156,6 +4380,7 @@ document.addEventListener("keydown", (e) => {
 $("settings-save").addEventListener("click", async () => {
   const before = { ...settings };
   settings = normalizeSettings({
+    ...settings /* conserva claves que este formulario no toca (globo, isobaras) */,
     country: $("set-country").value,
     tempUnit: segValue("set-temp"),
     windUnit: segValue("set-wind"),
@@ -4214,6 +4439,32 @@ $("btn-play").addEventListener("click", () => {
   else startPlayback();
 });
 
+/* slider maestro de la capa Nubes: arrastra entre fotogramas observados */
+$("obs-slider")?.addEventListener("input", (e) => {
+  if (!frames.length || activeKind !== "clouds") return;
+  stopPlayback();
+  frameIndex = Math.max(0, Math.min(frames.length - 1, Number(e.target.value) || 0));
+  satShow(frames[frameIndex]);
+  paintFrameLabel();
+});
+
+/* isobaras del HRES sobre el modelo */
+$("iso-toggle")?.addEventListener("change", (e) => {
+  settings.isobars = !!e.target.checked;
+  persistLocalSettings();
+  saveRemoteSettings(auth.currentUser);
+  if (settings.isobars) isoApply(euro.step ?? 0);
+  else isoHide();
+});
+
+/* proyección globo/plano */
+$("globe-btn")?.addEventListener("click", () => {
+  settings.globe = settings.globe === false;
+  persistLocalSettings();
+  saveRemoteSettings(auth.currentUser);
+  projectionApply();
+});
+
 /* Capas del mapa */
 document.querySelectorAll("#layer-seg .seg__btn").forEach((btn) => {
   btn.addEventListener("click", () => setLayer(btn.dataset.layer));
@@ -4246,6 +4497,9 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   $("app-boot").classList.add("is-hidden");
+
+  const isoT = $("iso-toggle");
+  if (isoT) isoT.checked = settings.isobars === true;
 
   const c = COUNTRIES[settings.country];
   loadWeather(c.lat, c.lon, `${c.place}, ${c.name}`);

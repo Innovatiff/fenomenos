@@ -80,6 +80,19 @@ Perth y McMurdo (−77.85°).
 - **Enlaces RSMC verificados en vivo** (corrida 29924088008, todos HTTP 200): NHC `nhc.noaa.gov`, JMA `jma.go.jp/bosai/map.html`, IMD `rsmcnewdelhi.imd.gov.in`, Météo-France Reunión `meteofrance.re/fr`, BoM `bom.gov.au/cyclone/`, FMS `met.gov.fj`, MetService NZ `metservice.com/warnings/home`.
 - **Las categorías son «equivalentes»**: se derivan del viento máximo a 10 m del modelo (kt brutos); los avisos reales usan promedios de 1/10 min y análisis humano — por eso la UI rotula siempre «equivalente (viento bruto del modelo)».
 
+## 10 · Satélite OBSERVACIONAL (Fase 2 — decisión del dueño: sí)
+
+- **Regla**: «solo ECMWF» aplica a los modelos de PRONÓSTICO. Las imágenes de satélite son **observación** (como los frentes WPC) y viven en su propia capa «Nubes», rotulada «(obs)» y **sin** mezclarse con los campos del modelo (al activarla, el panel ECMWF se oculta).
+- **GOES-19 ABI C13** (NOAA `noaa-goes19`, disco completo recortado a América 4–36°N / 112–52°W): el robot publica un fotograma webp cada ~10 min (`goes/meta.json` + `goes/frames/`). Frescura en la app: >2 h ⇒ la capa no lo muestra.
+- **GMGSI mosaico geoestacionario global IR** (NOAA, horario, ±72.7°): `world/meta.json` + `world/ir/`. Frescura: >3 h ⇒ fuera.
+- Ambos pipelines existían del trabajo previo y estaban dormidos; la Fase 2 los reconecta a la UI. El slider de la capa recorre los fotogramas observados (pasado), separado del slider del modelo (futuro).
+
+## 11 · Productos nuevos del robot (Fase 2)
+
+- **Temperatura 2 m mundial** (`img/det-temp-NN.webp`, en `mapa.json.det.temp`): del mismo GRIB det del IFS (param `2t`), en °C, máx. del período de 6 h, misma proyección/banda que el resto del mapa mundial. Solo determinista — un umbral de probabilidad de temperatura no aporta y no se fabrica.
+- **Isobaras MSLP** (`img/iso-NN.json`, en `mapa.json.isobars`, `isobars_step_hpa: 4`): GeoJSON por período con líneas de presión (propiedad `p` en hPa) trazadas del `msl` del HRES (suavizado, recorte a la banda del mapa, submuestreo a 0.5° → decenas de KB por paso). En la app son un conmutador sobre el producto mundial del IFS; con AIFS o la capa de aire no existen y no se pintan.
+- **Robots NOAA (GFS) y GEM retirados** (decisión del dueño, Fase 2): la matrix de `modelos.yml` queda `[ecmwf, aifs]`. El código de proceso sigue en el historial de git.
+
 ## Límites y atribución
 
 - **Open-Meteo**: gratuito sin clave para uso no comercial (límite documentado por el proveedor ~10 000 llamadas/día; no medido aquí). La app minimiza llamadas (estáticos del robot primero, cachés, intervalos mínimos) y maneja 429 con enfriamiento. Atribución: «Open-Meteo.com» (CC-BY 4.0) — presente en el crédito del mapa.

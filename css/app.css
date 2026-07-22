@@ -1238,6 +1238,37 @@
   }
 }
 
+/* botón globo/plano (proyección) */
+.map-globe {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  flex-shrink: 0;
+  font-size: 1.9rem;
+  color: var(--text-5);
+  background-color: rgba(0, 11, 51, 0.88);
+  border: 0.1rem solid var(--line-2);
+  border-radius: 50%;
+  backdrop-filter: blur(1.2rem);
+  -webkit-backdrop-filter: blur(1.2rem);
+  transition: color 0.15s var(--ease), transform 0.15s var(--ease);
+}
+.map-globe:hover {
+  transform: scale(1.06);
+}
+.map-globe.is-active {
+  color: #7fb8ff;
+  border-color: #7fb8ff;
+}
+
+/* slider de fotogramas observados (capa Nubes) */
+.obs-slider {
+  width: 16rem;
+  max-width: 34vw;
+  accent-color: var(--alert);
+}
+
 .map-playbar {
   position: absolute;
   bottom: 2.6rem;
@@ -1371,6 +1402,20 @@
   font-weight: 600;
   line-height: 1.4;
   color: var(--text-2);
+}
+
+/* conmutador de isobaras (MSLP del HRES) */
+.euro-iso {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.2rem;
+  font-size: 1.15rem;
+  color: var(--text-5);
+  cursor: pointer;
+}
+.euro-iso input {
+  accent-color: var(--alert);
 }
 
 .euro-time {

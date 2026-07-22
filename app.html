@@ -249,12 +249,19 @@
           <div id="map" aria-label="Mapa meteorológico interactivo"></div>
 
           <div class="map-controls">
+            <button class="map-globe" id="globe-btn" type="button"
+              title="Alternar globo / mapa plano" aria-label="Alternar proyección globo o plana">
+              <ion-icon name="earth-outline"></ion-icon>
+            </button>
             <div class="seg map-layers" role="tablist" id="layer-seg">
               <button class="seg__btn is-active" data-layer="radar">
                 <ion-icon name="map-outline"></ion-icon> Mapa
               </button>
               <button class="seg__btn" data-layer="satellite">
                 <ion-icon name="globe-outline"></ion-icon> Satélite
+              </button>
+              <button class="seg__btn" data-layer="clouds">
+                <ion-icon name="cloudy-outline"></ion-icon> Nubes
               </button>
               <button class="seg__btn" data-layer="none">
                 <ion-icon name="map-outline"></ion-icon> Sin capa
@@ -285,6 +292,7 @@
                 <button class="seg__btn is-active" data-value="wind">Viento</button>
                 <button class="seg__btn" data-value="gusts">Ráfagas</button>
                 <button class="seg__btn" data-value="rain">Lluvia</button>
+                <button class="seg__btn" data-value="temp">Temp.</button>
                 <button class="seg__btn" data-value="air">Aire</button>
               </div>
 
@@ -292,6 +300,11 @@
                 <button class="seg__btn is-active" data-value="prob">Probabilidad</button>
                 <button class="seg__btn" data-value="det">Determinista</button>
               </div>
+
+              <label class="euro-iso">
+                <input type="checkbox" id="iso-toggle" />
+                Isobaras (presión al nivel del mar, hPa — HRES)
+              </label>
 
               <p class="euro-title" id="euro-title">—</p>
 
@@ -344,15 +357,26 @@
             <button class="map-play" id="btn-play" aria-label="Reproducir animación">
               <ion-icon name="play" id="play-icon"></ion-icon>
             </button>
+            <input
+              class="obs-slider"
+              id="obs-slider"
+              type="range"
+              min="0"
+              max="0"
+              step="1"
+              value="0"
+              aria-label="Momento de la imagen de satélite"
+              hidden
+            />
             <span class="map-frame-label">
               <strong id="frame-time">—</strong>
-              <span id="frame-kind">Radar</span>
+              <span id="frame-kind">Satélite (obs)</span>
             </span>
           </div>
 
           <span class="map-credit" id="map-credit" hidden>
-            © OpenStreetMap · OpenFreeMap · Esri/Maxar · NOAA WPC ·
-            Open-Meteo (ECMWF · CAMS) · GeoNames
+            © OpenStreetMap · OpenFreeMap · Esri/Maxar · NOAA (WPC ·
+            GOES · GMGSI) · Open-Meteo (ECMWF · CAMS) · GeoNames
           </span>
 
           <div class="map-fallback" id="map-fallback">
@@ -406,6 +430,13 @@
               <span class="lcard__text">
                 <strong>Satélite</strong>
                 <small>Imagen satelital real del terreno con el modelo europeo ECMWF encima</small>
+              </span>
+            </button>
+            <button class="lcard" data-value="clouds" type="button">
+              <span class="lcard__icon"><ion-icon name="cloudy-outline"></ion-icon></span>
+              <span class="lcard__text">
+                <strong>Nubes (observación)</strong>
+                <small>Satélite GOES-19 y mosaico mundial IR de NOAA — nubes reales, sin modelo</small>
               </span>
             </button>
           </div>
