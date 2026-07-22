@@ -81,51 +81,44 @@ de Firebase). Una vez dentro, `app.html` ofrece:
 
 - **Mapa interactivo** (MapLibre GL + estilo vectorial oscuro) centrado en
   el país elegido; al tocar cualquier punto se carga su pronóstico.
-- **Satélite propio en dos niveles**: el **mosaico mundial GMGSI** de
-  NOAA (todos los geoestacionarios: GOES-E/O, Himawari, Meteosat; cada
-  hora, planeta entero) como base, y encima el **GOES-19 regional** a
-  2400 px cada 10 min con cielo transparente. La lluvia estimada también
-  tiene versión mundial bajo la regional. Respaldo automático a
-  RainViewer si el robot no ha publicado.
-- **Radar híbrido propio**: reflectividad real **MRMS de NOAA (~1 km)**
-  donde existen radares (Puerto Rico, EE. UU. y Golfo) montada sobre la
-  **lluvia estimada por satélite GOES** que cubre el 100 % de la región
-  (RD, Cuba, Centroamérica…), animado y actualizado cada 10 min por el
-  robot. Respaldo automático a RainViewer si los datos propios faltan.
-- **Capa «Modelo» — tres centros mundiales**, enfocada en tiempo severo,
-  con selector de modelo y dos modos:
-  - **Modelos**: **ECMWF** (IFS determinista 0.25° + EPS de 51
-    escenarios), **NOAA** (GFS determinista 0.25° + GEFS de 31
-    escenarios) y **GEM de Canadá** (determinista 0.15° + GEPS de 21
-    escenarios). Todo vía Open-Meteo, sin clave.
-  - **Probabilidad**: porcentaje de los escenarios del ensemble elegido
-    que superan un umbral peligroso en cada período de 6 horas — viento
-    sostenido **> 25 mph**, ráfagas **> 40 mph** o lluvia **> 25 mm en
-    6 h** (riesgo de inundaciones).
-  - **Determinista**: la pasada real de alta resolución del centro elegido
-    (máximo de viento/ráfagas o lluvia acumulada por período), en una
-    rejilla más fina.
-  - **Aire**: índice de calidad del aire (AQI de EE. UU.) del CAMS de
-    Copernicus, con la escala de colores de la EPA.
+- **ÚNICO modelo de pronóstico: ECMWF.** Sin GFS, sin GEM, sin mezclas
+  «best match»: cada número del mapa y del panel es atribuible al centro
+  europeo (regla del proyecto; AIFS, la variante de IA de ECMWF, también
+  está permitida). La capa del modelo se ve **en todo el planeta** con
+  imágenes pre-renderizadas por el robot (0.25° nativo, proyección
+  Mercator exacta) sobre dos fondos: **Mapa** (cartográfico oscuro) o
+  **Satélite** (imagen real del terreno, Esri World Imagery):
+  - **Probabilidad**: porcentaje de los 51 escenarios del **EPS de
+    ECMWF** que superan un umbral peligroso por período de 6 horas —
+    viento sostenido **> 25 mph**, ráfagas **> 40 mph** o lluvia
+    **> 25 mm en 6 h** (riesgo de inundaciones).
+  - **Determinista**: la pasada oficial del **IFS 0.25°** (máximo de
+    viento/ráfagas o lluvia acumulada por período).
+  - **Aire**: índice AQI del **CAMS** (Copernicus, operado por ECMWF).
   - **Viento en movimiento**: partículas animadas que siguen el flujo del
-    modelo en el período elegido, coloreadas por intensidad (se puede
-    apagar; respeta `prefers-reduced-motion`).
+    IFS en el período elegido (se puede apagar; respeta
+    `prefers-reduced-motion`).
   - Línea de tiempo de 6 en 6 horas hasta 4 días, leyenda con gradiente,
-    lectura del valor al tocar el mapa, recálculo al mover el mapa y
-    control de tráfico ante los límites del servicio: una sola petición
-    determinista «en paquete» por centro (alimenta viento, ráfagas,
-    lluvia y las partículas a la vez), reutilización de cobertura,
-    intervalos mínimos, caché persistente en `localStorage` (recargar la
-    página no vuelve a pedir nada) y enfriamiento de 2 minutos tras un
-    429.
+    lectura del valor al tocar el mapa y respaldo automático por capas:
+    imágenes mundiales del robot → rejilla regional del robot →
+    Open-Meteo (siempre con `models=ecmwf_ifs025`), con caché persistente
+    y enfriamiento tras un 429.
+- **Frentes del análisis de superficie** (NOAA/WPC, producto observacional,
+  no un modelo): líneas de frentes con sus picos + centros H/L.
+- Las capas de **satélite GOES/mosaico mundial y radar MRMS** propias
+  están **dormidas** a la espera de la decisión sobre imaginería
+  observacional bajo la regla solo-ECMWF (Fase 2 del plan global); sus
+  pipelines siguen publicando datos.
 - **Mapa profesional con MapLibre GL** (renderizado por GPU): paneo y
   zoom fluidos con zoom fraccional, estilo vectorial oscuro de
   **OpenFreeMap** (gratis e ilimitado; CARTO GL como respaldo
   automático), capas de tiempo insertadas **debajo de los rótulos** del
   estilo (los nombres de lugares siempre se leen), radar y satélite
   animados al abrirse, y escala de distancias.
-- **Pronóstico** de Open-Meteo: condiciones actuales, próximas 24 horas y
-  7 días, en las unidades elegidas.
+- **Pronóstico puntual 100 % ECMWF** vía Open-Meteo
+  (`models=ecmwf_ifs025`): condiciones actuales, próximas 24 horas y
+  7 días, en las unidades elegidas. Lo que el IFS no publica se muestra
+  como «—» (sin datos), nunca un valor inventado.
 - **Riesgos y advertencias severas** (panel izquierdo): evaluación de las
   próximas 48 h del punto activo en cuatro frentes — **viento** (ráfagas;
   extremo = fuerza de huracán ≥ 118 km/h), **lluvia** (acumulados de 6 h;
@@ -141,39 +134,33 @@ de Firebase). Una vez dentro, `app.html` ofrece:
   a cualquier dispositivo.
 
 Todos los servicios del mapa y del pronóstico son **gratuitos y sin clave**
-(OpenFreeMap, CARTO, RainViewer, Open-Meteo).
+(OpenFreeMap, CARTO como respaldo del estilo, Esri World Imagery,
+Open-Meteo, GeoNames).
 
-## Datos propios de modelos (robot de GitHub Actions)
+## Datos propios (robot de GitHub Actions, repo `fenomenos-datos`)
 
-Para no depender de APIs de terceros a gran escala, el repositorio incluye
-un **pipeline propio** que procesa los datos ABIERTOS oficiales de los tres
-centros y los publica como archivos estáticos del sitio:
+Para no depender de APIs de terceros a gran escala, el repo público
+`fenomenos-datos` procesa datos ABIERTOS oficiales y los publica como
+archivos estáticos:
 
-- `scripts/build_model_data.py` — descarga solo los campos necesarios
-  (viento 10 m, ráfagas, lluvia) de **ECMWF** (AWS Open Data, con índices
-  de rango de bytes), **NOAA GFS/GEFS** (AWS Open Data, con `.idx`) y
-  **GEM/GEPS** (Datamart de ECCC, archivos pequeños por variable),
-  recorta la región del Caribe, precalcula los períodos de 6 h **y las
-  probabilidades del ensemble**, y escribe JSONs ligeros en
-  `data/modelos/`.
-- `.github/workflows/modelos.yml` — lo corre cada 6 horas (~2 h después
-  de cada corrida 00/06/12/18 UTC) y hace commit de los datos. En repos
-  privados consume ~600 de los 2,000 minutos/mes gratis.
-- La app comprueba `data/modelos/meta.json` al abrir la capa Modelo: si
-  hay datos propios frescos (<12 h) los usa — **cero llamadas a APIs por
-  usuario, a cualquier escala** — y si faltan (o falta una variable,
-  como ráfagas en los ensembles abiertos) cae sola a Open-Meteo.
-
-**Primera puesta en marcha**: el cron solo corre en la rama por defecto,
-así que tras hacer merge a `main` ve a **Actions → Datos de modelos →
-Run workflow** para la primera corrida manual. Si algún centro falla
-(las rutas de los buckets cambian de vez en cuando), el log lo dice por
-centro y los demás se publican igual.
+- **ECMWF** (`scripts/build_model_data.py` + `modelos.yml`, 4×/día):
+  IFS determinista + EPS de 51 escenarios desde AWS Open Data → mapa
+  mundial en imágenes webp pre-proyectadas (det viento/ráfagas/lluvia +
+  probabilidades, 16 períodos) + rejillas JSON regionales de respaldo.
+  La app comprueba `modelos/meta.json` y `modelos/ecmwf/mapa.json`: si
+  hay datos frescos (<12 h) los usa — **cero llamadas a APIs por
+  usuario, a cualquier escala** — y si faltan cae sola a Open-Meteo
+  (siempre `models=ecmwf_ifs025`).
+- Los pipelines de **NOAA GFS/GEFS, GEM/GEPS y AIFS** siguen publicando
+  sus JSON pero la app ya no los consume (regla solo-ECMWF); su retiro
+  definitivo está propuesto en `AUDIT.md`.
+- **Observacionales** (GOES-19, mosaico mundial GMGSI, radar MRMS,
+  frentes WPC, índice de ciudades GeoNames): publican cada 10 min/hora/
+  mes; hoy la app solo consume frentes y ciudades.
 
 **A gran escala** (cientos de miles de usuarios): sirve el sitio detrás
-de un CDN con tráfico ilimitado gratis (Cloudflare Pages) y considera
-sustituir CARTO/RainViewer, cuyos niveles gratuitos están pensados para
-tráfico moderado.
+de un CDN con tráfico ilimitado gratis; el mapa y el modelo ya no
+dependen de servicios con cuota por usuario.
 
 > ⚠️ **Las cuentas de la app NO entran al Estudio.** El Estudio solo abre
 > para las cuentas listadas en la colección `admins` de Firestore (ver

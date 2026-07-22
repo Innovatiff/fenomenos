@@ -1,9 +1,12 @@
 /* ══════════════════════════════════════════════════════════════════════════
    FENÓMENOS DEL CARIBE — app.js
-   Fenómenos App: mapa interactivo (Leaflet + CARTO), radar y satélite en
-   vivo (RainViewer), pronóstico por horas y 7 días (Open-Meteo) y ajustes
-   por usuario (localStorage siempre; Firestore users/{uid} si la cuenta
-   no es anónima). Requiere sesión: sin usuario se vuelve a acceso.html.
+   Consola meteorológica sobre MapLibre GL. ÚNICO modelo de pronóstico:
+   ECMWF (IFS determinista + EPS ensemble; AIFS también es ECMWF). El
+   pronóstico puntual, los riesgos y la capa del mapa piden SIEMPRE
+   models=ecmwf_ifs025 — nunca el "best match" multi-modelo. Datos del
+   robot propio (fenomenos-datos) + Open-Meteo; ajustes por usuario
+   (localStorage siempre; Firestore users/{uid} si la cuenta no es
+   anónima). Requiere sesión: sin usuario se vuelve a acceso.html.
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { app } from "./firebase-init.js";
@@ -20,6 +23,33 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 window.__fdcModuleOk = true;
+
+/* ── Registro de red (auditoría): TODA petición y TODO fallo quedan
+   anotados en window.__fdcFetchLog (anillo de 300) — nada falla en
+   silencio. Los fallos además se avisan por consola. ── */
+const fetchLog = [];
+window.__fdcFetchLog = fetchLog;
+{
+  const realFetch = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    const url = typeof input === "string" ? input : (input && input.url) || "";
+    const t0 = performance.now();
+    const anota = (entry) => {
+      fetchLog.push(entry);
+      if (fetchLog.length > 300) fetchLog.shift();
+    };
+    try {
+      const res = await realFetch(input, init);
+      anota({ t: Date.now(), url, status: res.status, ms: Math.round(performance.now() - t0) });
+      if (!res.ok) console.warn("[red]", res.status, url);
+      return res;
+    } catch (err) {
+      anota({ t: Date.now(), url, error: String(err), ms: Math.round(performance.now() - t0) });
+      console.warn("[red] fallo de red:", url, err);
+      throw err;
+    }
+  };
+}
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -205,6 +235,10 @@ async function loadWeather(lat, lon, label) {
     timezone: "auto",
     temperature_unit: settings.tempUnit,
     wind_speed_unit: settings.windUnit === "mph" ? "mph" : "kmh",
+    /* SOLO ECMWF: sin esto Open-Meteo mezcla modelos ("best match") y el
+       panel dejaría de ser atribuible al IFS. Verificado con respuestas
+       reales (current+cape+is_day+diario, trópico y Mongolia). */
+    models: "ecmwf_ifs025",
   });
 
   try {
@@ -224,11 +258,17 @@ async function loadWeather(lat, lon, label) {
   }
 }
 
+/* REGLA CARDINAL (anti-fabricación): lo que la API no devuelve se muestra
+   como "—" (sin datos) — nunca un 0 que parezca una medición real */
+function numOr(v, fmt) {
+  return v == null || !Number.isFinite(Number(v)) ? "—" : fmt(Number(v));
+}
+
 function renderNow(data) {
   const c = data.current || {};
   const info = weatherInfo(c.weather_code, c.is_day);
 
-  $("now-temp").textContent = `${Math.round(c.temperature_2m ?? 0)}${tempSymbol()}`;
+  $("now-temp").textContent = numOr(c.temperature_2m, (v) => `${Math.round(v)}${tempSymbol()}`);
   $("now-desc").textContent = info.text;
   $("now-icon").innerHTML = `<ion-icon name="${info.icon}"></ion-icon>`;
   $("now-updated").textContent = `Actualizado a las ${fmtClock(new Date())}`;
@@ -236,18 +276,18 @@ function renderNow(data) {
   /* espejo en la cabecera de la hoja móvil */
   const st = $("sheet-temp");
   if (st) {
-    st.textContent = `${Math.round(c.temperature_2m ?? 0)}${tempSymbol()}`;
+    st.textContent = numOr(c.temperature_2m, (v) => `${Math.round(v)}${tempSymbol()}`);
     $("sheet-desc").textContent = info.text;
     $("sheet-place").textContent = $("now-place").textContent;
   }
 
   const stats = [
-    { icon: "thermometer-outline", label: "Sensación", value: `${Math.round(c.apparent_temperature ?? 0)}${tempSymbol()}` },
-    { icon: "water-outline", label: "Humedad", value: `${Math.round(c.relative_humidity_2m ?? 0)}%` },
-    { icon: "flag-outline", label: "Viento", value: `${Math.round(c.wind_speed_10m ?? 0)} ${windSymbol()}` },
-    { icon: "flash-outline", label: "Ráfagas", value: `${Math.round(c.wind_gusts_10m ?? 0)} ${windSymbol()}` },
-    { icon: "speedometer-outline", label: "Presión", value: `${Math.round(c.pressure_msl ?? 0)} hPa` },
-    { icon: "rainy-outline", label: "Lluvia", value: `${(c.precipitation ?? 0).toFixed(1)} mm` },
+    { icon: "thermometer-outline", label: "Sensación", value: numOr(c.apparent_temperature, (v) => `${Math.round(v)}${tempSymbol()}`) },
+    { icon: "water-outline", label: "Humedad", value: numOr(c.relative_humidity_2m, (v) => `${Math.round(v)}%`) },
+    { icon: "flag-outline", label: "Viento", value: numOr(c.wind_speed_10m, (v) => `${Math.round(v)} ${windSymbol()}`) },
+    { icon: "flash-outline", label: "Ráfagas", value: numOr(c.wind_gusts_10m, (v) => `${Math.round(v)} ${windSymbol()}`) },
+    { icon: "speedometer-outline", label: "Presión", value: numOr(c.pressure_msl, (v) => `${Math.round(v)} hPa`) },
+    { icon: "rainy-outline", label: "Lluvia", value: numOr(c.precipitation, (v) => `${v.toFixed(1)} mm`) },
   ];
 
   $("now-grid").innerHTML = stats
@@ -279,8 +319,8 @@ function renderHours(data) {
       <div class="hour${i === start ? " hour--now" : ""}">
         <span class="hour__time">${i === start ? "Ahora" : fmtHour(times[i])}</span>
         <ion-icon name="${info.icon}"></ion-icon>
-        <span class="hour__temp">${Math.round(h.temperature_2m?.[i] ?? 0)}°</span>
-        <span class="hour__rain"><ion-icon name="water-outline"></ion-icon>${rain ?? 0}%</span>
+        <span class="hour__temp">${numOr(h.temperature_2m?.[i], (v) => `${Math.round(v)}°`)}</span>
+        <span class="hour__rain"><ion-icon name="water-outline"></ion-icon>${rain == null ? "—" : `${rain}%`}</span>
       </div>`);
   }
   $("hours").innerHTML = cards.join("");
@@ -296,10 +336,10 @@ function renderDays(data) {
       <div class="day">
         <span class="day__name">${fmtDayName(date, i)}</span>
         <ion-icon name="${info.icon}" title="${info.text}"></ion-icon>
-        <span class="day__rain"><ion-icon name="water-outline"></ion-icon>${d.precipitation_probability_max?.[i] ?? 0}%</span>
+        <span class="day__rain"><ion-icon name="water-outline"></ion-icon>${d.precipitation_probability_max?.[i] == null ? "—" : `${d.precipitation_probability_max[i]}%`}</span>
         <span class="day__temps">
-          <span class="day__max">${Math.round(d.temperature_2m_max?.[i] ?? 0)}°</span>
-          <span class="day__min">${Math.round(d.temperature_2m_min?.[i] ?? 0)}°</span>
+          <span class="day__max">${numOr(d.temperature_2m_max?.[i], (v) => `${Math.round(v)}°`)}</span>
+          <span class="day__min">${numOr(d.temperature_2m_min?.[i], (v) => `${Math.round(v)}°`)}</span>
         </span>
       </div>`;
     })
@@ -628,9 +668,9 @@ let map = null;
 let weatherLayer = null;
 let clickMarker = null;
 
-/* Satélite GOES-19 desde el repo público de datos (fase AWS).
-   Si el robot aún no ha corrido o los datos están viejos, se cae
-   automáticamente al satélite de RainViewer. */
+/* Satélite GOES-19 desde el repo público de datos. CAPA DORMIDA: no se
+   pide ni se pinta a la espera de la decisión de Fase 2 (imaginería
+   observacional bajo la regla solo-ECMWF). */
 const DATA_REPO =
   "https://raw.githubusercontent.com/Innovatiff/fenomenos-datos/main";
 let goesData = null; /* {bbox, frames:[{time,url}]} */
@@ -658,9 +698,8 @@ async function loadGoes() {
   } catch (_) {}
 }
 
-/* Radar propio: MRMS real (~1 km, PR + EE. UU.) + lluvia estimada por
-   satélite (cobertura total). Si el robot no ha publicado o está viejo,
-   se cae al radar de RainViewer. */
+/* Radar propio: MRMS real (~1 km) + lluvia estimada por satélite.
+   CAPA DORMIDA igual que GOES (decisión de Fase 2). */
 let radarOwn = null; /* {rain:{bbox,frames[]}, mrms:{bboxes,frames[]}|null} */
 let radarMode = null; /* "own" cuando la capa activa usa datos propios */
 
@@ -772,32 +811,18 @@ async function refreshOwnData() {
   if (ownRefreshBusy) return;
   ownRefreshBusy = true;
   try {
-    const hadRadar = !!radarOwn;
-    const hadSat = !!(goesData || worldSat);
-    await Promise.all([loadGoes(), loadOwnRadar(), loadWorldSat(), loadFronts()]);
+    /* frentes: lo único vivo del bloque de datos observacionales; el
+       resto (GOES/MRMS/mosaico) duerme hasta la decisión de Fase 2 */
+    await loadFronts();
     frontsApply();
     if (ownFrameFailed.size > 400) ownFrameFailed.clear();
-    if (radarMode === "own") {
-      if (radarOwn) {
-        frames = radarOwn.rain.frames;
-        if (frameIndex >= frames.length) frameIndex = frames.length - 1;
-      } else if (hadRadar) {
-        setLayer(settings.layer, { silent: true }); /* pasa al respaldo */
-      }
-    } else if (satMode === "goes") {
-      if (goesData || worldSat) {
-        frames = goesData ? goesData.frames : worldSat.ir;
-        if (frameIndex >= frames.length) frameIndex = frames.length - 1;
-      } else if (hadSat) {
-        setLayer(settings.layer, { silent: true });
-      }
-    }
   } finally {
     ownRefreshBusy = false;
   }
 }
 
-/* RainViewer */
+/* RainViewer — DORMIDO: sin llamadores desde la purga solo-ECMWF; el
+   radar observacional vuelve (o no) con la decisión de Fase 2 */
 let rvData = null;
 let frames = [];
 let frameIndex = 0;
@@ -824,11 +849,17 @@ function waitForMapLib(timeoutMs = 6000) {
 }
 
 async function resolveMapStyle() {
-  for (const url of MAP_STYLES) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) return url;
-    } catch (_) {}
+  /* failover entre proveedores + reintentos con espera creciente: un
+     tropiezo de red no debe dejar al usuario sin mapa */
+  for (let intento = 0; intento < 3; intento++) {
+    if (intento > 0)
+      await new Promise((r) => setTimeout(r, 700 * Math.pow(2, intento)));
+    for (const url of MAP_STYLES) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) return url;
+      } catch (_) {}
+    }
   }
   return null;
 }
@@ -842,12 +873,16 @@ let labelsAnchor; /* primera capa de rótulos del estilo base */
 let weatherAnchor; /* capa base de los frentes: el tiempo se pinta debajo */
 
 async function initMap() {
+  if (map) return; /* reintento con el mapa ya vivo: nada que hacer */
   const gl = await waitForMapLib();
   const styleUrl = gl ? await resolveMapStyle() : null;
   if (!gl || !styleUrl) {
+    /* degradado pero usable: el panel de pronóstico sigue funcionando y
+       la tarjeta ofrece reintentar (ya no es un callejón sin salida) */
     $("map-fallback").classList.add("is-visible");
     return;
   }
+  $("map-fallback").classList.remove("is-visible");
 
   const c = COUNTRIES[settings.country];
   map = new gl.Map({
@@ -947,18 +982,15 @@ async function initMap() {
     if (euro.on) windEnsure();
   });
 
-  await Promise.all([
-    loadRainViewer(),
-    loadGoes(),
-    loadOwnRadar(),
-    loadWorldSat(),
-    loadFronts(),
-  ]);
+  /* Solo se piden los datos que la vista ACTUAL usa: frentes WPC. Las
+     capas de satélite/radar están dormidas (decisión de Fase 2) y sus
+     metas no se piden — cero red gastada sin efecto visible. */
+  await loadFronts();
   setLayer(settings.layer, { silent: true });
   frontsApply();
 
   /* con la pestaña abierta mucho rato, las metas caducan: refresco cada
-     5 min para que la animación siga siempre al día */
+     5 min para que los frentes sigan siempre al día */
   setInterval(refreshOwnData, 5 * 60 * 1000);
 }
 
@@ -1447,10 +1479,10 @@ function stopPlayback() {
 const EURO_HOURS = 6; /* ancho de cada período */
 const EURO_DAYS = 4; /* alcance del pronóstico */
 
-/* Los tres centros de modelos disponibles vía Open-Meteo (sin clave):
-   · ECMWF — IFS determinista 0.25° + EPS (ensemble de 51 escenarios)
-   · NOAA — GFS determinista 0.25° + GEFS (ensemble de 31 escenarios, 0.25°)
-   · GEM (Canadá) — GEM global determinista 0.15° + GEPS (21 escenarios, 0.5°) */
+/* SOLO ECMWF. Las dos variantes son del mismo centro (ECMWF):
+   · IFS — determinista 0.25° + EPS (ensemble de 51 escenarios)
+   · AIFS — el modelo de IA de ECMWF (operacional desde 2025); su
+     selector de variante llegará en la Fase 1 del plan global. */
 const EURO_MODELS_CFG = {
   ecmwf: {
     name: "ECMWF",
@@ -1460,24 +1492,6 @@ const EURO_MODELS_CFG = {
     ensName: "EPS de ECMWF",
     fallbackMembers: 51,
   },
-  noaa: {
-    name: "NOAA",
-    det: "gfs_global",
-    ens: "gfs025",
-    detLabel: "GFS de NOAA · determinista (0.25°)",
-    ensName: "GEFS de NOAA",
-    fallbackMembers: 31,
-  },
-  gem: {
-    name: "GEM (Canadá)",
-    det: "gem_global",
-    ens: "gem_global",
-    detLabel: "GEM de Canadá · determinista (0.15°)",
-    ensName: "GEPS de Canadá",
-    fallbackMembers: 21,
-  },
-  /* el modelo de inteligencia artificial de ECMWF (operacional desde
-     2025): determinista AIFS Single + ensemble AIFS-ENS */
   aifs: {
     name: "AIFS (IA)",
     det: "ecmwf_aifs025_single",
@@ -1755,7 +1769,7 @@ async function euroFetchJson(url, signal) {
   }
 }
 
-/* Probabilidad: el ensemble del centro elegido (EPS / GEFS / GEPS) */
+/* Probabilidad: el ensemble de ECMWF (EPS; AIFS-ENS cuando es la variante) */
 async function fetchEuroProb(modelKey, varKey, grid, signal) {
   const cfg = EURO_VARS[varKey];
   const model = EURO_MODELS_CFG[modelKey];
@@ -3228,6 +3242,12 @@ function closeSettings() {
   document.querySelectorAll(`#${id} .seg__btn`).forEach((btn) => {
     btn.addEventListener("click", () => setSegValue(id, btn.dataset.value));
   });
+});
+
+/* la tarjeta de "mapa no disponible" ofrece reintentar el arranque */
+$("map-retry").addEventListener("click", () => {
+  $("map-fallback").classList.remove("is-visible");
+  initMap();
 });
 
 $("btn-settings").addEventListener("click", openSettings);

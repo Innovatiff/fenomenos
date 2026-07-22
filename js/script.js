@@ -265,11 +265,12 @@
         return;
       }
 
-      // TODO: point this at your list provider (Mailchimp, Brevo, Firebase…)
+      /* HONESTIDAD: todavía no hay proveedor de listas conectado — no se
+         promete una suscripción que no existe */
       input.removeAttribute("aria-invalid");
-      msg.classList.add("is-ok");
-      msg.textContent = "Listo. Te avisaremos ante condiciones peligrosas.";
-      form.reset();
+      msg.classList.remove("is-ok");
+      msg.textContent =
+        "Las alertas por correo aún no están disponibles. Muy pronto podrás suscribirte aquí.";
     });
 
     input.addEventListener("input", () => {

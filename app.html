@@ -192,9 +192,9 @@
             </div>
           </div>
 
-          <!-- Modelos de pronóstico: ECMWF, NOAA y GEM Canadá (probabilidades
-               del ensemble + pasada determinista) y calidad del aire (CAMS),
-               enfocado en tiempo severo -->
+          <!-- ÚNICO modelo de pronóstico: ECMWF (EPS probabilidades +
+               IFS determinista; AIFS es la variante de IA de ECMWF) y
+               calidad del aire CAMS (Copernicus/ECMWF) -->
           <aside class="euro-panel" id="euro-panel" hidden>
             <button class="euro-panel__head" id="euro-collapse" type="button">
               <span>
@@ -275,8 +275,8 @@
           </div>
 
           <span class="map-credit" id="map-credit" hidden>
-            © OpenStreetMap · OpenFreeMap · Esri/Maxar · NOAA GOES · WPC ·
-            RainViewer · Open-Meteo (ECMWF · AIFS · NOAA · ECCC · CAMS)
+            © OpenStreetMap · OpenFreeMap · Esri/Maxar · NOAA WPC ·
+            Open-Meteo (ECMWF · CAMS) · GeoNames
           </span>
 
           <div class="map-fallback" id="map-fallback">
@@ -287,6 +287,9 @@
               internet e intenta de nuevo. El pronóstico sigue disponible en el
               panel.
             </p>
+            <button class="btn btn--primary" id="map-retry" type="button">
+              <ion-icon name="refresh-outline"></ion-icon> Reintentar
+            </button>
           </div>
         </section>
       </main>
