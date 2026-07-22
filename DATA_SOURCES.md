@@ -40,6 +40,12 @@ Perth y McMurdo (−77.85°).
 - **Verificado** (`ens-sd.json`, `ens-rey.json`): **51 series** (control + `_member01…50`) × **168 h** para `temperature_2m` (°C), `precipitation` (mm), `wind_gusts_10m` (km/h), `snowfall` (**cm**); 0 series todo-nulas.
 - Todos los porcentajes de la app son conteos directos sobre estas series, mostrados como `N/51`.
 
+### ⚠ AIFS-ENS (`models=ecmwf_aifs025`) — CONGELADO en la fuente (no usar)
+
+- Sondeo real (corrida [29885352154](https://github.com/Innovatiff/fenomenos-datos/actions/runs/29885352154), 2026-07-22): sus metadatos declaran `last_run_initialisation_time: 1740355200` (**24-feb-2025**) y `data_end_time` ≈ 11-mar-2025, aunque el endpoint siga devolviendo 51 series «con datos» (y `wind_gusts_10m` 51/51 todo-nulas). Pintar eso como probabilidad de hoy sería fabricar datos.
+- **Mitigación en la app**: compuerta de frescura (`ensFresh`) — con la variante AIFS, la sección de probabilidades y el mapa de Probabilidad exigen metadatos de pasada <48 h; si no, muestran «no se está actualizando — sin datos» y recomiendan IFS HRES.
+- Metadatos del AIFS **determinista** (`/data/ecmwf_aifs025_single/static/meta.json`): HTTP 200 verificado (el det del AIFS sí está vivo; fixture `aifs-sd.json` con datos coherentes del día).
+
 ## 4 · Metadatos de pasada — `GET /data/ecmwf_ifs025/static/meta.json`
 
 - **Verificado** (`meta-static-meta.json.json`): `last_run_initialisation_time: 1784656800` (= pasada 18z), `last_run_availability_time` (≈ init + 7 h — la latencia de publicación de ECMWF), `temporal_resolution_seconds: 10800`, `update_interval_seconds: 21600`.

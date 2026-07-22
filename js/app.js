@@ -533,6 +533,18 @@ function epsDailyExtreme(times, member, fn) {
   return out;
 }
 
+/* ¿Está VIVO el ensemble en la fuente? Sondeo real (2026-07-22): el
+   AIFS-ENS de Open-Meteo quedó congelado en la pasada del 24-feb-2025
+   (last_run_initialisation_time) aunque el endpoint siga devolviendo
+   series. Servir eso como probabilidad de hoy sería fabricar datos:
+   para el AIFS se exige METADATO FRESCO; para el IFS basta con que no
+   haya prueba positiva de estancamiento. */
+async function ensFresh(modelId, requireProof) {
+  const meta = await loadRunMeta(modelId);
+  if (!meta) return !requireProof;
+  return Date.now() / 1000 - meta.last_run_initialisation_time < 48 * 3600;
+}
+
 async function loadEps(lat, lon) {
   const cfg = EURO_MODELS_CFG[euro.model] || EURO_MODELS_CFG.ecmwf;
   const key = `${lat.toFixed(2)}|${lon.toFixed(2)}|${cfg.ens}`;
@@ -540,6 +552,17 @@ async function loadEps(lat, lon) {
   if (!block) return;
   block.hidden = false;
   $("eps-title").textContent = cfg.ensName;
+  if (!(await ensFresh(cfg.ens, euro.model === "aifs"))) {
+    eps.data = null;
+    eps.key = null;
+    $("eps-head").textContent =
+      "El ensemble de esta variante no se está actualizando en la fuente abierta — sin probabilidades. Usa IFS HRES.";
+    $("eps-thresholds").innerHTML = "";
+    $("eps-legend").hidden = true;
+    $("eps-note").hidden = true;
+    $("conf-badge").hidden = true;
+    return;
+  }
   if (eps.key === key && eps.data && Date.now() - eps.data.at < 30 * 60 * 1000) {
     epsRender();
     return;
@@ -2897,6 +2920,18 @@ async function euroRefresh() {
     if (mapaFrames(mode, euro.variable)) {
       staticUse(mode);
       euroRender();
+      return;
+    }
+  }
+
+  /* Probabilidad con la variante AIFS: su ensemble está congelado en la
+     fuente abierta (sondeo 2026-07-22) — se declara, no se pinta */
+  if (!isAir && mode === "prob" && euro.model === "aifs") {
+    if (!(await ensFresh("ecmwf_aifs025", true))) {
+      euroOverlayRemove();
+      $("euro-loading").hidden = true;
+      $("euro-note").textContent =
+        "El AIFS-ENS no se está actualizando en los datos abiertos: sin mapa de probabilidades para la variante IA. Cambia a IFS HRES o al modo Determinista.";
       return;
     }
   }
