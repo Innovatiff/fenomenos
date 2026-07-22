@@ -944,6 +944,9 @@ const TC_BASINS = {
   sio: { name: "Índico sur", scale: "mfr", rsmc: "Météo-France La Réunion", url: "https://meteofrance.re/fr" },
   aus: { name: "Región australiana", scale: "bom", rsmc: "BoM (Australia)", url: "http://www.bom.gov.au/cyclone/" },
   spac: { name: "Pacífico sur", scale: "bom", rsmc: "FMS (Fiyi)", url: "https://www.met.gov.fj/" },
+  /* Atlántico sur: no existe RSMC de ciclones tropicales (son rarísimos);
+     sin enlace verificable no se inventa ninguno */
+  satl: { name: "Atlántico sur", scale: "ss", rsmc: null, url: null },
 };
 
 /* categoría EQUIVALENTE según la escala de la cuenca, a partir del viento
@@ -1160,7 +1163,7 @@ function tcRender() {
         <div class="tc-sys__mid">Máx. mediano ${s.max_kt_med} kt · equivalente
           ${tcScaleLabel(b.scale, s.max_kt_med)} <em>(viento bruto del modelo)</em></div>
         ${esc}
-        <a href="${b.url}" target="_blank" rel="noopener">Avisos oficiales: ${b.rsmc} ↗</a>
+        ${b.url ? `<a href="${b.url}" target="_blank" rel="noopener">Avisos oficiales: ${b.rsmc} ↗</a>` : ""}
       </div>`
     );
   }
