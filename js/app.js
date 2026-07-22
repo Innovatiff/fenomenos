@@ -202,8 +202,10 @@ function fmtHour(isoLocal) {
 
 function fmtDayName(isoDate, index) {
   if (index === 0) return "Hoy";
-  const d = new Date(`${isoDate}T12:00:00`);
-  return d.toLocaleDateString("es", { weekday: "short", day: "numeric" });
+  /* fecha-calendario del LUGAR: se interpreta a mediodía UTC y se formatea
+     en UTC — cero dependencia de la zona/DST del navegador */
+  const d = new Date(`${isoDate}T12:00:00Z`);
+  return d.toLocaleDateString("es", { weekday: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function fmtClock(date) {
@@ -214,6 +216,9 @@ function fmtClock(date) {
 
 let currentSpot = null; /* {lat, lon, label} */
 let weatherAbort = null;
+/* handle de introspección (como __fdcMap/__fdcEuro): permite a las pruebas
+   de aceptación cargar un punto exacto sin simular gestos */
+window.__fdcLoadWeather = (lat, lon, label) => loadWeather(lat, lon, label);
 
 async function loadWeather(lat, lon, label) {
   currentSpot = { lat, lon, label };
@@ -223,22 +228,33 @@ async function loadWeather(lat, lon, label) {
   $("now-place").textContent = label;
   $("now-updated").textContent = "Actualizando…";
 
+  const aifsSel = euro.model === "aifs";
   const params = new URLSearchParams({
     latitude: lat.toFixed(4),
     longitude: lon.toFixed(4),
     current:
       "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,pressure_msl,is_day",
+    /* Campos ampliados del IFS (verificados con respuestas reales en los
+       5 puntos de aceptación: SD, Reikiavik, Singapur, Perth, McMurdo).
+       freezing_level_height/visibility/uv_index NO los publica el IFS vía
+       Open-Meteo (llegan nulos): se piden igual y la UI los muestra como
+       "—" (sin datos) — regla cardinal, nada se inventa. */
     hourly:
-      "temperature_2m,precipitation_probability,weather_code,is_day,wind_speed_10m,wind_gusts_10m,precipitation,cape",
-    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
-    forecast_days: "7",
+      "temperature_2m,precipitation_probability,weather_code,is_day,wind_speed_10m,wind_gusts_10m,precipitation,cape,dew_point_2m,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,snowfall,snow_depth,freezing_level_height,visibility,uv_index" +
+      (aifsSel
+        ? ""
+        : ",temperature_850hPa,geopotential_height_500hPa,wind_speed_850hPa,wind_direction_850hPa,wind_speed_200hPa,wind_direction_200hPa"),
+    daily:
+      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,wind_gusts_10m_max",
+    /* IFS: 15 días completos verificados; AIFS publica 10 */
+    forecast_days: aifsSel ? "10" : "15",
     timezone: "auto",
     temperature_unit: settings.tempUnit,
     wind_speed_unit: settings.windUnit === "mph" ? "mph" : "kmh",
     /* SOLO ECMWF: sin esto Open-Meteo mezcla modelos ("best match") y el
-       panel dejaría de ser atribuible al IFS. Verificado con respuestas
-       reales (current+cape+is_day+diario, trópico y Mongolia). */
-    models: "ecmwf_ifs025",
+       panel dejaría de ser atribuible al centro. Verificado con
+       respuestas reales. */
+    models: aifsSel ? "ecmwf_aifs025_single" : "ecmwf_ifs025",
   });
 
   try {
@@ -251,6 +267,12 @@ async function loadWeather(lat, lon, label) {
     renderHours(data);
     renderDays(data);
     refreshRisks(data, lat, lon, weatherAbort.signal);
+    /* procedencia visible (modelo · pasada · edad) + probabilidades EPS */
+    provRender(
+      aifsSel ? "ecmwf_aifs025_single" : "ecmwf_ifs025",
+      aifsSel ? "ECMWF AIFS (IA)" : "ECMWF IFS"
+    );
+    loadEps(lat, lon);
   } catch (err) {
     if (err && err.name === "AbortError") return;
     $("now-updated").textContent = "No se pudo cargar el pronóstico.";
@@ -281,6 +303,12 @@ function renderNow(data) {
     $("sheet-place").textContent = $("now-place").textContent;
   }
 
+  /* campos que solo llegan en la serie horaria: se toma la hora actual */
+  const h = data.hourly || {};
+  const i0 = hourlyStart(data);
+  const hv = (key) => (h[key] ? h[key][i0] : null);
+  const cloudTri = [hv("cloud_cover_low"), hv("cloud_cover_mid"), hv("cloud_cover_high")];
+
   const stats = [
     { icon: "thermometer-outline", label: "Sensación", value: numOr(c.apparent_temperature, (v) => `${Math.round(v)}${tempSymbol()}`) },
     { icon: "water-outline", label: "Humedad", value: numOr(c.relative_humidity_2m, (v) => `${Math.round(v)}%`) },
@@ -288,7 +316,39 @@ function renderNow(data) {
     { icon: "flash-outline", label: "Ráfagas", value: numOr(c.wind_gusts_10m, (v) => `${Math.round(v)} ${windSymbol()}`) },
     { icon: "speedometer-outline", label: "Presión", value: numOr(c.pressure_msl, (v) => `${Math.round(v)} hPa`) },
     { icon: "rainy-outline", label: "Lluvia", value: numOr(c.precipitation, (v) => `${v.toFixed(1)} mm`) },
+    { icon: "thermometer-outline", label: "Punto de rocío", value: numOr(hv("dew_point_2m"), (v) => `${Math.round(v)}${tempSymbol()}`) },
+    {
+      icon: "cloud-outline",
+      label: "Nubes baja·media·alta",
+      value: cloudTri.every((v) => v == null)
+        ? "—"
+        : cloudTri.map((v) => (v == null ? "—" : Math.round(v))).join("·") + " %",
+    },
+    { icon: "flash-outline", label: "CAPE", value: numOr(hv("cape"), (v) => `${Math.round(v)} J/kg`) },
+    /* el IFS abierto NO publica estos tres: "—" honesto, jamás un invento */
+    { icon: "snow-outline", label: "Isoterma 0°", value: numOr(hv("freezing_level_height"), (v) => `${Math.round(v)} m`) },
+    { icon: "eye-outline", label: "Visibilidad", value: numOr(hv("visibility"), (v) => `${(v / 1000).toFixed(1)} km`) },
+    { icon: "sunny-outline", label: "Índice UV", value: numOr(hv("uv_index"), (v) => `${Math.round(v)}`) },
   ];
+
+  /* nieve: solo cuando hay señal (en el trópico sería ruido permanente) */
+  const snowNow = hv("snowfall");
+  const snowDepth = hv("snow_depth");
+  if ((snowNow != null && snowNow > 0) || (snowDepth != null && snowDepth > 0)) {
+    stats.push({ icon: "snow-outline", label: "Nieve (1 h · manto)", value: `${numOr(snowNow, (v) => v.toFixed(1) + " cm")} · ${numOr(snowDepth, (v) => (v * 100).toFixed(0) + " cm")}` });
+  }
+
+  /* altura (solo IFS: el AIFS abierto no publica niveles de presión) */
+  const t850 = hv("temperature_850hPa");
+  const z500 = hv("geopotential_height_500hPa");
+  const shear = shearDeep(hv("wind_speed_850hPa"), hv("wind_direction_850hPa"), hv("wind_speed_200hPa"), hv("wind_direction_200hPa"));
+  if (t850 != null || z500 != null) {
+    stats.push(
+      { icon: "trending-up-outline", label: "Temp. 850 hPa", value: numOr(t850, (v) => `${Math.round(v)}${tempSymbol()}`) },
+      { icon: "layers-outline", label: "Altura 500 hPa", value: numOr(z500, (v) => `${Math.round(v)} m`) },
+      { icon: "swap-horizontal-outline", label: "Cizalla 850–200", value: numOr(shear, (v) => `${Math.round(v)} ${windSymbol()}`) }
+    );
+  }
 
   $("now-grid").innerHTML = stats
     .map(
@@ -344,6 +404,365 @@ function renderDays(data) {
       </div>`;
     })
     .join("");
+}
+
+/* ═══════════  3a-bis. PROCEDENCIA, CIZALLA Y PASADA DEL MODELO  ══════════ */
+
+/* cizalla vectorial entre dos niveles (dir = de dónde viene el viento);
+   unidades: las mismas del pedido (windSymbol) */
+function shearDeep(spdLo, dirLo, spdHi, dirHi) {
+  if (spdLo == null || dirLo == null || spdHi == null || dirHi == null) return null;
+  const toUV = (s, d) => {
+    const r = (d * Math.PI) / 180;
+    return [-s * Math.sin(r), -s * Math.cos(r)];
+  };
+  const [u1, v1] = toUV(spdLo, dirLo);
+  const [u2, v2] = toUV(spdHi, dirHi);
+  return Math.hypot(u2 - u1, v2 - v1);
+}
+
+/* Pasada del modelo (procedencia real): Open-Meteo publica la hora de
+   inicialización de la última corrida en /data/<modelo>/static/meta.json
+   (verificado con respuesta real: last_run_initialisation_time). */
+const runMeta = new Map(); /* modelId → {at, data|null} */
+
+async function loadRunMeta(modelId) {
+  const hit = runMeta.get(modelId);
+  if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.data;
+  let data = null;
+  try {
+    const res = await fetch(`https://api.open-meteo.com/data/${modelId}/static/meta.json`);
+    if (res.ok) {
+      const m = await res.json();
+      if (m && m.last_run_initialisation_time) data = m;
+    }
+  } catch (_) {}
+  runMeta.set(modelId, { at: Date.now(), data });
+  return data;
+}
+
+async function provRender(modelId, label) {
+  const line = $("prov-line");
+  if (!line) return;
+  const meta = await loadRunMeta(modelId);
+  line.hidden = false;
+  if (!meta) {
+    /* sin metadatos no se inventa una pasada: se dice que no hay */
+    $("prov-text").textContent = `${label} · pasada: sin datos`;
+    $("prov-badge").hidden = true;
+    return;
+  }
+  const init = meta.last_run_initialisation_time * 1000;
+  const d = new Date(init);
+  const ageH = (Date.now() - init) / 3600000;
+  const runTxt = `${String(d.getUTCHours()).padStart(2, "0")}z (${d.getUTCDate()} ${d.toLocaleDateString("es", { month: "short", timeZone: "UTC" })})`;
+  $("prov-text").textContent = `${label} · pasada ${runTxt} · hace ${ageH < 1 ? Math.round(ageH * 60) + " min" : Math.round(ageH) + " h"}`;
+  /* insignia de pasada vieja (>7 h). Ojo: la propia latencia de
+     publicación de ECMWF ronda 7 h — ver el informe de fase */
+  $("prov-badge").hidden = ageH <= 7;
+}
+
+/* ═══════  3a-tris. PROBABILIDADES REALES DEL EPS (51 MIEMBROS)  ══════════
+   Cada porcentaje de esta sección sale de CONTAR miembros del ensemble de
+   ECMWF que superan un umbral, y el conteo (N/51) se muestra al lado para
+   que cualquiera pueda verificarlo. Nada de probabilidades de caja negra. */
+
+const eps = { key: null, abort: null, data: null };
+
+function epsSeries(base) {
+  const h = (eps.data && eps.data.hourly) || {};
+  const out = [];
+  for (const k of Object.keys(h)) {
+    if (k === base || k.startsWith(base + "_member")) {
+      const arr = h[k];
+      if (Array.isArray(arr) && arr.some((v) => v != null)) out.push(arr);
+    }
+  }
+  return out;
+}
+
+function qSorted(sorted, q) {
+  if (!sorted.length) return null;
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+/* percentiles por hora a través de los miembros */
+function epsFanData(members) {
+  const n = members[0] ? members[0].length : 0;
+  const fan = { p10: [], p25: [], p50: [], p75: [], p90: [], sd: [] };
+  for (let t = 0; t < n; t++) {
+    const vals = [];
+    for (const m of members) if (m[t] != null) vals.push(m[t]);
+    vals.sort((a, b) => a - b);
+    fan.p10.push(qSorted(vals, 0.1));
+    fan.p25.push(qSorted(vals, 0.25));
+    fan.p50.push(qSorted(vals, 0.5));
+    fan.p75.push(qSorted(vals, 0.75));
+    fan.p90.push(qSorted(vals, 0.9));
+    if (vals.length > 1) {
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      fan.sd.push(Math.sqrt(vals.reduce((a, v) => a + (v - mean) ** 2, 0) / (vals.length - 1)));
+    } else {
+      fan.sd.push(null);
+    }
+  }
+  return fan;
+}
+
+/* acumulado por día-calendario DEL LUGAR (las horas llegan en su tz) */
+function epsDailySums(times, member) {
+  const out = new Map();
+  for (let i = 0; i < times.length; i++) {
+    if (member[i] == null) continue;
+    const day = times[i].slice(0, 10);
+    out.set(day, (out.get(day) || 0) + member[i]);
+  }
+  return out;
+}
+
+function epsDailyExtreme(times, member, fn) {
+  const out = new Map();
+  for (let i = 0; i < times.length; i++) {
+    if (member[i] == null) continue;
+    const day = times[i].slice(0, 10);
+    out.set(day, out.has(day) ? fn(out.get(day), member[i]) : member[i]);
+  }
+  return out;
+}
+
+async function loadEps(lat, lon) {
+  const cfg = EURO_MODELS_CFG[euro.model] || EURO_MODELS_CFG.ecmwf;
+  const key = `${lat.toFixed(2)}|${lon.toFixed(2)}|${cfg.ens}`;
+  const block = $("eps-block");
+  if (!block) return;
+  block.hidden = false;
+  $("eps-title").textContent = cfg.ensName;
+  if (eps.key === key && eps.data && Date.now() - eps.data.at < 30 * 60 * 1000) {
+    epsRender();
+    return;
+  }
+  $("eps-head").textContent = "Calculando con los escenarios del ensemble…";
+  $("eps-thresholds").innerHTML = "";
+  $("eps-legend").hidden = true;
+  if (eps.abort) eps.abort.abort();
+  eps.abort = new AbortController();
+  eps.key = key;
+  try {
+    const params = new URLSearchParams({
+      latitude: lat.toFixed(4),
+      longitude: lon.toFixed(4),
+      hourly: "temperature_2m,precipitation,wind_gusts_10m,snowfall",
+      forecast_days: "7",
+      timezone: "auto",
+      models: cfg.ens,
+      temperature_unit: "celsius" /* umbrales en °C; se convierte al pintar */,
+      wind_speed_unit: "kmh",
+    });
+    const res = await fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?${params}`, {
+      signal: eps.abort.signal,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const raw = await res.json();
+    const d = Array.isArray(raw) ? raw[0] : raw;
+    eps.data = { at: Date.now(), hourly: d.hourly || {}, ensName: cfg.ensName };
+    epsRender();
+  } catch (err) {
+    if (err && err.name === "AbortError") return;
+    eps.data = null;
+    $("eps-head").textContent = "Sin datos del ensemble ahora mismo.";
+    $("conf-badge").hidden = true;
+  }
+}
+
+/* umbrales del encargo: lluvia diaria, ráfagas en kt→km/h, helada/calor */
+const EPS_RAIN_THR = [0.2, 1, 5, 10, 25, 50, 100]; /* mm/día */
+const EPS_GUST_THR = [
+  { kt: 34, kmh: 63 },
+  { kt: 50, kmh: 93 },
+  { kt: 64, kmh: 119 },
+  { kt: 96, kmh: 178 },
+];
+
+function epsChip(pct, count, total, label) {
+  return `<div class="eps-chip" title="${count} de ${total} escenarios">
+    <strong>${pct}%</strong><span>${label}</span><small>${count}/${total}</small>
+  </div>`;
+}
+
+function epsRender() {
+  if (!eps.data) return;
+  const h = eps.data.hourly;
+  const times = h.time || [];
+  const temps = epsSeries("temperature_2m");
+  const rains = epsSeries("precipitation");
+  const gusts = epsSeries("wind_gusts_10m");
+  const snows = epsSeries("snowfall");
+  const N = temps.length;
+  if (!N || !times.length) {
+    $("eps-head").textContent = "Sin datos del ensemble ahora mismo.";
+    return;
+  }
+
+  const fan = epsFanData(temps);
+  /* confianza: dispersión media (σ) de la temperatura en las próximas 72 h */
+  const sd72 = fan.sd.slice(0, 72).filter((v) => v != null);
+  const sdMean = sd72.length ? sd72.reduce((a, b) => a + b, 0) / sd72.length : null;
+  const conf = sdMean == null ? null : sdMean < 1.0 ? "alta" : sdMean < 2.2 ? "media" : "baja";
+  $("eps-head").textContent =
+    `${N} escenarios · dispersión media ±${sdMean == null ? "—" : sdMean.toFixed(1)} °C (72 h)` +
+    (conf ? ` · confianza ${conf.toUpperCase()}` : "");
+  const cb = $("conf-badge");
+  if (cb) {
+    cb.hidden = conf == null;
+    cb.textContent = `confianza ${conf || "—"}`;
+    cb.dataset.level = conf || "";
+  }
+
+  epsDrawFan(times, temps, fan);
+  $("eps-legend").hidden = false;
+
+  /* ── tablas de umbral con conteos reproducibles ── */
+  const days = [...new Set(times.map((t) => t.slice(0, 10)))].slice(0, 3);
+  const rows = [];
+
+  /* lluvia por día */
+  const rainSums = rains.map((m) => epsDailySums(times, m));
+  for (const day of days) {
+    const chips = EPS_RAIN_THR.map((thr) => {
+      const c = rainSums.filter((s) => (s.get(day) || 0) > thr).length;
+      return epsChip(Math.round((100 * c) / N), c, N, `>${thr} mm`);
+    }).join("");
+    rows.push(`<div class="eps-row"><span class="eps-row__label">Lluvia · ${fmtDayName(day, days.indexOf(day))}</span><div class="eps-chips">${chips}</div></div>`);
+  }
+
+  /* ráfagas máximas en 48 h */
+  const gustMax = gusts.map((m) => {
+    let mx = null;
+    for (let i = 0; i < Math.min(48, m.length); i++) if (m[i] != null && (mx == null || m[i] > mx)) mx = m[i];
+    return mx;
+  });
+  const gustChips = EPS_GUST_THR.map(({ kt, kmh }) => {
+    const c = gustMax.filter((v) => v != null && v > kmh).length;
+    return epsChip(Math.round((100 * c) / N), c, N, `>${kmh} km/h (${kt} kt)`);
+  }).join("");
+  rows.push(`<div class="eps-row"><span class="eps-row__label">Ráfagas · próximas 48 h</span><div class="eps-chips">${gustChips}</div></div>`);
+
+  /* helada y calor por día (mín/máx del día por miembro, °C) */
+  const tMin = temps.map((m) => epsDailyExtreme(times, m, Math.min));
+  const tMax = temps.map((m) => epsDailyExtreme(times, m, Math.max));
+  const frostChips = days
+    .map((day, i) => {
+      const c = tMin.filter((s) => s.has(day) && s.get(day) < 0).length;
+      return epsChip(Math.round((100 * c) / N), c, N, fmtDayName(day, i));
+    })
+    .join("");
+  rows.push(`<div class="eps-row"><span class="eps-row__label">Helada (mín &lt; 0 °C)</span><div class="eps-chips">${frostChips}</div></div>`);
+  const heatChips = days
+    .map((day, i) => {
+      const c = tMax.filter((s) => s.has(day) && s.get(day) > 35).length;
+      return epsChip(Math.round((100 * c) / N), c, N, fmtDayName(day, i));
+    })
+    .join("");
+  rows.push(`<div class="eps-row"><span class="eps-row__label">Calor (máx &gt; 35 °C)</span><div class="eps-chips">${heatChips}</div></div>`);
+
+  /* nieve: solo si algún miembro da algo (>0.1 cm/día) */
+  const snowSums = snows.map((m) => epsDailySums(times, m));
+  const anySnow = days.some((day) => snowSums.some((s) => (s.get(day) || 0) > 0.1));
+  if (anySnow) {
+    for (const day of days) {
+      const chips = [1, 5, 20].map((thr) => {
+        const c = snowSums.filter((s) => (s.get(day) || 0) > thr).length;
+        return epsChip(Math.round((100 * c) / N), c, N, `>${thr} cm`);
+      }).join("");
+      rows.push(`<div class="eps-row"><span class="eps-row__label">Nieve · ${fmtDayName(day, days.indexOf(day))}</span><div class="eps-chips">${chips}</div></div>`);
+    }
+  }
+
+  $("eps-thresholds").innerHTML = rows.join("");
+  const note = $("eps-note");
+  note.hidden = false;
+  note.textContent =
+    `Cada porcentaje es el conteo directo de los ${N} escenarios del ${eps.data.ensName} que superan el umbral (se muestra N/${N}). ` +
+    "Confianza: σ media de temperatura a 72 h — alta < 1.0 °C, media < 2.2 °C, baja ≥ 2.2 °C. Umbrales de helada/calor fijos (0 °C / 35 °C).";
+
+  /* estructura expuesta para verificación externa (pruebas de aceptación) */
+  window.__fdcEpsCalc = { members: N, sdMean, conf, days };
+}
+
+/* abanico de percentiles + espagueti de todos los miembros */
+function epsDrawFan(times, members, fan) {
+  const cv = $("eps-fan");
+  if (!cv || !cv.getContext) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = cv.clientWidth || cv.parentElement.clientWidth || 600;
+  const H = 180;
+  cv.width = W * dpr;
+  cv.height = H * dpr;
+  const ctx = cv.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const n = fan.p50.length;
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let i = 0; i < n; i++) {
+    if (fan.p10[i] != null) lo = Math.min(lo, fan.p10[i]);
+    if (fan.p90[i] != null) hi = Math.max(hi, fan.p90[i]);
+  }
+  if (!isFinite(lo) || !isFinite(hi)) return;
+  const pad = (hi - lo) * 0.12 + 0.5;
+  lo -= pad;
+  hi += pad;
+  const X = (i) => (i / (n - 1)) * (W - 34) + 30;
+  const Y = (v) => H - 18 - ((v - lo) / (hi - lo)) * (H - 30);
+
+  /* medianoche del lugar: líneas de día */
+  ctx.strokeStyle = "rgba(122,162,255,0.14)";
+  ctx.fillStyle = "rgba(196,208,240,0.55)";
+  ctx.font = "10px system-ui";
+  ctx.lineWidth = 1;
+  for (let i = 0; i < n; i++) {
+    if (times[i].slice(11, 16) === "00:00") {
+      ctx.beginPath();
+      ctx.moveTo(X(i), 6);
+      ctx.lineTo(X(i), H - 16);
+      ctx.stroke();
+      ctx.fillText(fmtDayName(times[i].slice(0, 10), 1), X(i) + 3, H - 6);
+    }
+  }
+
+  const band = (loArr, hiArr, color) => {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) ctx.lineTo(X(i), Y(loArr[i]));
+    for (let i = n - 1; i >= 0; i--) ctx.lineTo(X(i), Y(hiArr[i]));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  };
+
+  /* espagueti: TODOS los miembros, finitos y tenues */
+  ctx.strokeStyle = "rgba(150,180,255,0.06)";
+  for (const m of members) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) if (m[i] != null) ctx.lineTo(X(i), Y(m[i]));
+    ctx.stroke();
+  }
+
+  band(fan.p10, fan.p90, "rgba(122,162,255,0.16)");
+  band(fan.p25, fan.p75, "rgba(122,162,255,0.26)");
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) ctx.lineTo(X(i), Y(fan.p50[i]));
+  ctx.strokeStyle = "rgba(255,224,138,0.95)";
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  /* eje: mín y máx */
+  ctx.fillStyle = "rgba(196,208,240,0.7)";
+  ctx.fillText(`${Math.round(hi - pad)}°`, 4, 14);
+  ctx.fillText(`${Math.round(lo + pad)}°`, 4, H - 20);
 }
 
 /* ═══════════════  3b. RIESGOS Y ADVERTENCIAS SEVERAS  ═══════════════════
@@ -2174,8 +2593,9 @@ function euroRenderMapa(files, mode) {
 function euroRender() {
   if (!map) return;
   /* el mapa mundial en imágenes tiene prioridad (mejor calidad y global);
-     la calidad del aire no tiene imágenes y sigue el camino clásico */
-  if (euro.variable !== "air") {
+     SOLO existe para el IFS — con la variante AIFS o la capa de aire se
+     sigue el camino clásico (rejilla del robot / API) */
+  if (euro.variable !== "air" && euro.model === "ecmwf") {
     const modeSel = euro.mode;
     const files = mapaFrames(modeSel, euro.variable);
     if (files) {
@@ -2470,9 +2890,9 @@ async function euroRefresh() {
   const isAir = euro.variable === "air";
   const mode = isAir ? "det" : euro.mode;
 
-  /* mapa mundial en imágenes: cero API y cero cálculo en el cliente; la
-     rejilla regional se carga aparte solo para el popup de valores */
-  if (!isAir) {
+  /* mapa mundial en imágenes (solo IFS): cero API y cero cálculo en el
+     cliente; la rejilla regional se carga aparte para el popup de valores */
+  if (!isAir && euro.model === "ecmwf") {
     await mapaMeta();
     if (mapaFrames(mode, euro.variable)) {
       staticUse(mode);
@@ -2964,13 +3384,18 @@ window.addEventListener("resize", () => {
   }, 300);
 });
 
-/* controles del panel (solo ECMWF: sin selector de centros) */
-["euro-var", "euro-mode"].forEach((id) => {
+/* controles del panel (solo ECMWF; la variante alterna IFS ↔ AIFS) */
+["euro-variant", "euro-var", "euro-mode"].forEach((id) => {
   document.querySelectorAll(`#${id} .seg__btn`).forEach((btn) => {
     btn.addEventListener("click", () => {
       setSegValue(id, btn.dataset.value);
       if (id === "euro-var") euro.variable = btn.dataset.value;
-      else euro.mode = btn.dataset.value;
+      else if (id === "euro-mode") euro.mode = btn.dataset.value;
+      else {
+        euro.model = btn.dataset.value; /* "ecmwf" (IFS) o "aifs" — ambos ECMWF */
+        /* la variante también rige el panel puntual y el EPS */
+        if (currentSpot) loadWeather(currentSpot.lat, currentSpot.lon, currentSpot.label);
+      }
       /* acción deliberada del usuario: salta el intervalo entre peticiones
          (el enfriamiento por 429 sí se respeta) */
       euro.lastFetch = { prob: 0, det: 0 };
@@ -2981,7 +3406,8 @@ window.addEventListener("resize", () => {
 
 function euroStepMax() {
   const m = mapaSrc.data;
-  if (m && mapaFrames(euro.mode, euro.variable)) return m.times.length - 1;
+  if (euro.model === "ecmwf" && m && mapaFrames(euro.mode, euro.variable))
+    return m.times.length - 1;
   return euro.data ? euro.data.times.length - 1 : 0;
 }
 
@@ -3181,7 +3607,7 @@ function settingsSync() {
   const activeLayer = document.querySelector("#layer-seg .seg__btn.is-active");
   const layer = activeLayer ? activeLayer.dataset.layer : "";
   markActive("modal-layer", layer); /* con none, ninguna tarjeta activa */
-  for (const src of ["euro-var", "euro-mode"]) {
+  for (const src of ["euro-variant", "euro-var", "euro-mode"]) {
     const a = document.querySelector(`#${src} .seg__btn.is-active`);
     if (a) markActive(`modal-${src}`, a.dataset.value);
   }
@@ -3220,7 +3646,7 @@ document.querySelectorAll("#modal-layer [data-value]").forEach((btn) => {
 });
 /* variable y modo del ECMWF: el modelo acompaña siempre a Radar/Satélite,
    así que el cambio se ve al instante sobre la capa activa */
-for (const id of ["euro-var", "euro-mode"]) {
+for (const id of ["euro-variant", "euro-var", "euro-mode"]) {
   document.querySelectorAll(`#modal-${id} [data-value]`).forEach((btn) => {
     btn.addEventListener("click", () => {
       const src = document.querySelector(`#${id} [data-value="${btn.dataset.value}"]`);

@@ -131,6 +131,12 @@
               <span id="now-place">—</span>
             </p>
             <p class="now__updated" id="now-updated">Cargando datos…</p>
+            <!-- procedencia: modelo · pasada · edad (insignia si >7 h) -->
+            <p class="prov" id="prov-line" hidden>
+              <span id="prov-text">—</span>
+              <span class="prov-badge" id="prov-badge" hidden>pasada antigua</span>
+              <span class="conf-badge" id="conf-badge" hidden>—</span>
+            </p>
             <div class="now__main">
               <span class="now__icon" id="now-icon">
                 <ion-icon name="cloud-outline"></ion-icon>
@@ -161,16 +167,41 @@
             <div class="hours" id="hours"></div>
           </section>
 
-          <!-- 7 días -->
+          <!-- Días (alcance según lo que devuelva el IFS) -->
           <section class="panel-block">
             <p class="panel-block__title">
-              <ion-icon name="calendar-outline"></ion-icon> Próximos 7 días
+              <ion-icon name="calendar-outline"></ion-icon> Próximos días
             </p>
             <div class="days" id="days"></div>
           </section>
 
+          <!-- Probabilidades REALES del ensemble: cada % sale del conteo de
+               los 51 escenarios del EPS (se muestra N/51 para poder
+               verificarlo) -->
+          <section class="panel-block" id="eps-block" hidden>
+            <p class="panel-block__title">
+              <ion-icon name="stats-chart-outline"></ion-icon>
+              Probabilidades · <span id="eps-title">EPS de ECMWF</span>
+            </p>
+            <p class="eps-head" id="eps-head">—</p>
+            <canvas
+              class="eps-fan"
+              id="eps-fan"
+              height="180"
+              aria-label="Abanico de percentiles de temperatura de los 51 escenarios"
+            ></canvas>
+            <div class="eps-legendrow" id="eps-legend" hidden>
+              <span><i class="eps-sw eps-sw--b1"></i> p10–p90</span>
+              <span><i class="eps-sw eps-sw--b2"></i> p25–p75</span>
+              <span><i class="eps-sw eps-sw--med"></i> mediana</span>
+              <span><i class="eps-sw eps-sw--spag"></i> escenarios</span>
+            </div>
+            <div id="eps-thresholds"></div>
+            <p class="eps-note" id="eps-note" hidden></p>
+          </section>
+
           <p class="panel-note">
-            Satélite: GOES-19 (NOAA) · Radar: RainViewer · Modelos: datos abiertos
+            Modelo: ECMWF (datos abiertos oficiales) · Frentes: análisis NOAA/WPC
           </p>
         </aside>
 
@@ -205,6 +236,12 @@
             </button>
 
             <div class="euro-panel__body" id="euro-body">
+              <!-- variante del MISMO centro: IFS físico o AIFS (IA) -->
+              <div class="seg seg--tight" id="euro-variant" role="tablist">
+                <button class="seg__btn is-active" data-value="ecmwf" title="IFS: el modelo físico de ECMWF (det 0.25° + EPS 51)">IFS HRES</button>
+                <button class="seg__btn" data-value="aifs" title="AIFS: el modelo de inteligencia artificial de ECMWF">AIFS (IA)</button>
+              </div>
+
               <div class="seg seg--tight" id="euro-var" role="tablist">
                 <button class="seg__btn is-active" data-value="wind">Viento</button>
                 <button class="seg__btn" data-value="gusts">Ráfagas</button>
@@ -348,6 +385,18 @@
             Satélite, con su pasada determinista de 0.25° y las probabilidades
             de sus 51 escenarios.
           </p>
+
+          <span class="field__label">Variante del ECMWF</span>
+          <div class="mgrid" id="modal-euro-variant">
+            <button class="mcard" data-value="ecmwf" type="button">
+              <strong>IFS HRES</strong>
+              <small>El modelo físico oficial · determinista 0.25° + EPS de 51 escenarios</small>
+            </button>
+            <button class="mcard" data-value="aifs" type="button">
+              <strong>AIFS <span class="mcard__badge">IA</span></strong>
+              <small>La inteligencia artificial de ECMWF · sin ráfagas ni CAPE (se muestran «—»)</small>
+            </button>
+          </div>
 
           <span class="field__label">Variable</span>
           <div class="vgrid" id="modal-euro-var">
