@@ -1172,6 +1172,16 @@
 .tc-sys a:hover {
   text-decoration: underline;
 }
+/* ciudades top del panel de país (botones con forma de chip) */
+.country-city {
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s var(--ease);
+}
+.country-city:hover {
+  border-color: var(--text-5);
+}
+
 .tc-warn {
   margin: 0.6rem 0 0;
   padding: 0.55rem 0.8rem;

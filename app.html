@@ -216,6 +216,18 @@
             <p class="eps-note" id="climo-note" hidden></p>
           </section>
 
+          <!-- Mar (olas del ECMWF WAM): solo aparece si el punto tiene datos
+               de oleaje — la detección costera ES la respuesta de la fuente
+               (interior → todo nulo, verificado en vivo) -->
+          <section class="panel-block" id="marine-block" hidden>
+            <p class="panel-block__title">
+              <ion-icon name="boat-outline"></ion-icon>
+              Mar · olas del ECMWF (WAM)
+            </p>
+            <div class="now__grid" id="marine-grid"></div>
+            <p class="eps-note" id="marine-note" hidden></p>
+          </section>
+
           <!-- Ciclones tropicales del ENS de ECMWF: trayectorias por miembro
                detectadas por nuestro rastreador (criterios publicados en
                ciclones.json). NUNCA es un aviso oficial. -->
@@ -237,6 +249,17 @@
               nacional.
             </p>
             <p class="eps-note" id="tc-note" hidden></p>
+          </section>
+
+          <!-- País principal: generado (NE admin-0 + GeoNames); el enlace al
+               servicio meteorológico solo aparece si el robot lo verificó -->
+          <section class="panel-block" id="country-block" hidden>
+            <p class="panel-block__title">
+              <ion-icon name="flag-outline"></ion-icon>
+              País · <span id="country-title">—</span>
+            </p>
+            <div class="eps-chips" id="country-cities"></div>
+            <p class="eps-note" id="country-met"></p>
           </section>
 
           <p class="panel-note">

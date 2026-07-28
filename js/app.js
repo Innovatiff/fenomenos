@@ -86,6 +86,87 @@ const DEFAULT_SETTINGS = {
 
 let settings = { ...DEFAULT_SETTINGS };
 
+/* ═══ países GLOBALES (generados por el robot: NE admin-0 + GeoNames) ═══
+   COUNTRIES de arriba queda como arranque instantáneo y respaldo; en
+   cuanto geo/countries.json llega, el selector cubre TODOS los estados y
+   territorios. El Caribe solo es el valor de marca por defecto. */
+let worldCountries = null; /* a2 → entrada normalizada */
+let worldCountriesPromise = null;
+
+function countryGet(code) {
+  return (worldCountries && worldCountries[code]) || COUNTRIES[code] || null;
+}
+
+async function loadCountries() {
+  if (worldCountriesPromise) return worldCountriesPromise;
+  worldCountriesPromise = (async () => {
+    try {
+      const res = await fetch(`${DATA_REPO}/geo/countries.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const d = await res.json();
+      if (!d || !Array.isArray(d.countries) || d.countries.length < 100)
+        throw new Error("countries.json incompleto");
+      const map = {};
+      for (const c of d.countries) {
+        map[c.a2] = {
+          name: c.name.es || c.name.en || c.a2,
+          place: c.capital ? c.capital[0] : c.name.es || c.name.en,
+          lat: c.capital ? c.capital[1] : c.centroid[0],
+          lon: c.capital ? c.capital[2] : c.centroid[1],
+          zoom: c.zoom,
+          bbox: c.bbox,
+          met: c.met || null,
+          top: c.top || [],
+          type: c.type || "",
+          tz: c.tz || [],
+          units: c.units || null,
+        };
+      }
+      worldCountries = map;
+      fillCountrySelect();
+      countryRender();
+    } catch (_) {
+      worldCountriesPromise = null; /* reintento en el próximo uso */
+    }
+    return worldCountries;
+  })();
+  return worldCountriesPromise;
+}
+
+/* panel «País»: capital, ciudades top (clic → pronóstico) y el servicio
+   meteorológico oficial SOLO si el robot lo verificó en vivo */
+function countryRender() {
+  const block = $("country-block");
+  if (!block) return;
+  const c = countryGet(settings.country);
+  if (!c || !worldCountries || !worldCountries[settings.country]) {
+    block.hidden = true;
+    return;
+  }
+  block.hidden = false;
+  $("country-title").textContent = c.name;
+  const cities = (c.top || [])
+    .map(
+      (t) =>
+        `<button class="eps-chip country-city" data-lat="${t[1]}" data-lon="${t[2]}" type="button"><strong>${t[0]}</strong><span>${Math.round(t[3] / 1000)} mil hab.</span></button>`
+    )
+    .join("");
+  $("country-cities").innerHTML = cities || "";
+  $("country-met").innerHTML = c.met
+    ? `<a href="${c.met}" target="_blank" rel="noopener">Servicio meteorológico oficial ↗</a>`
+    : `<span>Sin enlace oficial verificado para este territorio.</span>`;
+}
+
+document.addEventListener("click", (ev) => {
+  const btn = ev.target.closest && ev.target.closest("#country-cities .country-city");
+  if (!btn) return;
+  const la = parseFloat(btn.dataset.lat);
+  const lo = parseFloat(btn.dataset.lon);
+  const name = btn.querySelector("strong").textContent;
+  loadWeather(la, lo, name);
+  if (map) map.flyTo({ center: [lo, la], zoom: glZoom(9), duration: 1100 });
+});
+
 function readLocalSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -100,7 +181,8 @@ function readLocalSettings() {
 function normalizeSettings(data) {
   const out = { ...DEFAULT_SETTINGS };
   if (data && typeof data === "object") {
-    if (COUNTRIES[data.country]) out.country = data.country;
+    if (COUNTRIES[data.country] || /^[a-z]{2}$/.test(data.country || ""))
+      out.country = data.country;
     if (data.tempUnit === "fahrenheit") out.tempUnit = "fahrenheit";
     if (data.windUnit === "mph") out.windUnit = "mph";
     if (["radar", "satellite", "clouds", "none"].includes(data.layer)) out.layer = data.layer;
@@ -249,7 +331,7 @@ async function loadWeather(lat, lon, label) {
         ? ""
         : ",temperature_850hPa,geopotential_height_500hPa,wind_speed_850hPa,wind_direction_850hPa,wind_speed_200hPa,wind_direction_200hPa"),
     daily:
-      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,wind_gusts_10m_max",
+      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,wind_gusts_10m_max,sunrise,sunset,daylight_duration",
     /* IFS: 15 días completos verificados; AIFS publica 10 */
     forecast_days: aifsSel ? "10" : "15",
     timezone: "auto",
@@ -278,6 +360,7 @@ async function loadWeather(lat, lon, label) {
     );
     loadEps(lat, lon);
     renderClimo(data, lat, lon);
+    loadMarine(lat, lon);
   } catch (err) {
     if (err && err.name === "AbortError") return;
     $("now-updated").textContent = "No se pudo cargar el pronóstico.";
@@ -334,6 +417,10 @@ function renderNow(data) {
     { icon: "snow-outline", label: "Isoterma 0°", value: numOr(hv("freezing_level_height"), (v) => `${Math.round(v)} m`) },
     { icon: "eye-outline", label: "Visibilidad", value: numOr(hv("visibility"), (v) => `${(v / 1000).toFixed(1)} km`) },
     { icon: "sunny-outline", label: "Índice UV", value: numOr(hv("uv_index"), (v) => `${Math.round(v)}`) },
+    /* altitud REAL que usó el modelo para este punto (DEM de Open-Meteo:
+       Pico Duarte 3006 m vs costa 29 m, verificado en vivo) */
+    { icon: "triangle-outline", label: "Altitud del punto", value: numOr(data.elevation, (v) => `${Math.round(v)} m`) },
+    { icon: "sunny-outline", label: "Sol", value: sunLabel(data) },
   ];
 
   /* nieve: solo cuando hay señal (en el trópico sería ruido permanente) */
@@ -934,6 +1021,81 @@ async function renderClimo(data, lat, lon) {
     : "Sin valores comparables hoy (p. ej. lluvia pronosticada 0 mm).";
 }
 
+/* ═══════════  3a-quater-bis. MAR (olas del ECMWF WAM)  ═══════════════════
+   La "detección costera" es la respuesta REAL de la fuente: un punto
+   interior devuelve todas las horas nulas (Madrid 0/24, costa 24/24 —
+   sondeado en vivo, corrida 30369449924). Si hay datos, el bloque
+   aparece; si no, no existe. swell_wave_* llega nulo con este modelo y
+   no se pide. */
+const marineCache = new Map(); /* "lat|lon" → {at, data|null} */
+let marineSeq = 0;
+
+async function loadMarine(lat, lon) {
+  const block = $("marine-block");
+  if (!block) return;
+  const seq = ++marineSeq;
+  const key = `${lat.toFixed(2)}|${lon.toFixed(2)}`;
+  const hit = marineCache.get(key);
+  let d = hit && Date.now() - hit.at < 30 * 60 * 1000 ? hit.data : undefined;
+  if (d === undefined) {
+    try {
+      const params = new URLSearchParams({
+        latitude: lat.toFixed(4),
+        longitude: lon.toFixed(4),
+        hourly: "wave_height,wave_period,wave_direction",
+        forecast_days: "3",
+        timezone: "auto",
+        models: "ecmwf_wam025",
+      });
+      const res = await fetch(`https://marine-api.open-meteo.com/v1/marine?${params}`);
+      d = res.ok ? await res.json() : null;
+      if (d && !(d.hourly && (d.hourly.wave_height || []).some((v) => v != null)))
+        d = null; /* interior: todo nulo */
+    } catch (_) {
+      d = null;
+    }
+    marineCache.set(key, { at: Date.now(), data: d });
+    if (marineCache.size > 60) marineCache.delete(marineCache.keys().next().value);
+  }
+  if (seq !== marineSeq) return; /* ya se pidió otro punto */
+  if (!d) {
+    block.hidden = true;
+    return;
+  }
+  const H = d.hourly;
+  const i0 = (() => {
+    const nowIso = new Date().toISOString().slice(0, 13);
+    const i = H.time.findIndex((t) => t.slice(0, 13) >= nowIso);
+    return i < 0 ? 0 : i;
+  })();
+  const deg2card = (v) =>
+    ["N", "NE", "E", "SE", "S", "SO", "O", "NO"][Math.round((v % 360) / 45) % 8];
+  let hMax = null;
+  for (let i = i0; i < Math.min(i0 + 48, H.time.length); i++) {
+    const v = H.wave_height[i];
+    if (v != null && (hMax == null || v > hMax)) hMax = v;
+  }
+  block.hidden = false;
+  $("marine-grid").innerHTML = [
+    { icon: "water-outline", label: "Oleaje ahora", value: numOr(H.wave_height[i0], (v) => `${v.toFixed(1)} m`) },
+    { icon: "timer-outline", label: "Período", value: numOr(H.wave_period[i0], (v) => `${v.toFixed(1)} s`) },
+    { icon: "compass-outline", label: "Dirección", value: numOr(H.wave_direction[i0], (v) => `${deg2card(v)} (${Math.round(v)}°)`) },
+    { icon: "trending-up-outline", label: "Máx. 48 h", value: numOr(hMax, (v) => `${v.toFixed(1)} m`) },
+  ]
+    .map(
+      (s) => `
+      <div class="now__stat">
+        <ion-icon name="${s.icon}"></ion-icon>
+        <div><strong>${s.value}</strong><span>${s.label}</span></div>
+      </div>`
+    )
+    .join("");
+  const note = $("marine-note");
+  note.hidden = false;
+  note.textContent =
+    "Olas del modelo WAM de ECMWF (0.25°, datos abiertos vía Open-Meteo). Aparece solo donde el modelo tiene mar.";
+}
+
 /* ═══════════  3a-quinquies. CICLONES TROPICALES (ENS de ECMWF)  ══════════
    Trayectorias por miembro detectadas por el rastreador del robot
    (mínimo cerrado + vorticidad + núcleo cálido; criterios publicados en
@@ -1217,6 +1379,22 @@ const RISK_LEVELS = [
 
 function toKmh(v) {
   return settings.windUnit === "mph" ? v * 1.609344 : v;
+}
+
+/* Sol de hoy con día/noche polar bien manejados. Semántica REAL de la
+   fuente (sondeada en Svalbard y McMurdo): día polar → daylight 86400 s
+   y salida/puesta degeneradas a 00:00; noche polar → daylight 0 s. */
+function sunLabel(data) {
+  const d = data.daily || {};
+  const dl = d.daylight_duration && d.daylight_duration[0];
+  if (dl == null) return "—";
+  if (dl >= 86390) return "Sol de medianoche";
+  if (dl <= 10) return "Noche polar";
+  const sr = d.sunrise && d.sunrise[0];
+  const ss = d.sunset && d.sunset[0];
+  if (!sr || !ss) return "—";
+  /* con minutos: la salida/puesta a la hora en punto sería mentira */
+  return `${sr.slice(11, 16)} – ${ss.slice(11, 16)}`;
 }
 
 /* primer índice del arreglo horario que corresponde a "ahora" */
@@ -1793,7 +1971,7 @@ async function initMap() {
   }
   $("map-fallback").classList.remove("is-visible");
 
-  const c = COUNTRIES[settings.country];
+  const c = countryGet(settings.country) || COUNTRIES.do;
   map = new gl.Map({
     container: "map",
     style: styleUrl,
@@ -2264,18 +2442,67 @@ function onMapClick(e) {
   reverseGeocode(lat, lng);
 }
 
-/* nombre legible del punto tocado (mejora la etiqueta si hay conexión) */
+/* nombre legible del punto tocado. El endpoint anterior (geocoding de
+   Open-Meteo con name vacío) NO hace geocodificación inversa — sondeado
+   en vivo devuelve solo {"generationtime_ms":…} sin resultados (corrida
+   30369449924). Ahora: Photon (komoot, OSM) con respaldo Nominatim,
+   con caché y como máximo una petición por clic (política de uso). */
+const revCache = new Map();
+let revLast = 0;
+
 async function reverseGeocode(lat, lon) {
+  const key = `${lat.toFixed(2)}|${lon.toFixed(2)}`;
+  const apply = (label) => {
+    if (label && currentSpot && Math.abs(currentSpot.lat - lat) < 0.001) {
+      $("now-place").textContent = label;
+      currentSpot.label = label;
+    }
+  };
+  if (revCache.has(key)) return apply(revCache.get(key));
+  const now = Date.now();
+  if (now - revLast < 1100) return; /* cortesía: nunca más de ~1 pet./s */
+  revLast = now;
+  const pick = (name, city, state, country) => {
+    const main = name || city;
+    if (!main) return null;
+    const extra = [city && city !== main ? city : null, state, country]
+      .filter(Boolean)
+      .slice(0, 2)
+      .join(", ");
+    return extra ? `${main}, ${extra}` : main;
+  };
+  let label = null;
   try {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=&latitude=${lat}&longitude=${lon}`;
-    const res = await fetch(url);
-    if (!res.ok) return;
-    const data = await res.json();
-    const hit = data.results && data.results[0];
-    if (hit && currentSpot && Math.abs(currentSpot.lat - lat) < 0.001) {
-      $("now-place").textContent = `${hit.name}${hit.admin1 ? ", " + hit.admin1 : ""}`;
+    const res = await fetch(
+      `https://photon.komoot.io/reverse?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&lang=default`
+    );
+    if (res.ok) {
+      const d = await res.json();
+      const p = d.features && d.features[0] && d.features[0].properties;
+      if (p) label = pick(p.name, p.city, p.state, p.country);
     }
   } catch (_) {}
+  if (!label) {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&format=jsonv2&accept-language=es&zoom=12`
+      );
+      if (res.ok) {
+        const d = await res.json();
+        const a = d.address || {};
+        label = pick(
+          d.name || a.city || a.town || a.village,
+          a.city || a.town || a.village,
+          a.state,
+          a.country
+        );
+      }
+    } catch (_) {}
+  }
+  /* mar abierto u error: se queda la etiqueta honesta de coordenadas */
+  if (label) revCache.set(key, label);
+  if (revCache.size > 200) revCache.delete(revCache.keys().next().value);
+  apply(label);
 }
 
 async function loadRainViewer() {
@@ -4137,6 +4364,66 @@ function cityNorm(s) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+/* \u2550\u2550\u2550 b\u00fasqueda GLOBAL por fragmentos (\u00edndice generado por el robot) \u2550\u2550\u2550
+   Normalizaci\u00f3n ESPEJO de norm() en build_geodata.py \u2014 si cambias una,
+   cambia la otra: NFKD sin marcas, min\u00fasculas con \u00df\u2192ss y \u03c2\u2192\u03c3 (equivalente
+   a casefold para lo indexado), y todo lo no alfanum\u00e9rico a espacio. */
+function geoNorm(s) {
+  s = s.normalize("NFKD").replace(/\p{M}+/gu, "");
+  s = s.toLowerCase().replace(/\u00df/g, "ss").replace(/\u03c2/g, "\u03c3");
+  s = s.replace(/[^0-9a-z\u0250-\u02af\u0370-\u1fff\u2e80-\ua4cf\uac00-\ud7af\uf900-\ufaff]+/gu, " ");
+  return s.replace(/\s+/g, " ").trim();
+}
+
+const geoShardCache = new Map(); /* prefijo \u2192 Promise<filas> */
+
+function shardFetch(q) {
+  /* fragmento = 2 primeros BYTES utf-8 de la clave normalizada (espejo
+     del robot): con CJK/cirílico agrupa por par de bytes y evita miles
+     de archivos diminutos */
+  const hex = [...new TextEncoder().encode(q).slice(0, 2)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  if (geoShardCache.has(hex)) return geoShardCache.get(hex);
+  const p = (async () => {
+    const res = await fetch(`${DATA_REPO}/cities/idx/${hex}.json`);
+    if (res.status === 404) return []; /* prefijo sin ciudades: v\u00e1lido */
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  })();
+  geoShardCache.set(hex, p);
+  p.catch(() => geoShardCache.delete(hex));
+  if (geoShardCache.size > 30) geoShardCache.delete(geoShardCache.keys().next().value);
+  return p;
+}
+
+/* filas: [clave, nombre, admin1, cc, lat, lon, poblaci\u00f3n] (pob desc) */
+async function searchShardIndex(query, limit) {
+  const q = geoNorm(query);
+  /* mínimo 2 BYTES utf-8: dos letras latinas o UN carácter CJK/cirílico */
+  if (new TextEncoder().encode(q).length < 2) return [];
+  const rows = await shardFetch(q);
+  const seen = new Set();
+  const hits = [];
+  for (const r of rows) {
+    if (!r[0].startsWith(q)) continue;
+    const id = `${r[1]}|${r[3]}|${r[4]}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    hits.push([r[0] === q ? 0 : 1, r]);
+    if (hits.length >= 60) break;
+  }
+  hits.sort((a, b) => a[0] - b[0]); /* estable: dentro del score manda la poblaci\u00f3n */
+  return hits.slice(0, limit).map(([, r]) => ({
+    name: r[1],
+    admin1: r[2],
+    country: countryES(r[3].toUpperCase()),
+    latitude: r[4],
+    longitude: r[5],
+  }));
+}
+
 function countryES(cc) {
   try {
     if (!countryNamesES)
@@ -4196,11 +4483,22 @@ async function searchPlaces(query) {
   const holder = $("search-results");
   let results = null;
 
-  await loadCityIndex();
-  if (cityIndex) {
-    results = searchCityIndex(query, 6);
-  } else {
-    /* respaldo: API de geocoding */
+  /* 1º el índice global por fragmentos (170k+ lugares, con alternativos
+     tipo Kyiv/Kiev y 東京/Tokyo); 2º el índice clásico; 3º la API */
+  try {
+    results = await searchShardIndex(query, 6);
+  } catch (_) {
+    results = null;
+  }
+  if (results === null || results.length === 0) {
+    await loadCityIndex();
+    if (cityIndex) {
+      const legacy = searchCityIndex(query, 6);
+      results = results && results.length ? results : legacy;
+    }
+  }
+  if (results === null) {
+    /* respaldo final: API de geocoding */
     try {
       const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=6&language=es&format=json`;
       const res = await fetch(url);
@@ -4251,6 +4549,8 @@ function closeSearch() {
   $("search-results").classList.remove("is-open");
 }
 
+window.__fdcSearch = (q) => searchPlaces(q);
+
 $("place-search").addEventListener("input", (e) => {
   const q = e.target.value.trim();
   clearTimeout(searchTimer);
@@ -4272,9 +4572,13 @@ document.addEventListener("click", (e) => {
 
 function fillCountrySelect() {
   const sel = $("set-country");
-  sel.innerHTML = Object.entries(COUNTRIES)
+  const src = worldCountries || COUNTRIES;
+  const cur = settings.country;
+  sel.innerHTML = Object.entries(src)
+    .sort((a, b) => a[1].name.localeCompare(b[1].name, "es"))
     .map(([code, c]) => `<option value="${code}">${c.name}</option>`)
     .join("");
+  if (src[cur]) sel.value = cur;
 }
 
 function segValue(id) {
@@ -4393,19 +4697,33 @@ $("settings-save").addEventListener("click", async () => {
   closeSettings();
   toast("Ajustes guardados.");
 
-  const c = COUNTRIES[settings.country];
+  const c = countryGet(settings.country) || COUNTRIES.do;
   const countryChanged = before.country !== settings.country;
   const unitsChanged =
     before.tempUnit !== settings.tempUnit || before.windUnit !== settings.windUnit;
 
   if (countryChanged) {
-    if (map)
-      map.flyTo({ center: [c.lon, c.lat], zoom: glZoom(c.zoom), duration: 1200 });
+    if (map) {
+      /* con bbox del país (generado) se encuadra la nación completa;
+         territorios que cruzan ±180 traen este >180 y MapLibre lo acepta */
+      if (c.bbox && map.fitBounds) {
+        map.fitBounds(
+          [
+            [c.bbox[0], c.bbox[1]],
+            [c.bbox[2], c.bbox[3]],
+          ],
+          { padding: 48, duration: 1200, maxZoom: 10 }
+        );
+      } else {
+        map.flyTo({ center: [c.lon, c.lat], zoom: glZoom(c.zoom), duration: 1200 });
+      }
+    }
     if (clickMarker) {
       clickMarker.remove();
       clickMarker = null;
     }
     loadWeather(c.lat, c.lon, `${c.place}, ${c.name}`);
+    countryRender();
   } else if (unitsChanged && currentSpot) {
     loadWeather(currentSpot.lat, currentSpot.lon, currentSpot.label);
   }
@@ -4501,7 +4819,9 @@ onAuthStateChanged(auth, async (user) => {
   const isoT = $("iso-toggle");
   if (isoT) isoT.checked = settings.isobars === true;
 
-  const c = COUNTRIES[settings.country];
+  const c = countryGet(settings.country) || COUNTRIES.do;
   loadWeather(c.lat, c.lon, `${c.place}, ${c.name}`);
   initMap();
+  /* países globales generados: llegan y refinan selector + panel de país */
+  loadCountries();
 });

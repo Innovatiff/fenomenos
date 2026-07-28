@@ -58,7 +58,8 @@ Perth y McMurdo (−77.85°).
 
 ## 6 · Open-Meteo Marine — olas del ECMWF WAM
 
-- `GET /v1/marine` con `models=ecmwf_wam025` (`marine-sd.json`): `wave_height, wave_period, wave_direction` con datos (0 nulos); `swell_wave_height` **todo nulo** con este modelo. Aún no integrado en UI (Fase 3, detección costera).
+- `GET /v1/marine` con `models=ecmwf_wam025` (`marine-sd.json`): `wave_height, wave_period, wave_direction` con datos (0 nulos); `swell_wave_height` **todo nulo** con este modelo y no se pide.
+- **Integrado (Fase 3)**: bloque «Mar» del panel. La detección costera ES la semántica real de la fuente (corrida 30369449924): punto costero → 24/24 horas con dato; Madrid interior → HTTP 200 con **todas las horas nulas**. Si todo llega nulo, el bloque no existe — nada de olas inventadas tierra adentro.
 
 ## 7 · Open-Meteo Historical — ERA5 (climatología para EFI)
 
@@ -93,9 +94,28 @@ Perth y McMurdo (−77.85°).
 - **Isobaras MSLP** (`img/iso-NN.json`, en `mapa.json.isobars`, `isobars_step_hpa: 4`): GeoJSON por período con líneas de presión (propiedad `p` en hPa) trazadas del `msl` del HRES (suavizado, recorte a la banda del mapa, submuestreo a 0.5° → decenas de KB por paso). En la app son un conmutador sobre el producto mundial del IFS; con AIFS o la capa de aire no existen y no se pintan.
 - **Robots NOAA (GFS) y GEM retirados** (decisión del dueño, Fase 2): la matrix de `modelos.yml` queda `[ecmwf, aifs]`. El código de proceso sigue en el historial de git.
 
+## 12 · Geodatos GENERADOS (Fase 3) — `geo/countries.json` + `cities/idx/`
+
+- **Nada escrito a mano**: `scripts/build_geodata.py` genera todo de Natural Earth `ne_10m_admin_0_countries` (+`map_units` para dependencias como Tokelau) y GeoNames (`cities1000`, `timeZones`, `countryInfo`, `admin1Codes`). Fuentes sondeadas en vivo (corrida 30369449924): NE 258 unidades con `NAME_ES/AR/ZH/RU…`, cities1000 = 170 516 filas con alternativos (Kyiv trae «Kiev», Tokyo trae «東京» y «Tōkyō»).
+- **countries.json** (~100 KB): 239+ estados y territorios con ISO a2/a3, nombres en 8 idiomas, husos IANA, bbox (con cruce del antimeridiano: Fiyi `east=181.78`), centroide, zoom, unidades por país, capital con coordenadas, 5 ciudades top y **URL del servicio meteorológico oficial solo si respondió en vivo durante la construcción** (60-63/72 candidatos curados; el resto `null` — p. ej. Grecia falla TLS, Pakistán da 403: quedan null, jamás se adivina).
+- **cities/idx/** (~16 MB, ~1100 fragmentos): índice de búsqueda por prefijo (2 primeros **bytes** utf-8 de la clave normalizada — NFKD sin diacríticos + casefold, espejo exacto entre robot y cliente). Claves: nombre + ascii + alternativos latinos (sin códigos IATA) + escrituras nativas (Киев/東京, cupo por población) + palabras no iniciales (≥15k hab). La 1ª corrida pesó 135 MB y se recortó con presupuesto por población — anotado, no escondido.
+- **En la app**: selector de país global (todos los territorios, Caribe solo como marca por defecto), panel «País» (capital, top-5 clicables, enlace met verificado o «sin enlace verificado»), búsqueda global con los fragmentos y respaldo (índice clásico → API de geocoding).
+
+## 13 · Geocodificación inversa (clic en el mapa)
+
+- **Purga**: el código anterior llamaba `geocoding-api.open-meteo.com/v1/search?name=&latitude=…` como si fuera inversa. Sondeado en vivo: responde `{"generationtime_ms":…}` **sin resultados** — ese endpoint no existe como inversa y se eliminó (regla cardinal).
+- **Ahora**: Photon (komoot, OSM) `photon.komoot.io/reverse` — verificado en vivo (629 ms, devuelve name/city/state/country) — con respaldo Nominatim `jsonv2` (176 ms) y, si ambos fallan (mar abierto), la etiqueta honesta de coordenadas. Caché por punto y ≤1 petición/s (política de uso de ambos servicios).
+
+## 14 · Downscaling, sol polar (evidencia en vivo, corrida 30369449924)
+
+- **Elevación (DEM de Open-Meteo, automático con cada petición)**: Pico Duarte (19.02, −71.00) → `elevation: 3006 m`, temp actual 14.8 °C; Puerto Plata costa (19.79, −70.69) → `elevation: 29 m`, 31.6 °C. Misma celda de 0.25°, 17 °C de diferencia real por altitud. El panel muestra «Altitud del punto» con el valor devuelto.
+- **Sol polar (semántica real de la fuente)**: Longyearbyen 78.2 N en julio → `daylight_duration: 86400 s` y salida/puesta degeneradas a `00:00` (día polar); McMurdo 77.85 S → `daylight_duration: 0 s` (noche polar). La losa «Sol» del panel traduce: ≥86 390 s → «Sol de medianoche», ≤10 s → «Noche polar», si no salida–puesta locales con minutos.
+
 ## Límites y atribución
 
 - **Open-Meteo**: gratuito sin clave para uso no comercial (límite documentado por el proveedor ~10 000 llamadas/día; no medido aquí). La app minimiza llamadas (estáticos del robot primero, cachés, intervalos mínimos) y maneja 429 con enfriamiento. Atribución: «Open-Meteo.com» (CC-BY 4.0) — presente en el crédito del mapa.
 - **ECMWF Open Data**: licencia CC-BY-4.0; atribución «ECMWF» presente. La leyenda legal completa del pie de página se consolida en Fase 4 (deliverable 6).
-- **GeoNames** (índice de ciudades): CC-BY, atribuido.
+- **GeoNames** (índices de ciudades y husos): CC-BY 4.0, atribuido.
+- **Natural Earth** (países/territorios): dominio público.
+- **Photon (komoot) / Nominatim (OSM)**: geocodificación inversa bajo sus políticas de uso (≤1 pet./s, con caché); datos © OpenStreetMap contributors (ODbL).
 - **Esri World Imagery / OpenFreeMap / OpenStreetMap / NOAA WPC**: atribuidos en el crédito del mapa.
