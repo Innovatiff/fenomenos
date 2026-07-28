@@ -2792,3 +2792,91 @@
     opacity: 1;
   }
 }
+
+
+/* ══════════════════════ FASE 4: pulido ══════════════════════ */
+
+/* WCAG AA: el gris azulado #5d6687 daba 3.4:1 sobre los fondos oscuros
+   (axe, 17 nodos); #7c86a8 da 5.3-5.5:1 conservando el tono */
+.app-body {
+  --text-5: #7c86a8;
+}
+
+/* insignia de datos viejos (modo offline del Service Worker) */
+.now__updated.is-stale {
+  color: #ffb020;
+  font-weight: 600;
+}
+
+/* esqueleto shimmer: nunca un spinner sobre el vacío */
+#now-grid:empty,
+#hours:empty,
+#days:empty,
+#marine-grid:empty {
+  min-height: 6rem;
+  border-radius: 1rem;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 60%
+  );
+  background-size: 200% 100%;
+  animation: fdc-shimmer 1.4s infinite linear;
+}
+@keyframes fdc-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #now-grid:empty,
+  #hours:empty,
+  #days:empty,
+  #marine-grid:empty {
+    animation: none;
+  }
+  .wind-canvas {
+    display: none; /* cinturón y tirantes: el JS ya no las dibuja */
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* panel de depuración (?debug=1) */
+.fdc-debug {
+  position: fixed;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  z-index: 3000;
+  max-width: 34rem;
+  max-height: 40vh;
+  overflow: auto;
+  padding: 0.8rem 1rem;
+  font-family: monospace;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #cfd8ef;
+  background: rgba(0, 11, 51, 0.94);
+  border: 0.1rem solid var(--line-2);
+  border-radius: 0.8rem;
+}
+.fdc-debug .ok b {
+  color: #37d67a;
+}
+.fdc-debug .bad b {
+  color: #e5484d;
+}
+
+/* RTL (árabe): el layout entero se voltea con dir=rtl; ajustes puntuales */
+[dir="rtl"] .app__logo-title,
+[dir="rtl"] .panel-block__title,
+[dir="rtl"] .eps-note,
+[dir="rtl"] .tc-warn {
+  text-align: right;
+}
+[dir="rtl"] .now__stat div {
+  text-align: right;
+}

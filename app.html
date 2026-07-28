@@ -23,6 +23,8 @@
     <title>Fenómenos App | El tiempo del Caribe</title>
 
     <link rel="icon" href="img/favicon.png" type="image/png" />
+    <link rel="preconnect" href="https://api.open-meteo.com" crossorigin />
+    <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="css/style.css" />
@@ -73,7 +75,7 @@
             <input
               type="search"
               id="place-search"
-              placeholder="Busca una ciudad o lugar…"
+              placeholder="Busca una ciudad o lugar…" data-i18n-ph="search_ph"
               autocomplete="off"
             />
           </div>
@@ -85,6 +87,15 @@
             <span class="app__user-avatar" id="user-avatar">?</span>
             <span class="app__user-name" id="user-name">Invitado</span>
           </span>
+          <button
+            class="app__iconbtn"
+            id="btn-share"
+            title="Compartir"
+            data-i18n-title="share"
+            aria-label="Compartir este mapa"
+          >
+            <ion-icon name="share-social-outline"></ion-icon>
+          </button>
           <button
             class="app__iconbtn"
             id="btn-settings"
@@ -124,13 +135,13 @@
           <!-- Condiciones actuales -->
           <section class="panel-block" id="now-block">
             <p class="panel-block__title">
-              <ion-icon name="navigate-outline"></ion-icon> Condiciones actuales
+              <ion-icon name="navigate-outline"></ion-icon> <span data-i18n="now_title">Condiciones actuales</span>
             </p>
             <p class="now__place">
               <ion-icon name="location-outline"></ion-icon>
               <span id="now-place">—</span>
             </p>
-            <p class="now__updated" id="now-updated">Cargando datos…</p>
+            <p class="now__updated" id="now-updated" aria-live="polite">Cargando datos…</p>
             <!-- procedencia: modelo · pasada · edad (insignia si >7 h) -->
             <p class="prov" id="prov-line" hidden>
               <span id="prov-text">—</span>
@@ -150,10 +161,9 @@
           <!-- Riesgos y advertencias severas (próximas 48 h del punto activo) -->
           <section class="panel-block" id="risk-block">
             <p class="panel-block__title">
-              <ion-icon name="warning-outline"></ion-icon> Riesgos · próximas
-              48 horas
+              <ion-icon name="warning-outline"></ion-icon> <span data-i18n="risks_title">Riesgos · próximas 48 horas</span>
             </p>
-            <div id="risk-warnings"></div>
+            <div id="risk-warnings" aria-live="assertive" role="alert"></div>
             <div class="risks" id="risks">
               <p class="risks__loading">Calculando riesgos…</p>
             </div>
@@ -162,17 +172,17 @@
           <!-- Por horas -->
           <section class="panel-block">
             <p class="panel-block__title">
-              <ion-icon name="time-outline"></ion-icon> Próximas horas
+              <ion-icon name="time-outline"></ion-icon> <span data-i18n="hours_title">Próximas horas</span>
             </p>
-            <div class="hours" id="hours"></div>
+            <div class="hours" id="hours" tabindex="0" aria-label="Pronóstico por horas (desplazable)"></div>
           </section>
 
           <!-- Días (alcance según lo que devuelva el IFS) -->
           <section class="panel-block">
             <p class="panel-block__title">
-              <ion-icon name="calendar-outline"></ion-icon> Próximos días
+              <ion-icon name="calendar-outline"></ion-icon> <span data-i18n="days_title">Próximos días</span>
             </p>
-            <div class="days" id="days"></div>
+            <div class="days" id="days" tabindex="0" aria-label="Pronóstico por días (desplazable)"></div>
           </section>
 
           <!-- Probabilidades REALES del ensemble: cada % sale del conteo de
@@ -184,10 +194,10 @@
               Probabilidades · <span id="eps-title">EPS de ECMWF</span>
             </p>
             <p class="eps-head" id="eps-head">—</p>
-            <div class="seg seg--tight eps-fanvars" id="eps-fanvar" role="tablist">
+            <div class="seg seg--tight eps-fanvars" id="eps-fanvar" role="group">
               <button class="seg__btn is-active" data-value="temp">Temperatura</button>
-              <button class="seg__btn" data-value="rain">Lluvia</button>
-              <button class="seg__btn" data-value="gusts">Ráfagas</button>
+              <button class="seg__btn" data-value="rain" data-i18n="var_rain">Lluvia</button>
+              <button class="seg__btn" data-value="gusts" data-i18n="var_gusts">Ráfagas</button>
             </div>
             <canvas
               class="eps-fan"
@@ -221,8 +231,7 @@
                (interior → todo nulo, verificado en vivo) -->
           <section class="panel-block" id="marine-block" hidden>
             <p class="panel-block__title">
-              <ion-icon name="boat-outline"></ion-icon>
-              Mar · olas del ECMWF (WAM)
+              <ion-icon name="boat-outline"></ion-icon> <span data-i18n="marine_title">Mar · olas del ECMWF (WAM)</span>
             </p>
             <div class="now__grid" id="marine-grid"></div>
             <p class="eps-note" id="marine-note" hidden></p>
@@ -233,8 +242,7 @@
                ciclones.json). NUNCA es un aviso oficial. -->
           <section class="panel-block" id="tc-block" hidden>
             <p class="panel-block__title">
-              <ion-icon name="warning-outline"></ion-icon>
-              Ciclones tropicales · ENS de ECMWF
+              <ion-icon name="warning-outline"></ion-icon> <span data-i18n="tc_title">Ciclones tropicales · ENS de ECMWF</span>
             </p>
             <p class="eps-head" id="tc-head">—</p>
             <div id="tc-list"></div>
@@ -243,10 +251,9 @@
               <button class="seg__btn" data-value="img34">Prob. ≥34 kt</button>
               <button class="seg__btn" data-value="img64">Prob. ≥64 kt</button>
             </div>
-            <p class="tc-warn">
-              Trayectorias del modelo ECMWF — <strong>NO es un aviso
-              oficial</strong>. Consulta siempre a tu servicio meteorológico
-              nacional.
+            <p class="tc-warn" data-i18n="tc_warn">
+              Trayectorias del modelo ECMWF — NO es un aviso oficial.
+              Consulta siempre a tu servicio meteorológico nacional.
             </p>
             <p class="eps-note" id="tc-note" hidden></p>
           </section>
@@ -255,8 +262,7 @@
                servicio meteorológico solo aparece si el robot lo verificó -->
           <section class="panel-block" id="country-block" hidden>
             <p class="panel-block__title">
-              <ion-icon name="flag-outline"></ion-icon>
-              País · <span id="country-title">—</span>
+              <ion-icon name="flag-outline"></ion-icon> <span data-i18n="country_title">País</span> · <span id="country-title">—</span>
             </p>
             <div class="eps-chips" id="country-cities"></div>
             <p class="eps-note" id="country-met"></p>
@@ -276,18 +282,18 @@
               title="Alternar globo / mapa plano" aria-label="Alternar proyección globo o plana">
               <ion-icon name="earth-outline"></ion-icon>
             </button>
-            <div class="seg map-layers" role="tablist" id="layer-seg">
+            <div class="seg map-layers" role="group" id="layer-seg">
               <button class="seg__btn is-active" data-layer="radar">
-                <ion-icon name="map-outline"></ion-icon> Mapa
+                <ion-icon name="map-outline"></ion-icon> <span data-i18n="layer_map">Mapa</span>
               </button>
               <button class="seg__btn" data-layer="satellite">
-                <ion-icon name="globe-outline"></ion-icon> Satélite
+                <ion-icon name="globe-outline"></ion-icon> <span data-i18n="layer_sat">Satélite</span>
               </button>
               <button class="seg__btn" data-layer="clouds">
-                <ion-icon name="cloudy-outline"></ion-icon> Nubes
+                <ion-icon name="cloudy-outline"></ion-icon> <span data-i18n="layer_clouds">Nubes</span>
               </button>
               <button class="seg__btn" data-layer="none">
-                <ion-icon name="map-outline"></ion-icon> Sin capa
+                <ion-icon name="map-outline"></ion-icon> <span data-i18n="layer_none">Sin capa</span>
               </button>
             </div>
           </div>
@@ -306,27 +312,27 @@
 
             <div class="euro-panel__body" id="euro-body">
               <!-- variante del MISMO centro: IFS físico o AIFS (IA) -->
-              <div class="seg seg--tight" id="euro-variant" role="tablist">
+              <div class="seg seg--tight" id="euro-variant" role="group">
                 <button class="seg__btn is-active" data-value="ecmwf" title="IFS: el modelo físico de ECMWF (det 0.25° + EPS 51)">IFS HRES</button>
                 <button class="seg__btn" data-value="aifs" title="AIFS: el modelo de inteligencia artificial de ECMWF">AIFS (IA)</button>
               </div>
 
-              <div class="seg seg--tight" id="euro-var" role="tablist">
-                <button class="seg__btn is-active" data-value="wind">Viento</button>
-                <button class="seg__btn" data-value="gusts">Ráfagas</button>
-                <button class="seg__btn" data-value="rain">Lluvia</button>
-                <button class="seg__btn" data-value="temp">Temp.</button>
-                <button class="seg__btn" data-value="air">Aire</button>
+              <div class="seg seg--tight" id="euro-var" role="group">
+                <button class="seg__btn is-active" data-value="wind" data-i18n="var_wind">Viento</button>
+                <button class="seg__btn" data-value="gusts" data-i18n="var_gusts">Ráfagas</button>
+                <button class="seg__btn" data-value="rain" data-i18n="var_rain">Lluvia</button>
+                <button class="seg__btn" data-value="temp" data-i18n="var_temp">Temp.</button>
+                <button class="seg__btn" data-value="air" data-i18n="var_air">Aire</button>
               </div>
 
-              <div class="seg seg--tight" id="euro-mode" role="tablist">
-                <button class="seg__btn is-active" data-value="prob">Probabilidad</button>
-                <button class="seg__btn" data-value="det">Determinista</button>
+              <div class="seg seg--tight" id="euro-mode" role="group">
+                <button class="seg__btn is-active" data-value="prob" data-i18n="mode_prob">Probabilidad</button>
+                <button class="seg__btn" data-value="det" data-i18n="mode_det">Determinista</button>
               </div>
 
               <label class="euro-iso">
                 <input type="checkbox" id="iso-toggle" />
-                Isobaras (presión al nivel del mar, hPa — HRES)
+                <span data-i18n="iso_label">Isobaras (presión al nivel del mar, hPa — HRES)</span>
               </label>
 
               <p class="euro-title" id="euro-title">—</p>
@@ -431,7 +437,7 @@
           </button>
         </div>
 
-        <div class="seg amodal__tabs" id="settings-tabs" role="tablist">
+        <div class="seg amodal__tabs" id="settings-tabs" role="group">
           <button class="seg__btn is-active" data-value="general">General</button>
           <button class="seg__btn" data-value="capas">Capas</button>
           <button class="seg__btn" data-value="modelos">Modelo</button>
@@ -543,6 +549,22 @@
           <span class="field__label">País principal</span>
           <span class="field__select-wrap">
             <select class="field__input" id="set-country"></select>
+            <ion-icon name="chevron-down-outline"></ion-icon>
+          </span>
+        </label>
+
+        <label class="field">
+          <span class="field__label" data-i18n="set_lang">Idioma</span>
+          <span class="field__selectwrap">
+            <select class="field__input" id="set-lang">
+              <option value="auto" data-i18n="lang_auto">Automático</option>
+              <option value="es">Español</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="pt">Português</option>
+              <option value="de">Deutsch</option>
+              <option value="ar">العربية</option>
+            </select>
             <ion-icon name="chevron-down-outline"></ion-icon>
           </span>
         </label>

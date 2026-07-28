@@ -82,9 +82,203 @@ const DEFAULT_SETTINGS = {
   fronts: true,
   globe: true /* proyección globo (MapLibre v5); false = Mercator plano */,
   isobars: false /* isobaras del MSLP del HRES sobre el modelo */,
+  lang: "auto" /* i18n: auto = navigator.language; ES/EN/FR/PT/DE/AR */,
 };
 
 let settings = { ...DEFAULT_SETTINGS };
+let staleStamp = null; /* Date.now() de la copia offline servida por el SW */
+let provTitleText = ""; /* procedencia para el hover de cada número */
+
+/* ═══════════════════ i18n (Fase 4) ══════════════════════════════════════
+   Arquitectura para MUCHOS idiomas, no una lista quemada: diccionario por
+   clave + t() + data-i18n en el HTML. Español primario; se envían
+   ES/EN/FR/PT/DE/AR — el árabe prueba que el layout aguanta RTL (dir se
+   voltea entero). Autodetección por navigator.language, anulable en
+   Ajustes; fechas/números con Intl en el locale activo. Los textos
+   analíticos largos (notas del modelo/EPS) siguen en español por ahora:
+   hueco documentado, no escondido. */
+const LANGS = ["es", "en", "fr", "pt", "de", "ar"];
+const RTL_LANGS = new Set(["ar"]);
+
+const I18N = {
+  /* — cascarón — */
+  search_ph: { es: "Busca una ciudad o lugar…", en: "Search a city or place…", fr: "Cherchez une ville ou un lieu…", pt: "Busque uma cidade ou lugar…", de: "Stadt oder Ort suchen…", ar: "ابحث عن مدينة أو مكان…" },
+  search_empty: { es: "Sin resultados para tu búsqueda.", en: "No results for your search.", fr: "Aucun résultat pour votre recherche.", pt: "Sem resultados para sua busca.", de: "Keine Ergebnisse für deine Suche.", ar: "لا نتائج لبحثك." },
+  search_fail: { es: "No se pudo buscar. Revisa tu conexión.", en: "Search failed. Check your connection.", fr: "Recherche impossible. Vérifiez votre connexion.", pt: "Não foi possível buscar. Verifique sua conexão.", de: "Suche fehlgeschlagen. Prüfe deine Verbindung.", ar: "تعذّر البحث. تحقق من اتصالك." },
+  settings: { es: "Ajustes", en: "Settings", fr: "Réglages", pt: "Ajustes", de: "Einstellungen", ar: "الإعدادات" },
+  logout: { es: "Salir", en: "Log out", fr: "Quitter", pt: "Sair", de: "Abmelden", ar: "خروج" },
+  /* — capas — */
+  layer_map: { es: "Mapa", en: "Map", fr: "Carte", pt: "Mapa", de: "Karte", ar: "خريطة" },
+  layer_sat: { es: "Satélite", en: "Satellite", fr: "Satellite", pt: "Satélite", de: "Satellit", ar: "قمر صناعي" },
+  layer_clouds: { es: "Nubes", en: "Clouds", fr: "Nuages", pt: "Nuvens", de: "Wolken", ar: "غيوم" },
+  layer_none: { es: "Sin capa", en: "No layer", fr: "Sans couche", pt: "Sem camada", de: "Keine Ebene", ar: "بدون طبقة" },
+  /* — panel del punto — */
+  now_title: { es: "Condiciones actuales", en: "Current conditions", fr: "Conditions actuelles", pt: "Condições atuais", de: "Aktuelle Bedingungen", ar: "الأحوال الحالية" },
+  risks_title: { es: "Riesgos · próximas 48 horas", en: "Risks · next 48 hours", fr: "Risques · prochaines 48 h", pt: "Riscos · próximas 48 horas", de: "Risiken · nächste 48 Std.", ar: "المخاطر · الـ48 ساعة القادمة" },
+  hours_title: { es: "Próximas horas", en: "Next hours", fr: "Prochaines heures", pt: "Próximas horas", de: "Nächste Stunden", ar: "الساعات القادمة" },
+  days_title: { es: "Próximos días", en: "Next days", fr: "Prochains jours", pt: "Próximos dias", de: "Nächste Tage", ar: "الأيام القادمة" },
+  updated_at: { es: "Actualizado a las", en: "Updated at", fr: "Mis à jour à", pt: "Atualizado às", de: "Aktualisiert um", ar: "حُدِّث في" },
+  updating: { es: "Actualizando…", en: "Updating…", fr: "Mise à jour…", pt: "Atualizando…", de: "Aktualisiere…", ar: "جارٍ التحديث…" },
+  offline_data: { es: "Sin conexión — datos de hace", en: "Offline — data from", fr: "Hors ligne — données d'il y a", pt: "Sem conexão — dados de há", de: "Offline — Daten von vor", ar: "بدون اتصال — بيانات منذ" },
+  load_fail: { es: "No se pudo cargar el pronóstico.", en: "Could not load the forecast.", fr: "Impossible de charger les prévisions.", pt: "Não foi possível carregar a previsão.", de: "Vorhersage konnte nicht geladen werden.", ar: "تعذّر تحميل التوقعات." },
+  /* — losas — */
+  st_feels: { es: "Sensación", en: "Feels like", fr: "Ressenti", pt: "Sensação", de: "Gefühlt", ar: "الإحساس" },
+  st_humidity: { es: "Humedad", en: "Humidity", fr: "Humidité", pt: "Umidade", de: "Luftfeuchte", ar: "الرطوبة" },
+  st_wind: { es: "Viento", en: "Wind", fr: "Vent", pt: "Vento", de: "Wind", ar: "الرياح" },
+  st_gusts: { es: "Ráfagas", en: "Gusts", fr: "Rafales", pt: "Rajadas", de: "Böen", ar: "الهبّات" },
+  st_pressure: { es: "Presión", en: "Pressure", fr: "Pression", pt: "Pressão", de: "Druck", ar: "الضغط" },
+  st_rain: { es: "Lluvia", en: "Rain", fr: "Pluie", pt: "Chuva", de: "Regen", ar: "المطر" },
+  st_dew: { es: "Punto de rocío", en: "Dew point", fr: "Point de rosée", pt: "Ponto de orvalho", de: "Taupunkt", ar: "نقطة الندى" },
+  st_clouds: { es: "Nubes baja·media·alta", en: "Clouds low·mid·high", fr: "Nuages bas·moy·hauts", pt: "Nuvens baixa·média·alta", de: "Wolken tief·mittel·hoch", ar: "غيوم منخفضة·متوسطة·عالية" },
+  st_cape: { es: "CAPE", en: "CAPE", fr: "CAPE", pt: "CAPE", de: "CAPE", ar: "CAPE" },
+  st_freezing: { es: "Isoterma 0°", en: "Freezing level", fr: "Isotherme 0°", pt: "Isoterma 0°", de: "Nullgradgrenze", ar: "مستوى التجمد" },
+  st_visibility: { es: "Visibilidad", en: "Visibility", fr: "Visibilité", pt: "Visibilidade", de: "Sichtweite", ar: "الرؤية" },
+  st_uv: { es: "Índice UV", en: "UV index", fr: "Indice UV", pt: "Índice UV", de: "UV-Index", ar: "مؤشر UV" },
+  st_elev: { es: "Altitud del punto", en: "Point elevation", fr: "Altitude du point", pt: "Altitude do ponto", de: "Höhe des Punkts", ar: "ارتفاع النقطة" },
+  st_sun: { es: "Sol", en: "Sun", fr: "Soleil", pt: "Sol", de: "Sonne", ar: "الشمس" },
+  st_snow: { es: "Nieve (1 h · manto)", en: "Snow (1 h · depth)", fr: "Neige (1 h · manteau)", pt: "Neve (1 h · manto)", de: "Schnee (1 h · Decke)", ar: "الثلج (ساعة · سماكة)" },
+  st_t850: { es: "Temp. 850 hPa", en: "Temp 850 hPa", fr: "Temp. 850 hPa", pt: "Temp. 850 hPa", de: "Temp. 850 hPa", ar: "حرارة 850 هكتوباسكال" },
+  st_z500: { es: "Altura 500 hPa", en: "Height 500 hPa", fr: "Hauteur 500 hPa", pt: "Altura 500 hPa", de: "Höhe 500 hPa", ar: "ارتفاع 500 هكتوباسكال" },
+  st_shear: { es: "Cizalla 850–200", en: "Shear 850–200", fr: "Cisaillement 850–200", pt: "Cisalhamento 850–200", de: "Scherung 850–200", ar: "قص الرياح 850–200" },
+  sun_midnight: { es: "Sol de medianoche", en: "Midnight sun", fr: "Soleil de minuit", pt: "Sol da meia-noite", de: "Mitternachtssonne", ar: "شمس منتصف الليل" },
+  sun_polar_night: { es: "Noche polar", en: "Polar night", fr: "Nuit polaire", pt: "Noite polar", de: "Polarnacht", ar: "ليل قطبي" },
+  /* — mar — */
+  marine_title: { es: "Mar · olas del ECMWF (WAM)", en: "Sea · ECMWF waves (WAM)", fr: "Mer · vagues ECMWF (WAM)", pt: "Mar · ondas do ECMWF (WAM)", de: "Meer · ECMWF-Wellen (WAM)", ar: "البحر · أمواج ECMWF" },
+  ma_now: { es: "Oleaje ahora", en: "Waves now", fr: "Vagues actuelles", pt: "Ondas agora", de: "Wellen jetzt", ar: "الأمواج الآن" },
+  ma_period: { es: "Período", en: "Period", fr: "Période", pt: "Período", de: "Periode", ar: "الفترة" },
+  ma_dir: { es: "Dirección", en: "Direction", fr: "Direction", pt: "Direção", de: "Richtung", ar: "الاتجاه" },
+  ma_max48: { es: "Máx. 48 h", en: "Max 48 h", fr: "Max 48 h", pt: "Máx. 48 h", de: "Max. 48 Std.", ar: "الأقصى في 48 ساعة" },
+  /* — modelo — */
+  mode_prob: { es: "Probabilidad", en: "Probability", fr: "Probabilité", pt: "Probabilidade", de: "Wahrscheinlichkeit", ar: "الاحتمال" },
+  mode_det: { es: "Determinista", en: "Deterministic", fr: "Déterministe", pt: "Determinista", de: "Deterministisch", ar: "حتمي" },
+  var_wind: { es: "Viento", en: "Wind", fr: "Vent", pt: "Vento", de: "Wind", ar: "رياح" },
+  var_gusts: { es: "Ráfagas", en: "Gusts", fr: "Rafales", pt: "Rajadas", de: "Böen", ar: "هبّات" },
+  var_rain: { es: "Lluvia", en: "Rain", fr: "Pluie", pt: "Chuva", de: "Regen", ar: "مطر" },
+  var_temp: { es: "Temp.", en: "Temp", fr: "Temp.", pt: "Temp.", de: "Temp.", ar: "حرارة" },
+  var_air: { es: "Aire", en: "Air", fr: "Air", pt: "Ar", de: "Luft", ar: "هواء" },
+  iso_label: { es: "Isobaras (presión al nivel del mar, hPa — HRES)", en: "Isobars (sea-level pressure, hPa — HRES)", fr: "Isobares (pression au niveau de la mer, hPa — HRES)", pt: "Isóbaras (pressão ao nível do mar, hPa — HRES)", de: "Isobaren (Meeresspiegeldruck, hPa — HRES)", ar: "خطوط الضغط (hPa — HRES)" },
+  /* — ciclones (el descargo es CRÍTICO en todos los idiomas) — */
+  tc_title: { es: "Ciclones tropicales · ENS de ECMWF", en: "Tropical cyclones · ECMWF ENS", fr: "Cyclones tropicaux · ENS ECMWF", pt: "Ciclones tropicais · ENS do ECMWF", de: "Tropische Wirbelstürme · ECMWF ENS", ar: "الأعاصير المدارية · ECMWF ENS" },
+  tc_warn: { es: "Trayectorias del modelo ECMWF — NO es un aviso oficial. Consulta siempre a tu servicio meteorológico nacional.", en: "ECMWF model tracks — NOT an official warning. Always consult your national meteorological service.", fr: "Trajectoires du modèle ECMWF — PAS un avis officiel. Consultez toujours votre service météorologique national.", pt: "Trajetórias do modelo ECMWF — NÃO é um aviso oficial. Consulte sempre seu serviço meteorológico nacional.", de: "ECMWF-Modellbahnen — KEINE amtliche Warnung. Wenden Sie sich stets an Ihren nationalen Wetterdienst.", ar: "مسارات نموذج ECMWF — ليست تحذيرًا رسميًا. راجع دائمًا هيئة الأرصاد الوطنية." },
+  /* — país — */
+  country_title: { es: "País", en: "Country", fr: "Pays", pt: "País", de: "Land", ar: "البلد" },
+  country_met: { es: "Servicio meteorológico oficial ↗", en: "Official meteorological service ↗", fr: "Service météorologique officiel ↗", pt: "Serviço meteorológico oficial ↗", de: "Offizieller Wetterdienst ↗", ar: "هيئة الأرصاد الرسمية ↗" },
+  country_nomet: { es: "Sin enlace oficial verificado para este territorio.", en: "No verified official link for this territory.", fr: "Pas de lien officiel vérifié pour ce territoire.", pt: "Sem link oficial verificado para este território.", de: "Kein verifizierter offizieller Link für dieses Gebiet.", ar: "لا رابط رسمي مُتحقق منه لهذا الإقليم." },
+  /* — compartir — */
+  share: { es: "Compartir", en: "Share", fr: "Partager", pt: "Compartilhar", de: "Teilen", ar: "مشاركة" },
+  share_copied: { es: "Enlace copiado.", en: "Link copied.", fr: "Lien copié.", pt: "Link copiado.", de: "Link kopiert.", ar: "تم نسخ الرابط." },
+  /* — ajustes — */
+  set_lang: { es: "Idioma", en: "Language", fr: "Langue", pt: "Idioma", de: "Sprache", ar: "اللغة" },
+  lang_auto: { es: "Automático", en: "Automatic", fr: "Automatique", pt: "Automático", de: "Automatisch", ar: "تلقائي" },
+};
+
+/* ═══ enlace profundo + compartir (Fase 4) ═══════════════════════════════
+   El estado visible viaja en el hash: capa, variable, modo, período,
+   centro/zoom del mapa, punto del panel e idioma. Abrir el enlace
+   restaura la vista; el botón Compartir usa Web Share o el portapapeles. */
+function parseLink() {
+  const out = {};
+  try {
+    const h = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+    if (["radar", "satellite", "clouds", "none"].includes(h.get("l"))) out.layer = h.get("l");
+    if (["wind", "gusts", "rain", "temp", "air"].includes(h.get("v"))) out.variable = h.get("v");
+    if (["prob", "det"].includes(h.get("m"))) out.mode = h.get("m");
+    const st = parseInt(h.get("s"), 10);
+    if (Number.isFinite(st) && st >= 0 && st < 64) out.step = st;
+    const c = (h.get("c") || "").split(",").map(Number);
+    if (c.length === 3 && c.every(Number.isFinite)) out.center = c; /* lat,lon,zoom */
+    const p = (h.get("p") || "").split(",").map(Number);
+    if (p.length === 2 && p.every(Number.isFinite)) out.point = p;
+    if (LANGS.includes(h.get("lg"))) out.lang = h.get("lg");
+  } catch (_) {}
+  return out;
+}
+
+let linkTimer = null;
+function updateLink() {
+  clearTimeout(linkTimer);
+  linkTimer = setTimeout(() => {
+    try {
+      const h = new URLSearchParams();
+      h.set("l", activeKind);
+      h.set("v", euro.variable);
+      h.set("m", euro.mode);
+      if (euro.step != null) h.set("s", String(euro.step));
+      if (map && map.getCenter) {
+        const c = map.getCenter();
+        h.set("c", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${(map.getZoom() || 3).toFixed(1)}`);
+      }
+      if (currentSpot) h.set("p", `${currentSpot.lat.toFixed(3)},${currentSpot.lon.toFixed(3)}`);
+      if (settings.lang && settings.lang !== "auto") h.set("lg", settings.lang);
+      history.replaceState(null, "", `#${h.toString()}`);
+    } catch (_) {}
+  }, 400);
+}
+
+async function shareLink() {
+  updateLink();
+  const url = location.href;
+  /* imagen estática del estado actual, si el sistema permite adjuntarla */
+  let files;
+  try {
+    const cv = map && map.getCanvas && map.getCanvas();
+    if (cv && navigator.canShare) {
+      const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
+      if (blob) {
+        const f = new File([blob], "fenomenos-mapa.png", { type: "image/png" });
+        if (navigator.canShare({ files: [f] })) files = [f];
+      }
+    }
+  } catch (_) {}
+  try {
+    if (navigator.share) {
+      await navigator.share(files ? { title: document.title, url, files } : { title: document.title, url });
+      return;
+    }
+  } catch (_) {
+    return; /* usuario canceló el diálogo nativo */
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast(t("share_copied"));
+  } catch (_) {
+    prompt("URL:", url); /* último recurso, nunca un callejón muerto */
+  }
+}
+
+function resolveLang() {
+  if (settings.lang && settings.lang !== "auto" && LANGS.includes(settings.lang))
+    return settings.lang;
+  const nav = ((navigator.language || "es").slice(0, 2) || "es").toLowerCase();
+  return LANGS.includes(nav) ? nav : "es";
+}
+
+let curLang = "es";
+
+function t(key) {
+  const e = I18N[key];
+  return (e && (e[curLang] || e.es)) || key;
+}
+
+/* locale para Intl (fechas/números) según el idioma activo */
+function tLocale() {
+  return curLang === "es" ? "es" : curLang;
+}
+
+function applyI18n() {
+  curLang = resolveLang();
+  document.documentElement.lang = curLang;
+  document.documentElement.dir = RTL_LANGS.has(curLang) ? "rtl" : "ltr";
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+}
 
 /* ═══ países GLOBALES (generados por el robot: NE admin-0 + GeoNames) ═══
    COUNTRIES de arriba queda como arranque instantáneo y respaldo; en
@@ -153,8 +347,8 @@ function countryRender() {
     .join("");
   $("country-cities").innerHTML = cities || "";
   $("country-met").innerHTML = c.met
-    ? `<a href="${c.met}" target="_blank" rel="noopener">Servicio meteorológico oficial ↗</a>`
-    : `<span>Sin enlace oficial verificado para este territorio.</span>`;
+    ? `<a href="${c.met}" target="_blank" rel="noopener">${t("country_met")}</a>`
+    : `<span>${t("country_nomet")}</span>`;
 }
 
 document.addEventListener("click", (ev) => {
@@ -189,6 +383,8 @@ function normalizeSettings(data) {
     if (data.fronts === false) out.fronts = false;
     if (data.globe === false) out.globe = false;
     if (data.isobars === true) out.isobars = true;
+    if (data.lang === "auto" || ["es","en","fr","pt","de","ar"].includes(data.lang))
+      out.lang = data.lang;
   }
   return out;
 }
@@ -291,7 +487,7 @@ function fmtDayName(isoDate, index) {
   /* fecha-calendario del LUGAR: se interpreta a mediodía UTC y se formatea
      en UTC — cero dependencia de la zona/DST del navegador */
   const d = new Date(`${isoDate}T12:00:00Z`);
-  return d.toLocaleDateString("es", { weekday: "short", day: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString(tLocale(), { weekday: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function fmtClock(date) {
@@ -312,7 +508,7 @@ async function loadWeather(lat, lon, label) {
   weatherAbort = new AbortController();
 
   $("now-place").textContent = label;
-  $("now-updated").textContent = "Actualizando…";
+  $("now-updated").textContent = t("updating");
 
   const aifsSel = euro.model === "aifs";
   const params = new URLSearchParams({
@@ -348,6 +544,10 @@ async function loadWeather(lat, lon, label) {
       signal: weatherAbort.signal,
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    /* copia sellada del Service Worker (sin red): se ANUNCIA la edad */
+    staleStamp = res.headers.get("X-Fdc-Stale")
+      ? Number(res.headers.get("X-Fdc-Cached-At")) || Date.now()
+      : null;
     const data = await res.json();
     renderNow(data);
     renderHours(data);
@@ -361,9 +561,10 @@ async function loadWeather(lat, lon, label) {
     loadEps(lat, lon);
     renderClimo(data, lat, lon);
     loadMarine(lat, lon);
+    updateLink();
   } catch (err) {
     if (err && err.name === "AbortError") return;
-    $("now-updated").textContent = "No se pudo cargar el pronóstico.";
+    $("now-updated").textContent = t("load_fail");
     toast("Sin conexión con el servicio del tiempo.", "error");
   }
 }
@@ -381,7 +582,14 @@ function renderNow(data) {
   $("now-temp").textContent = numOr(c.temperature_2m, (v) => `${Math.round(v)}${tempSymbol()}`);
   $("now-desc").textContent = info.text;
   $("now-icon").innerHTML = `<ion-icon name="${info.icon}"></ion-icon>`;
-  $("now-updated").textContent = `Actualizado a las ${fmtClock(new Date())}`;
+  if (staleStamp) {
+    const min = Math.max(1, Math.round((Date.now() - staleStamp) / 60000));
+    $("now-updated").textContent = `${t("offline_data")} ${min} min`;
+    $("now-updated").classList.add("is-stale");
+  } else {
+    $("now-updated").textContent = `${t("updated_at")} ${fmtClock(new Date())}`;
+    $("now-updated").classList.remove("is-stale");
+  }
 
   /* espejo en la cabecera de la hoja móvil */
   const st = $("sheet-temp");
@@ -398,36 +606,36 @@ function renderNow(data) {
   const cloudTri = [hv("cloud_cover_low"), hv("cloud_cover_mid"), hv("cloud_cover_high")];
 
   const stats = [
-    { icon: "thermometer-outline", label: "Sensación", value: numOr(c.apparent_temperature, (v) => `${Math.round(v)}${tempSymbol()}`) },
-    { icon: "water-outline", label: "Humedad", value: numOr(c.relative_humidity_2m, (v) => `${Math.round(v)}%`) },
-    { icon: "flag-outline", label: "Viento", value: numOr(c.wind_speed_10m, (v) => `${Math.round(v)} ${windSymbol()}`) },
-    { icon: "flash-outline", label: "Ráfagas", value: numOr(c.wind_gusts_10m, (v) => `${Math.round(v)} ${windSymbol()}`) },
-    { icon: "speedometer-outline", label: "Presión", value: numOr(c.pressure_msl, (v) => `${Math.round(v)} hPa`) },
-    { icon: "rainy-outline", label: "Lluvia", value: numOr(c.precipitation, (v) => `${v.toFixed(1)} mm`) },
-    { icon: "thermometer-outline", label: "Punto de rocío", value: numOr(hv("dew_point_2m"), (v) => `${Math.round(v)}${tempSymbol()}`) },
+    { icon: "thermometer-outline", label: t("st_feels"), value: numOr(c.apparent_temperature, (v) => `${Math.round(v)}${tempSymbol()}`) },
+    { icon: "water-outline", label: t("st_humidity"), value: numOr(c.relative_humidity_2m, (v) => `${Math.round(v)}%`) },
+    { icon: "flag-outline", label: t("st_wind"), value: numOr(c.wind_speed_10m, (v) => `${Math.round(v)} ${windSymbol()}`) },
+    { icon: "flash-outline", label: t("st_gusts"), value: numOr(c.wind_gusts_10m, (v) => `${Math.round(v)} ${windSymbol()}`) },
+    { icon: "speedometer-outline", label: t("st_pressure"), value: numOr(c.pressure_msl, (v) => `${Math.round(v)} hPa`) },
+    { icon: "rainy-outline", label: t("st_rain"), value: numOr(c.precipitation, (v) => `${v.toFixed(1)} mm`) },
+    { icon: "thermometer-outline", label: t("st_dew"), value: numOr(hv("dew_point_2m"), (v) => `${Math.round(v)}${tempSymbol()}`) },
     {
       icon: "cloud-outline",
-      label: "Nubes baja·media·alta",
+      label: t("st_clouds"),
       value: cloudTri.every((v) => v == null)
         ? "—"
         : cloudTri.map((v) => (v == null ? "—" : Math.round(v))).join("·") + " %",
     },
-    { icon: "flash-outline", label: "CAPE", value: numOr(hv("cape"), (v) => `${Math.round(v)} J/kg`) },
+    { icon: "flash-outline", label: t("st_cape"), value: numOr(hv("cape"), (v) => `${Math.round(v)} J/kg`) },
     /* el IFS abierto NO publica estos tres: "—" honesto, jamás un invento */
-    { icon: "snow-outline", label: "Isoterma 0°", value: numOr(hv("freezing_level_height"), (v) => `${Math.round(v)} m`) },
-    { icon: "eye-outline", label: "Visibilidad", value: numOr(hv("visibility"), (v) => `${(v / 1000).toFixed(1)} km`) },
-    { icon: "sunny-outline", label: "Índice UV", value: numOr(hv("uv_index"), (v) => `${Math.round(v)}`) },
+    { icon: "snow-outline", label: t("st_freezing"), value: numOr(hv("freezing_level_height"), (v) => `${Math.round(v)} m`) },
+    { icon: "eye-outline", label: t("st_visibility"), value: numOr(hv("visibility"), (v) => `${(v / 1000).toFixed(1)} km`) },
+    { icon: "sunny-outline", label: t("st_uv"), value: numOr(hv("uv_index"), (v) => `${Math.round(v)}`) },
     /* altitud REAL que usó el modelo para este punto (DEM de Open-Meteo:
        Pico Duarte 3006 m vs costa 29 m, verificado en vivo) */
-    { icon: "triangle-outline", label: "Altitud del punto", value: numOr(data.elevation, (v) => `${Math.round(v)} m`) },
-    { icon: "sunny-outline", label: "Sol", value: sunLabel(data) },
+    { icon: "triangle-outline", label: t("st_elev"), value: numOr(data.elevation, (v) => `${Math.round(v)} m`) },
+    { icon: "sunny-outline", label: t("st_sun"), value: sunLabel(data) },
   ];
 
   /* nieve: solo cuando hay señal (en el trópico sería ruido permanente) */
   const snowNow = hv("snowfall");
   const snowDepth = hv("snow_depth");
   if ((snowNow != null && snowNow > 0) || (snowDepth != null && snowDepth > 0)) {
-    stats.push({ icon: "snow-outline", label: "Nieve (1 h · manto)", value: `${numOr(snowNow, (v) => v.toFixed(1) + " cm")} · ${numOr(snowDepth, (v) => (v * 100).toFixed(0) + " cm")}` });
+    stats.push({ icon: "snow-outline", label: t("st_snow"), value: `${numOr(snowNow, (v) => v.toFixed(1) + " cm")} · ${numOr(snowDepth, (v) => (v * 100).toFixed(0) + " cm")}` });
   }
 
   /* altura (solo IFS: el AIFS abierto no publica niveles de presión) */
@@ -436,16 +644,16 @@ function renderNow(data) {
   const shear = shearDeep(hv("wind_speed_850hPa"), hv("wind_direction_850hPa"), hv("wind_speed_200hPa"), hv("wind_direction_200hPa"));
   if (t850 != null || z500 != null) {
     stats.push(
-      { icon: "trending-up-outline", label: "Temp. 850 hPa", value: numOr(t850, (v) => `${Math.round(v)}${tempSymbol()}`) },
-      { icon: "layers-outline", label: "Altura 500 hPa", value: numOr(z500, (v) => `${Math.round(v)} m`) },
-      { icon: "swap-horizontal-outline", label: "Cizalla 850–200", value: numOr(shear, (v) => `${Math.round(v)} ${windSymbol()}`) }
+      { icon: "trending-up-outline", label: t("st_t850"), value: numOr(t850, (v) => `${Math.round(v)}${tempSymbol()}`) },
+      { icon: "layers-outline", label: t("st_z500"), value: numOr(z500, (v) => `${Math.round(v)} m`) },
+      { icon: "swap-horizontal-outline", label: t("st_shear"), value: numOr(shear, (v) => `${Math.round(v)} ${windSymbol()}`) }
     );
   }
 
   $("now-grid").innerHTML = stats
     .map(
       (s) => `
-      <div class="now__stat">
+      <div class="now__stat" title="${provTitleText}">
         <ion-icon name="${s.icon}"></ion-icon>
         <div><strong>${s.value}</strong><span>${s.label}</span></div>
       </div>`
@@ -468,7 +676,7 @@ function renderHours(data) {
     const info = weatherInfo(h.weather_code?.[i], h.is_day?.[i]);
     const rain = h.precipitation_probability?.[i];
     cards.push(`
-      <div class="hour${i === start ? " hour--now" : ""}">
+      <div class="hour${i === start ? " hour--now" : ""}" title="${provTitleText} · válido ${fmtHour(times[i])} local">
         <span class="hour__time">${i === start ? "Ahora" : fmtHour(times[i])}</span>
         <ion-icon name="${info.icon}"></ion-icon>
         <span class="hour__temp">${numOr(h.temperature_2m?.[i], (v) => `${Math.round(v)}°`)}</span>
@@ -485,7 +693,7 @@ function renderDays(data) {
     .map((date, i) => {
       const info = weatherInfo(d.weather_code?.[i], 1);
       return `
-      <div class="day">
+      <div class="day" title="${provTitleText} · válido ${date}">
         <span class="day__name">${fmtDayName(date, i)}</span>
         <ion-icon name="${info.icon}" title="${info.text}"></ion-icon>
         <span class="day__rain"><ion-icon name="water-outline"></ion-icon>${d.precipitation_probability_max?.[i] == null ? "—" : `${d.precipitation_probability_max[i]}%`}</span>
@@ -540,15 +748,18 @@ async function provRender(modelId, label) {
   line.hidden = false;
   if (!meta) {
     /* sin metadatos no se inventa una pasada: se dice que no hay */
-    $("prov-text").textContent = `${label} · pasada: sin datos`;
+    provTitleText = `${label} · pasada: sin datos`;
+    $("prov-text").textContent = provTitleText;
     $("prov-badge").hidden = true;
     return;
   }
   const init = meta.last_run_initialisation_time * 1000;
   const d = new Date(init);
   const ageH = (Date.now() - init) / 3600000;
-  const runTxt = `${String(d.getUTCHours()).padStart(2, "0")}z (${d.getUTCDate()} ${d.toLocaleDateString("es", { month: "short", timeZone: "UTC" })})`;
-  $("prov-text").textContent = `${label} · pasada ${runTxt} · hace ${ageH < 1 ? Math.round(ageH * 60) + " min" : Math.round(ageH) + " h"}`;
+  const runTxt = `${String(d.getUTCHours()).padStart(2, "0")}z (${d.getUTCDate()} ${d.toLocaleDateString(tLocale(), { month: "short", timeZone: "UTC" })})`;
+  const ageTxt = ageH < 1 ? Math.round(ageH * 60) + " min" : Math.round(ageH) + " h";
+  provTitleText = `${label} · pasada ${runTxt} · hace ${ageTxt}`;
+  $("prov-text").textContent = provTitleText;
   /* insignia de pasada vieja (>7 h). Ojo: la propia latencia de
      publicación de ECMWF ronda 7 h — ver el informe de fase */
   $("prov-badge").hidden = ageH <= 7;
@@ -1077,10 +1288,10 @@ async function loadMarine(lat, lon) {
   }
   block.hidden = false;
   $("marine-grid").innerHTML = [
-    { icon: "water-outline", label: "Oleaje ahora", value: numOr(H.wave_height[i0], (v) => `${v.toFixed(1)} m`) },
-    { icon: "timer-outline", label: "Período", value: numOr(H.wave_period[i0], (v) => `${v.toFixed(1)} s`) },
-    { icon: "compass-outline", label: "Dirección", value: numOr(H.wave_direction[i0], (v) => `${deg2card(v)} (${Math.round(v)}°)`) },
-    { icon: "trending-up-outline", label: "Máx. 48 h", value: numOr(hMax, (v) => `${v.toFixed(1)} m`) },
+    { icon: "water-outline", label: t("ma_now"), value: numOr(H.wave_height[i0], (v) => `${v.toFixed(1)} m`) },
+    { icon: "timer-outline", label: t("ma_period"), value: numOr(H.wave_period[i0], (v) => `${v.toFixed(1)} s`) },
+    { icon: "compass-outline", label: t("ma_dir"), value: numOr(H.wave_direction[i0], (v) => `${deg2card(v)} (${Math.round(v)}°)`) },
+    { icon: "trending-up-outline", label: t("ma_max48"), value: numOr(hMax, (v) => `${v.toFixed(1)} m`) },
   ]
     .map(
       (s) => `
@@ -1388,8 +1599,8 @@ function sunLabel(data) {
   const d = data.daily || {};
   const dl = d.daylight_duration && d.daylight_duration[0];
   if (dl == null) return "—";
-  if (dl >= 86390) return "Sol de medianoche";
-  if (dl <= 10) return "Noche polar";
+  if (dl >= 86390) return t("sun_midnight");
+  if (dl <= 10) return t("sun_polar_night");
   const sr = d.sunrise && d.sunrise[0];
   const ss = d.sunset && d.sunset[0];
   if (!sr || !ss) return "—";
@@ -1409,7 +1620,7 @@ function hourlyStart(data) {
 function riskWhen(iso) {
   if (!iso) return "";
   const d = new Date(`${iso}:00`);
-  const day = d.toLocaleDateString("es", { weekday: "short", day: "numeric" });
+  const day = d.toLocaleDateString(tLocale(), { weekday: "short", day: "numeric" });
   return `${day} · ${fmtHour(iso)}`;
 }
 
@@ -1972,11 +2183,12 @@ async function initMap() {
   $("map-fallback").classList.remove("is-visible");
 
   const c = countryGet(settings.country) || COUNTRIES.do;
+  const dc = window.__fdcDeepCenter; /* [lat, lon, zoom] del enlace */
   map = new gl.Map({
     container: "map",
     style: styleUrl,
-    center: [c.lon, c.lat],
-    zoom: glZoom(c.zoom),
+    center: dc ? [dc[1], dc[0]] : [c.lon, c.lat],
+    zoom: dc ? dc[2] : glZoom(c.zoom),
     minZoom: 2,
     /* el estilo vectorial es nítido a cualquier zoom y la base satelital
        llega a ~19: acercarse mucho ya no se ve pixelado */
@@ -1986,6 +2198,8 @@ async function initMap() {
     pitchWithRotate: false,
     /* un solo mundo: sin copias infinitas a los lados */
     renderWorldCopies: false,
+    /* exportar imagen del mapa (botón Compartir) necesita el buffer */
+    preserveDrawingBuffer: true,
   });
   if (map.touchZoomRotate && map.touchZoomRotate.disableRotation)
     map.touchZoomRotate.disableRotation();
@@ -2045,6 +2259,7 @@ async function initMap() {
   });
 
   map.on("click", onMapClick);
+  map.on("moveend", updateLink);
   map.on("moveend", () => {
     if (euro.on) euroRefreshSoon();
   });
@@ -2562,6 +2777,7 @@ function setLayer(kind, { silent = false } = {}) {
   euroSetActive(kind === "radar" || kind === "satellite", { silent });
   if (kind === "clouds") cloudsEnable();
   else $("playbar").classList.remove("is-visible");
+  updateLink();
 }
 
 /* ═══ capa «Nubes»: satélite OBSERVACIONAL (decisión Fase 2 del dueño) ═══
@@ -3157,7 +3373,7 @@ function fmtHour12(d) {
 function euroStepLabel(t) {
   const from = new Date(t * 1000);
   const to = new Date((t + EURO_HOURS * 3600) * 1000);
-  const day = from.toLocaleDateString("es", { weekday: "short", day: "numeric" });
+  const day = from.toLocaleDateString(tLocale(), { weekday: "short", day: "numeric" });
   return `${day} · ${fmtHour12(from)} – ${fmtHour12(to)}`;
 }
 
@@ -4506,14 +4722,14 @@ async function searchPlaces(query) {
       const data = await res.json();
       results = data.results || [];
     } catch (_) {
-      holder.innerHTML = `<p class="app__search-empty">No se pudo buscar. Revisa tu conexión.</p>`;
+      holder.innerHTML = `<p class="app__search-empty">${t("search_fail")}</p>`;
       holder.classList.add("is-open");
       return;
     }
   }
 
   if (!results.length) {
-    holder.innerHTML = `<p class="app__search-empty">Sin resultados para tu búsqueda.</p>`;
+    holder.innerHTML = `<p class="app__search-empty">${t("search_empty")}</p>`;
     holder.classList.add("is-open");
     return;
   }
@@ -4775,6 +4991,56 @@ $("iso-toggle")?.addEventListener("change", (e) => {
   else isoHide();
 });
 
+/* ═══ panel de depuración (?debug=1 o #debug): endpoints y su salud ═══
+   Lee el registro global de red (window.__fdcFetchLog, Fase 0): último
+   estado por endpoint, agrupado por host+ruta. Solo diagnóstico. */
+function debugPanelEnsure() {
+  if (!/[?#&]debug\b/.test(location.search + location.hash)) return;
+  let el = $("fdc-debug");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "fdc-debug";
+    el.className = "fdc-debug";
+    document.body.appendChild(el);
+  }
+  const paint = () => {
+    const log = window.__fdcFetchLog || [];
+    const last = new Map();
+    for (const e of log) {
+      try {
+        const u = new URL(e.url, location.href);
+        const key = u.hostname + u.pathname.split("/").slice(0, 3).join("/");
+        last.set(key, e);
+      } catch (_) {}
+    }
+    const rows = [...last.entries()]
+      .slice(-30)
+      .map(([k, e]) => {
+        const okk = e.status && e.status < 400;
+        return `<div class="${okk ? "ok" : "bad"}"><b>${e.status ?? "ERR"}</b> ${k}</div>`;
+      })
+      .join("");
+    el.innerHTML = `<strong>Endpoints (${last.size})</strong>${rows}`;
+  };
+  paint();
+  setInterval(paint, 2000);
+}
+debugPanelEnsure();
+
+/* compartir el estado actual (enlace profundo) */
+$("btn-share")?.addEventListener("click", shareLink);
+
+/* idioma: aplica al instante y repinta lo dinámico */
+$("set-lang")?.addEventListener("change", (e) => {
+  settings.lang = e.target.value;
+  persistLocalSettings();
+  saveRemoteSettings(auth.currentUser);
+  applyI18n();
+  if (currentSpot) loadWeather(currentSpot.lat, currentSpot.lon, currentSpot.label);
+  countryRender();
+  updateLink();
+});
+
 /* proyección globo/plano */
 $("globe-btn")?.addEventListener("click", () => {
   settings.globe = settings.globe === false;
@@ -4819,8 +5085,24 @@ onAuthStateChanged(auth, async (user) => {
   const isoT = $("iso-toggle");
   if (isoT) isoT.checked = settings.isobars === true;
 
+  /* enlace profundo: restaura idioma/capa/variable/modo/período/punto */
+  const dl = parseLink();
+  if (dl.lang) settings.lang = dl.lang;
+  applyI18n();
+  const langSel = $("set-lang");
+  if (langSel) langSel.value = settings.lang || "auto";
+  if (dl.layer) settings.layer = dl.layer;
+  if (dl.variable) euro.variable = dl.variable;
+  if (dl.mode) euro.mode = dl.mode;
+  if (dl.step != null) euro.step = dl.step;
+  if (dl.center) window.__fdcDeepCenter = dl.center;
+  ["euro-var", "euro-mode"].forEach((id) =>
+    setSegValue(id, id === "euro-var" ? euro.variable : euro.mode)
+  );
+
   const c = countryGet(settings.country) || COUNTRIES.do;
-  loadWeather(c.lat, c.lon, `${c.place}, ${c.name}`);
+  if (dl.point) loadWeather(dl.point[0], dl.point[1], `${dl.point[0].toFixed(2)}, ${dl.point[1].toFixed(2)}`);
+  else loadWeather(c.lat, c.lon, `${c.place}, ${c.name}`);
   initMap();
   /* países globales generados: llegan y refinan selector + panel de país */
   loadCountries();
