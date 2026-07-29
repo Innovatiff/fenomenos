@@ -4329,6 +4329,10 @@ const wind = {
   retryTimer: null,
 };
 window.__fdcWind = wind; /* para depurar */
+window.__fdcWindVec = (lat, lon) =>
+  wind.data
+    ? windVecAt(lat, lon, Math.max(0, Math.min(euro.step ?? 0, (wind.data.steps || 1) - 1)))
+    : null;
 
 /* ═══════════ 4d. HOJA INFERIOR MÓVIL (mapa a pantalla completa) ═════════
    El panel del pronóstico se arrastra con el dedo desde su cabecera: sigue
@@ -4418,7 +4422,7 @@ if ("serviceWorker" in navigator) {
 
 function windCovered(reqGrid, modelKey) {
   const d = wind.data;
-  if (!d || d.model !== modelKey || Date.now() - d.at > EURO_CACHE_TTL)
+  if (!d || d.mode === "uv" || d.model !== modelKey || Date.now() - d.at > EURO_CACHE_TTL)
     return false;
   if (d.grid.sp > reqGrid.sp * 1.7) return false;
   const h2 = d.grid.sp / 2;
@@ -4439,6 +4443,36 @@ function windEnsure() {
   }
   const modelKey = euro.variable === "air" ? "ecmwf" : euro.model;
 
+  /* mundial primero: el robot publica u/v del IFS como imagen Mercator
+     (R=u, G=v, ±uv_max_ms). Con eso las partículas cubren TODO el mapa;
+     la rejilla regional del det.json queda de respaldo (y para AIFS). */
+  if (modelKey === "ecmwf") {
+    mapaMeta().then((m) => {
+      if (!euro.on || !wind.enabled) return;
+      if (m && m.uv && m.uv.some(Boolean)) {
+        if (windUv.meta !== m) {
+          windUv.meta = m;
+          windUv.cache.clear();
+          windUv.loading.clear();
+        }
+        wind.data = {
+          mode: "uv",
+          meta: m,
+          steps: m.uv.length,
+          model: "ecmwf",
+          at: Date.now(),
+        };
+        windUvLoad(euro.step ?? 0);
+        windStart();
+      } else windEnsureRegional(modelKey);
+    });
+    return;
+  }
+  windEnsureRegional(modelKey);
+}
+
+/* respaldo: la rejilla regional u/v del det.json (única fuente del AIFS) */
+function windEnsureRegional(modelKey) {
   /* fuente propia: el det.json ya trae u/v listos para las partículas */
   const meta = staticSrc.meta;
   const stc = meta && meta.centers && meta.centers[modelKey];
@@ -4560,9 +4594,87 @@ function windStop() {
   }
 }
 
+/* texturas u/v mundiales: se decodifican a píxeles una vez por paso y se
+   muestrean por partícula; solo se retienen unas pocas en memoria */
+const windUv = { meta: null, cache: new Map(), loading: new Set() };
+
+function windUvLoad(step, esPrecarga) {
+  const m = windUv.meta;
+  if (!m || !m.uv) return;
+  const idx = Math.max(0, Math.min(step ?? 0, m.uv.length - 1));
+  const rel = m.uv[idx];
+  if (!rel || windUv.cache.has(idx) || windUv.loading.has(idx)) return;
+  windUv.loading.add(idx);
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    windUv.loading.delete(idx);
+    try {
+      const cv = document.createElement("canvas");
+      cv.width = img.naturalWidth;
+      cv.height = img.naturalHeight;
+      const c2 = cv.getContext("2d", { willReadFrequently: true });
+      c2.drawImage(img, 0, 0);
+      windUv.cache.set(idx, {
+        px: c2.getImageData(0, 0, cv.width, cv.height).data,
+        w: cv.width,
+        h: cv.height,
+      });
+      /* poda: fuera la textura más LEJANA del paso en uso (jamás la activa) */
+      while (windUv.cache.size > 6) {
+        const cur = Math.max(0, Math.min(euro.step ?? 0, m.uv.length - 1));
+        let far = null;
+        for (const k of windUv.cache.keys())
+          if (far === null || Math.abs(k - cur) > Math.abs(far - cur)) far = k;
+        if (far === null || far === idx) break;
+        windUv.cache.delete(far);
+      }
+      /* precarga SOLO el paso siguiente (sin encadenar) para el slider */
+      if (!esPrecarga && idx + 1 < m.uv.length) windUvLoad(idx + 1, true);
+    } catch (_) {}
+  };
+  img.onerror = () => windUv.loading.delete(idx);
+  img.src = `${STATIC_BASE}/ecmwf/${rel}`;
+}
+
+function windVecAtUv(d, lat, lon, s) {
+  const m = d.meta;
+  const idx = Math.max(0, Math.min(s ?? 0, m.uv.length - 1));
+  const t = windUv.cache.get(idx);
+  if (!t) {
+    windUvLoad(idx);
+    return null;
+  }
+  const b = m.bbox;
+  if (lat <= b.south || lat >= b.north) return null;
+  const yN = mercY(b.north);
+  const yS = mercY(b.south);
+  const fx = ((((lon + 180) % 360) + 360) % 360) / 360 * t.w - 0.5;
+  const fy = ((yN - mercY(lat)) / (yN - yS)) * t.h - 0.5;
+  const y0 = Math.max(0, Math.min(Math.floor(fy), t.h - 2));
+  const ty = Math.max(0, Math.min(1, fy - y0));
+  const x0 = Math.floor(fx);
+  const tx = fx - x0;
+  const xw = (x) => ((x % t.w) + t.w) % t.w; /* envuelve el antimeridiano */
+  const px = t.px;
+  const ch = (x, y, c) => px[(y * t.w + xw(x)) * 4 + c];
+  if (
+    !ch(x0, y0, 3) || !ch(x0 + 1, y0, 3) ||
+    !ch(x0, y0 + 1, 3) || !ch(x0 + 1, y0 + 1, 3)
+  )
+    return null;
+  const bil = (c) =>
+    (ch(x0, y0, c) * (1 - tx) + ch(x0 + 1, y0, c) * tx) * (1 - ty) +
+    (ch(x0, y0 + 1, c) * (1 - tx) + ch(x0 + 1, y0 + 1, c) * tx) * ty;
+  const max = m.uv_max_ms || 40;
+  const toMph = (q) => ((q / 255) * 2 * max - max) * 2.236936;
+  return { u: toMph(bil(0)), v: toMph(bil(1)) };
+}
+
 /* interpolación bilineal del vector de viento en un punto */
 function windVecAt(lat, lon, s) {
   const d = wind.data;
+  if (d.mode === "uv") return windVecAtUv(d, lat, lon, s);
   const g = d.grid;
   const rows = g.lats.length;
   const cols = g.lons.length;

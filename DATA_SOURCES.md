@@ -93,6 +93,7 @@ Perth y McMurdo (−77.85°).
 - **Temperatura 2 m mundial** (`img/det-temp-NN.webp`, en `mapa.json.det.temp`): del mismo GRIB det del IFS (param `2t`), en °C, máx. del período de 6 h, misma proyección/banda que el resto del mapa mundial. Solo determinista — un umbral de probabilidad de temperatura no aporta y no se fabrica.
 - **Isobaras MSLP** (`img/iso-NN.json`, en `mapa.json.isobars`, `isobars_step_hpa: 4`): GeoJSON por período con líneas de presión (propiedad `p` en hPa) trazadas del `msl` del HRES (suavizado, recorte a la banda del mapa, submuestreo a 0.5° → decenas de KB por paso). En la app son un conmutador sobre el producto mundial del IFS; con AIFS o la capa de aire no existen y no se pintan.
 - **Robots NOAA (GFS) y GEM retirados** (decisión del dueño, Fase 2): la matrix de `modelos.yml` queda `[ecmwf, aifs]`. El código de proceso sigue en el historial de git.
+- **Viento u/v mundial para las partículas** (`img/uv-NN.webp`, en `mapa.json.uv` + `uv_max_ms`): imagen Mercator sin pérdida con R=u y G=v a 10 m del det del IFS, cuantizados a ±40 m/s (resolución 0.31 m/s, verificada con ida y vuelta sintética), snapshot de mitad de período como el `det.json` regional. La app muestrea estos píxeles (bilineal, con envoltura del antimeridiano) para animar las partículas en TODO el mapa; fuera de la banda ±60/74° no hay dato y no se pinta vector. El AIFS no tiene producto mundial y conserva la rejilla regional.
 
 ## 12 · Geodatos GENERADOS (Fase 3) — `geo/countries.json` + `cities/idx/`
 
