@@ -328,7 +328,11 @@
               <div class="seg seg--tight" id="euro-mode" role="group">
                 <button class="seg__btn is-active" data-value="prob" data-i18n="mode_prob">Probabilidad</button>
                 <button class="seg__btn" data-value="det" data-i18n="mode_det">Determinista</button>
+                <button class="seg__btn" data-value="p24" data-i18n="mode_p24">Prob. 24 h</button>
               </div>
+
+              <!-- umbrales del producto diario (se llenan según la variable) -->
+              <div class="seg seg--tight" id="euro-thr" role="group" hidden></div>
 
               <label class="euro-iso">
                 <input type="checkbox" id="iso-toggle" />

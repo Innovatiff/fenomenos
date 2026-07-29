@@ -151,6 +151,7 @@ const I18N = {
   /* — modelo — */
   mode_prob: { es: "Probabilidad", en: "Probability", fr: "Probabilité", pt: "Probabilidade", de: "Wahrscheinlichkeit", ar: "الاحتمال" },
   mode_det: { es: "Determinista", en: "Deterministic", fr: "Déterministe", pt: "Determinista", de: "Deterministisch", ar: "حتمي" },
+  mode_p24: { es: "Prob. 24 h", en: "24 h prob.", fr: "Prob. 24 h", pt: "Prob. 24 h", de: "24-h-Wahrsch.", ar: "احتمال 24 س" },
   var_wind: { es: "Viento", en: "Wind", fr: "Vent", pt: "Vento", de: "Wind", ar: "رياح" },
   var_gusts: { es: "Ráfagas", en: "Gusts", fr: "Rafales", pt: "Rajadas", de: "Böen", ar: "هبّات" },
   var_rain: { es: "Lluvia", en: "Rain", fr: "Pluie", pt: "Chuva", de: "Regen", ar: "مطر" },
@@ -182,7 +183,7 @@ function parseLink() {
     const h = new URLSearchParams((location.hash || "").replace(/^#/, ""));
     if (["radar", "satellite", "clouds", "none"].includes(h.get("l"))) out.layer = h.get("l");
     if (["wind", "gusts", "rain", "temp", "air"].includes(h.get("v"))) out.variable = h.get("v");
-    if (["prob", "det"].includes(h.get("m"))) out.mode = h.get("m");
+    if (["prob", "det", "p24"].includes(h.get("m"))) out.mode = h.get("m");
     const st = parseInt(h.get("s"), 10);
     if (Number.isFinite(st) && st >= 0 && st < 64) out.step = st;
     const c = (h.get("c") || "").split(",").map(Number);
@@ -3681,13 +3682,14 @@ function euroRenderMapa(files, mode) {
   const b = m.bbox;
   euroOverlaySet(`${STATIC_BASE}/ecmwf/${files[idx]}`, b.west, b.south, b.east, b.north);
   isoApply(euro.step);
+  $("euro-thr").hidden = true;
   $("euro-loading").hidden = true;
 
   $("euro-title").textContent = prob ? cfg.probTitle : cfg.detTitle;
   $("euro-sub").textContent = prob
     ? `EPS de ECMWF · ${m.members || 51} escenarios · mundial`
     : "IFS de ECMWF · determinista (0.25°) · mundial";
-  $("euro-mode").style.display = euroDetOnly(euro.variable) ? "none" : "";
+  modeSegSync();
   const slider = $("euro-slider");
   slider.max = String(m.times.length - 1);
   slider.value = String(euro.step);
@@ -3703,8 +3705,146 @@ function euroRenderMapa(files, mode) {
   windEnsure();
 }
 
+/* ═══ Prob. 24 h: productos DIARIOS del ENS (prob24.json del robot) ═══
+   % de miembros que superan cada umbral, por día del pronóstico:
+   lluvia acumulada 24 h (mm), viento sostenido (kt) y Tmáx (°C). Rayos
+   NO: el ENS abierto no publica densidad de rayos (sondeo 30411673974)
+   y no se sustituye con un proxy. */
+const P24_VAR = { rain: "rain", wind: "wind", temp: "tmax" };
+const P24_TITLES = {
+  rain: (u) => `Probabilidad de lluvia ≥ ${u} mm en 24 h`,
+  wind: (u) => `Probabilidad de viento sostenido ≥ ${u} kt en el día`,
+  tmax: (u) => `Probabilidad de Tmáx > ${u} °C`,
+};
+const p24Src = { data: null, checked: false, at: 0 };
+if (!euro.thr) euro.thr = {};
+
+async function p24Meta() {
+  const now = Date.now();
+  if (p24Src.data || (p24Src.checked && now - p24Src.at < 10 * 60 * 1000))
+    return p24Src.data;
+  p24Src.checked = true;
+  p24Src.at = now;
+  try {
+    const res = await fetch(`${STATIC_BASE}/ecmwf/prob24.json`, { cache: "no-cache" });
+    if (res.ok) {
+      const m = await res.json();
+      if (
+        m &&
+        m.generated &&
+        Date.now() / 1000 - m.generated < 12 * 3600 &&
+        m.vars &&
+        m.days &&
+        m.bbox
+      )
+        p24Src.data = m;
+    }
+  } catch (_) {}
+  return p24Src.data;
+}
+
+function p24DayLabel(iso) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  return d.toLocaleDateString(tLocale(), { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+}
+
+/* qué modos aplican a la variable activa: prob (6 h) solo con ensemble
+   horario; p24 solo para lluvia/viento/temp del IFS; el aire no tiene
+   modos. Si el modo activo deja de ser válido, cae al primero válido. */
+function modeSegSync() {
+  const va = euro.variable;
+  const probBtn = document.querySelector('#euro-mode [data-value="prob"]');
+  const p24Btn = document.querySelector('#euro-mode [data-value="p24"]');
+  const probOk = !euroDetOnly(va);
+  const p24Ok = !!P24_VAR[va] && euro.model === "ecmwf";
+  if (probBtn) probBtn.style.display = probOk ? "" : "none";
+  if (p24Btn) p24Btn.style.display = p24Ok ? "" : "none";
+  $("euro-mode").style.display = va === "air" ? "none" : "";
+  if ((euro.mode === "prob" && !probOk) || (euro.mode === "p24" && !p24Ok)) {
+    euro.mode = probOk ? "prob" : "det";
+    setSegValue("euro-mode", euro.mode);
+  }
+  if (euro.mode !== "p24") $("euro-thr").hidden = true;
+}
+
+function euroRenderP24() {
+  const m = p24Src.data;
+  const key = P24_VAR[euro.variable];
+  const v = m && key && m.vars[key];
+  const thrSeg = $("euro-thr");
+  if (!v) {
+    euroOverlayRemove();
+    thrSeg.hidden = true;
+    $("euro-title").textContent = "—";
+    $("euro-note").textContent =
+      "Este producto diario no está disponible para esta variable (solo lluvia, viento y temperatura, del ENS del IFS).";
+    $("euro-loading").hidden = true;
+    return;
+  }
+  /* umbral activo válido para la variable */
+  if (!v.umbrales.includes(euro.thr[key])) euro.thr[key] = v.umbrales[0];
+  const thr = euro.thr[key];
+  thrSeg.hidden = false;
+  thrSeg.innerHTML = v.umbrales
+    .map(
+      (u) =>
+        `<button class="seg__btn${u === thr ? " is-active" : ""}" data-thr="${u}">≥ ${u} ${v.unidad.split("/")[0]}</button>`
+    )
+    .join("");
+  /* día activo */
+  const nDays = m.days.length;
+  if (euro.step == null) euro.step = 0;
+  euro.step = Math.max(0, Math.min(euro.step, nDays - 1));
+  const files = v.img[String(thr)] || [];
+  let idx = euro.step;
+  if (!files[idx]) {
+    for (let k = 1; k < nDays; k++) {
+      if (files[idx - k]) { idx -= k; break; }
+      if (files[idx + k]) { idx += k; break; }
+    }
+  }
+  if (files[idx]) {
+    const b = m.bbox;
+    euroOverlaySet(`${STATIC_BASE}/ecmwf/${files[idx]}`, b.west, b.south, b.east, b.north);
+  } else {
+    euroOverlayRemove();
+  }
+  isoHide(); /* las isobaras viven en la línea de tiempo de 6 h, no en días */
+  $("euro-loading").hidden = true;
+  $("euro-title").textContent = P24_TITLES[key](thr);
+  $("euro-sub").textContent = `EPS de ECMWF · ${m.members || "≥30"} miembros · diario · mundial`;
+  modeSegSync();
+  const slider = $("euro-slider");
+  slider.max = String(nDays - 1);
+  slider.value = String(euro.step);
+  $("euro-step-label").textContent = p24DayLabel(m.days[euro.step]);
+  euroLegend(EURO_PROB_STOPS, EURO_PROB_TICKS, "%");
+  $("euro-note").textContent =
+    `Porcentaje de los ${m.members || "≥30"} miembros del ENS que superan el umbral ese día (UTC). ` +
+    (v.nota ? v.nota + ". " : "") +
+    "Datos abiertos de ECMWF procesados por Fenómenos cada 6 h.";
+}
+
 function euroRender() {
   if (!map) return;
+  if (euro.mode === "p24" && euro.model === "ecmwf" && euro.variable !== "air") {
+    if (p24Src.data) {
+      euroRenderP24();
+      return;
+    }
+    /* aún sin meta: se pide y se repinta al llegar */
+    p24Meta().then((d) => {
+      if (d && euro.mode === "p24") euroRenderP24();
+      else if (euro.mode === "p24") {
+        euroOverlayRemove();
+        $("euro-title").textContent = "—";
+        $("euro-note").textContent =
+          "El producto diario del ENS aún no está publicado por el robot (o su pasada tiene más de 12 h). Vuelve en unos minutos.";
+        $("euro-loading").hidden = true;
+      }
+    });
+    return;
+  }
   /* el mapa mundial en imágenes tiene prioridad (mejor calidad y global);
      SOLO existe para el IFS — con la variante AIFS o la capa de aire se
      sigue el camino clásico (rejilla del robot / API) */
@@ -3807,7 +3947,8 @@ function euroRender() {
       ? `${modelCfg.ensName} · ${d.members || modelCfg.fallbackMembers} escenarios`
       : modelCfg.detLabel;
   /* aire y temperatura no tienen ensemble */
-  $("euro-mode").style.display = euroDetOnly(euro.variable) ? "none" : "";
+  modeSegSync();
+  $("euro-thr").hidden = true;
   const slider = $("euro-slider");
   slider.max = String(d.times.length - 1);
   slider.value = String(euro.step);
@@ -4000,6 +4141,22 @@ euroCacheLoad();
 
 async function euroRefresh() {
   if (!euro.on || !map) return;
+  modeSegSync(); /* si la variable nueva no admite el modo activo, cae aquí */
+  /* Prob. 24 h: producto propio del robot, sin llamadas a la API */
+  if (euro.mode === "p24") {
+    if (euro.model !== "ecmwf" || euro.variable === "air") {
+      euroOverlayRemove();
+      $("euro-thr").hidden = true;
+      $("euro-title").textContent = "—";
+      $("euro-note").textContent =
+        "Las probabilidades diarias salen del ENS del IFS: cambia a la variante IFS HRES (o a otra variable) para verlas.";
+      $("euro-loading").hidden = true;
+      return;
+    }
+    await p24Meta();
+    euroRender();
+    return;
+  }
   /* aire y temperatura no tienen ensemble: siempre deterministas */
   const isAir = euro.variable === "air";
   const mode = euroDetOnly(euro.variable) ? "det" : euro.mode;
@@ -5026,6 +5183,16 @@ function debugPanelEnsure() {
   setInterval(paint, 2000);
 }
 debugPanelEnsure();
+
+/* umbrales del producto diario (Prob. 24 h) */
+document.addEventListener("click", (ev) => {
+  const btn = ev.target.closest && ev.target.closest("#euro-thr [data-thr]");
+  if (!btn) return;
+  const key = P24_VAR[euro.variable];
+  if (!key) return;
+  euro.thr[key] = Number(btn.dataset.thr);
+  euroRender();
+});
 
 /* compartir el estado actual (enlace profundo) */
 $("btn-share")?.addEventListener("click", shareLink);

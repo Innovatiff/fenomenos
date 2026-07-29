@@ -111,6 +111,17 @@ Perth y McMurdo (−77.85°).
 - **Elevación (DEM de Open-Meteo, automático con cada petición)**: Pico Duarte (19.02, −71.00) → `elevation: 3006 m`, temp actual 14.8 °C; Puerto Plata costa (19.79, −70.69) → `elevation: 29 m`, 31.6 °C. Misma celda de 0.25°, 17 °C de diferencia real por altitud. El panel muestra «Altitud del punto» con el valor devuelto.
 - **Sol polar (semántica real de la fuente)**: Longyearbyen 78.2 N en julio → `daylight_duration: 86400 s` y salida/puesta degeneradas a `00:00` (día polar); McMurdo 77.85 S → `daylight_duration: 0 s` (noche polar). La losa «Sol» del panel traduce: ≥86 390 s → «Sol de medianoche», ≤10 s → «Noche polar», si no salida–puesta locales con minutos.
 
+## 15 · Probabilidades diarias del ENS — `modelos/ecmwf/prob24.json` (evidencia en vivo, sonda 30411673974)
+
+Producto propio: % de los ~50 miembros perturbados (`pf`) del ENS del IFS que superan cada umbral, por día UTC del pronóstico (4 días), renderizado como imágenes mundiales `img/p24-<var>-<umbral>-<día>.webp`. Todo verificado con peticiones reales desde un runner de GitHub (workflow temporal, corrida 30411673974) antes de escribir el pipeline:
+
+- **Lluvia 24 h (≥5/10/25/50 mm)**: `tp` del ENS es **acumulado desde el inicio de la pasada** (comprobado: en h=0 todos los miembros valen 0; en h=24 el máx. fue 0.765, unidades `m`). Por eso el robot NO suma pasos de 6 h: resta `tp(frontera+24h) − tp(frontera)` por miembro y multiplica ×1000 (m→mm). Equivale exactamente a «sumar los 4 pasos de 6 h» pero con 2 descargas por día en vez de 5.
+- **Viento (≥20/35/50 kt)**: `10u/10v` por miembro, `hypot × 1.9438` (m/s→kt), máximo del día sobre los pasos de 6 h. Sin umbrales de 85/100 kt: de huracán informa el NHC, no este producto (decisión del dueño en el encargo).
+- **Tmáx (>30/35/40 °C)**: `2t` del ENS **sí existe** (comprobado: 50 miembros `pf`, unidades K, mín 191.9 / máx 322.1, ~31.5 MB por paso). Máximo del día de los pasos de 6 h, −273.15.
+- **Rayos: NO DISPONIBLE — producto no construido (regla cardinal)**: se sondearon `litoti`, `litota1`, `litota3` y `litota6` contra el índice del ENS de datos abiertos; los 4 devolvieron «Cannot find index entries» (la densidad de rayos existe en el catálogo interno de ECMWF, pero **no** en el subconjunto abierto). No se sustituye por CAPE ni por ningún otro campo disfrazado de rayos: el producto simplemente no se publica. El lector queda escrito e inerte por si ECMWF lo añade al set abierto.
+- **Alineación de miembros**: cada variable diaria se calcula solo sobre la **intersección** de miembros presentes en todos los pasos del día; si quedan <30, ese día no se emite (nada de probabilidades con muestra coja).
+- **Nota**: el ENS abierto no publica el miembro de control por separado en el índice (`cf` no aparece; el propio índice sugiere `pf`), así que el conteo típico es 50.
+
 ## Límites y atribución
 
 - **Open-Meteo**: gratuito sin clave para uso no comercial (límite documentado por el proveedor ~10 000 llamadas/día; no medido aquí). La app minimiza llamadas (estáticos del robot primero, cachés, intervalos mínimos) y maneja 429 con enfriamiento. Atribución: «Open-Meteo.com» (CC-BY 4.0) — presente en el crédito del mapa.
