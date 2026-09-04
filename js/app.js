@@ -1,10 +1,12 @@
 /* ══════════════════════════════════════════════════════════════════════════
    FENÓMENOS DEL CARIBE — app.js
-   Consola meteorológica sobre MapLibre GL. ÚNICO modelo de pronóstico:
-   ECMWF (IFS determinista + EPS ensemble; AIFS también es ECMWF). El
-   pronóstico puntual, los riesgos y la capa del mapa piden SIEMPRE
-   models=ecmwf_ifs025 — nunca el "best match" multi-modelo. Datos del
-   robot propio (fenomenos-datos) + Open-Meteo; ajustes por usuario
+   Consola meteorológica sobre MapLibre GL. El pronóstico puntual, los
+   riesgos y la capa del mapa piden SIEMPRE models=ecmwf_ifs025 — nunca
+   el "best match" multi-modelo. EXCEPCIÓN (decisión del dueño,
+   2026-09-04): la sección de ENSAMBLES es multi-sistema a propósito —
+   EPS/GEFS/GEPS/ICON/AIFS + súper y grand ensamble — con cada miembro
+   etiquetado por su fuente real (ver ENS_SYSTEMS). Datos del robot
+   propio (fenomenos-datos) + Open-Meteo; ajustes por usuario
    (localStorage siempre; Firestore users/{uid} si la cuenta no es
    anónima). Requiere sesión: sin usuario se vuelve a acceso.html.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -771,12 +773,39 @@ async function provRender(modelId, label) {
    ECMWF que superan un umbral, y el conteo (N/51) se muestra al lado para
    que cualquiera pueda verificarlo. Nada de probabilidades de caja negra. */
 
-const eps = { key: null, abort: null, data: null, fanVar: "temp" };
+const eps = { key: null, abort: null, data: null, fanVar: "temp", sys: "eps" };
+try {
+  const s = localStorage.getItem("fdc-eps-sys");
+  if (s) eps.sys = s;
+} catch (_) {}
+
+/* ═══ SISTEMAS DE ENSAMBLES (decisión del dueño 2026-09-04: se reabren
+   los ensambles multi-modelo — antes la consola era solo ECMWF).
+   Miembros y variables VERIFICADOS en vivo, sonda 33896739097:
+   ecmwf_ifs025 51m · gfs025 31m · gem_global 21m (sin ráfagas) ·
+   icon_seamless 40m (sin ráfagas) · ecmwf_aifs025 51m (sin ráfagas).
+   BOM (todo nulo) y UKMO (timeout TLS) quedaron fuera con evidencia. */
+const ENS_SYSTEMS = {
+  eps: { om: "ecmwf_ifs025", label: "EPS de ECMWF", short: "EPS", gusts: true, ai: false },
+  gefs: { om: "gfs025", label: "GEFS de NOAA", short: "GEFS", gusts: true, ai: false },
+  geps: { om: "gem_global", label: "GEPS de ECCC (Canadá)", short: "GEPS", gusts: false, ai: false },
+  icon: { om: "icon_seamless", label: "ICON-EPS de DWD", short: "ICON", gusts: false, ai: false },
+  aifs: { om: "ecmwf_aifs025", label: "AIFS-ENS de ECMWF (IA)", short: "AIFS", gusts: false, ai: true },
+};
+/* pools con pesos IGUALES por miembro (se documenta en la nota) */
+const ENS_POOLS = {
+  super: { keys: ["eps", "gefs", "geps", "icon"], label: "Súper-ensamble (físicos)" },
+  grand: { keys: ["eps", "gefs", "geps", "icon", "aifs"], label: "Grand ensamble (físicos + IA)" },
+};
+
+/* caché por punto+modelo: el súper y el grand reutilizan lo ya bajado */
+const ensCache = new Map(); /* "lat|lon|om" → {at, hourly} */
 
 /* variables disponibles en el abanico de percentiles */
 const EPS_FAN_VARS = {
   temp: { base: "temperature_2m", unit: "°" },
   rain: { base: "precipitation", unit: " mm/h" },
+  wind: { base: "wind_speed_10m", unit: " km/h" },
   gusts: { base: "wind_gusts_10m", unit: " km/h" },
 };
 
@@ -800,23 +829,30 @@ function qSorted(sorted, q) {
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
 }
 
-/* percentiles por hora a través de los miembros */
+/* percentiles por hora a través de los miembros: banda p10–p90, banda
+   p30–p70, mediana (p50) y MEDIA — lo que pidió el dueño, tal cual */
 function epsFanData(members) {
   const n = members[0] ? members[0].length : 0;
-  const fan = { p10: [], p25: [], p50: [], p75: [], p90: [], sd: [] };
+  const fan = { p10: [], p30: [], p50: [], p70: [], p90: [], mean: [], sd: [] };
   for (let t = 0; t < n; t++) {
     const vals = [];
     for (const m of members) if (m[t] != null) vals.push(m[t]);
     vals.sort((a, b) => a - b);
     fan.p10.push(qSorted(vals, 0.1));
-    fan.p25.push(qSorted(vals, 0.25));
+    fan.p30.push(qSorted(vals, 0.3));
     fan.p50.push(qSorted(vals, 0.5));
-    fan.p75.push(qSorted(vals, 0.75));
+    fan.p70.push(qSorted(vals, 0.7));
     fan.p90.push(qSorted(vals, 0.9));
-    if (vals.length > 1) {
+    if (vals.length) {
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
-      fan.sd.push(Math.sqrt(vals.reduce((a, v) => a + (v - mean) ** 2, 0) / (vals.length - 1)));
+      fan.mean.push(mean);
+      fan.sd.push(
+        vals.length > 1
+          ? Math.sqrt(vals.reduce((a, v) => a + (v - mean) ** 2, 0) / (vals.length - 1))
+          : null
+      );
     } else {
+      fan.mean.push(null);
       fan.sd.push(null);
     }
   }
@@ -856,24 +892,81 @@ async function ensFresh(modelId, requireProof) {
   return Date.now() / 1000 - meta.last_run_initialisation_time < 48 * 3600;
 }
 
+/* baja UN modelo de ensamble para un punto (caché 30 min). Si la API
+   rechaza la lista de variables (400), se reintenta sin nieve/ráfagas:
+   algunos sistemas no las publican y no por eso se pierde el resto. */
+async function ensFetchModel(lat, lon, om, signal) {
+  const ck = `${lat.toFixed(2)}|${lon.toFixed(2)}|${om}`;
+  const hit = ensCache.get(ck);
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.hourly;
+  const q = (vars) =>
+    new URLSearchParams({
+      latitude: lat.toFixed(4),
+      longitude: lon.toFixed(4),
+      hourly: vars,
+      forecast_days: "7",
+      timezone: "auto",
+      models: om,
+      temperature_unit: "celsius" /* umbrales en °C; se convierte al pintar */,
+      wind_speed_unit: "kmh",
+    });
+  let res = await fetch(
+    `https://ensemble-api.open-meteo.com/v1/ensemble?${q("temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m,snowfall")}`,
+    { signal }
+  );
+  if (res.status === 400)
+    res = await fetch(
+      `https://ensemble-api.open-meteo.com/v1/ensemble?${q("temperature_2m,precipitation,wind_speed_10m")}`,
+      { signal }
+    );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const raw = await res.json();
+  const d = Array.isArray(raw) ? raw[0] : raw;
+  const hourly = (d && d.hourly) || {};
+  ensCache.set(ck, { at: Date.now(), hourly });
+  if (ensCache.size > 30) ensCache.delete(ensCache.keys().next().value);
+  return hourly;
+}
+
+/* junta varios sistemas en un solo "hourly": cada miembro se renombra
+   `<base>_memberNN__<sistema>` (así todo el render existente los ve) y
+   los tiempos se alinean por marca ISO contra el eje del primer sistema */
+function ensPoolHourly(parts) {
+  const axis = parts[0].hourly.time || [];
+  const out = { time: axis };
+  const counts = {};
+  for (const { sys, hourly } of parts) {
+    const t = hourly.time || [];
+    let map = null; /* null → mismas posiciones, sin copia */
+    if (t.length !== axis.length || t[0] !== axis[0] || t[t.length - 1] !== axis[axis.length - 1]) {
+      const idx = new Map(t.map((s, i) => [s, i]));
+      map = axis.map((s) => (idx.has(s) ? idx.get(s) : -1));
+    }
+    const cnt = {};
+    for (const k of Object.keys(hourly)) {
+      if (k === "time") continue;
+      const arr = hourly[k];
+      if (!Array.isArray(arr) || !arr.some((v) => v != null)) continue;
+      const base = k.replace(/_member\d+$/, "");
+      cnt[base] = (cnt[base] || 0) + 1;
+      out[`${base}_member${String(cnt[base]).padStart(2, "0")}__${sys}`] = map
+        ? axis.map((_, i) => (map[i] >= 0 ? arr[map[i]] : null))
+        : arr;
+    }
+    counts[sys] = cnt.temperature_2m || 0;
+  }
+  return { hourly: out, counts };
+}
+
 async function loadEps(lat, lon) {
-  const cfg = EURO_MODELS_CFG[euro.model] || EURO_MODELS_CFG.ecmwf;
-  const key = `${lat.toFixed(2)}|${lon.toFixed(2)}|${cfg.ens}`;
   const block = $("eps-block");
   if (!block) return;
   block.hidden = false;
-  $("eps-title").textContent = cfg.ensName;
-  if (!(await ensFresh(cfg.ens, euro.model === "aifs"))) {
-    eps.data = null;
-    eps.key = null;
-    $("eps-head").textContent =
-      "El ensemble de esta variante no se está actualizando en la fuente abierta — sin probabilidades. Usa IFS HRES.";
-    $("eps-thresholds").innerHTML = "";
-    $("eps-legend").hidden = true;
-    $("eps-note").hidden = true;
-    $("conf-badge").hidden = true;
-    return;
-  }
+  const pool = ENS_POOLS[eps.sys];
+  const sysKeys = pool ? pool.keys : [ENS_SYSTEMS[eps.sys] ? eps.sys : "eps"];
+  const label = pool ? pool.label : ENS_SYSTEMS[sysKeys[0]].label;
+  $("eps-title").textContent = label;
+  const key = `${lat.toFixed(2)}|${lon.toFixed(2)}|${eps.sys}`;
   if (eps.key === key && eps.data && Date.now() - eps.data.at < 30 * 60 * 1000) {
     epsRender();
     return;
@@ -884,24 +977,43 @@ async function loadEps(lat, lon) {
   if (eps.abort) eps.abort.abort();
   eps.abort = new AbortController();
   eps.key = key;
+  const signal = eps.abort.signal;
   try {
-    const params = new URLSearchParams({
-      latitude: lat.toFixed(4),
-      longitude: lon.toFixed(4),
-      hourly: "temperature_2m,precipitation,wind_gusts_10m,snowfall",
-      forecast_days: "7",
-      timezone: "auto",
-      models: cfg.ens,
-      temperature_unit: "celsius" /* umbrales en °C; se convierte al pintar */,
-      wind_speed_unit: "kmh",
-    });
-    const res = await fetch(`https://ensemble-api.open-meteo.com/v1/ensemble?${params}`, {
-      signal: eps.abort.signal,
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const raw = await res.json();
-    const d = Array.isArray(raw) ? raw[0] : raw;
-    eps.data = { at: Date.now(), hourly: d.hourly || {}, ensName: cfg.ensName };
+    const parts = [];
+    const dropped = [];
+    for (const sk of sysKeys) {
+      const cfg = ENS_SYSTEMS[sk];
+      /* IA: metadato de pasada FRESCO obligatorio (la fuente estuvo
+         congelada meses en 2025); físicos: solo bloquea la prueba
+         positiva de estancamiento. Nada de probabilidades zombis. */
+      if (!(await ensFresh(cfg.om, cfg.ai))) {
+        dropped.push(`${cfg.short} (pasada vieja en la fuente)`);
+        continue;
+      }
+      try {
+        parts.push({ sys: sk, hourly: await ensFetchModel(lat, lon, cfg.om, signal) });
+      } catch (e) {
+        if (e && e.name === "AbortError") throw e;
+        dropped.push(`${cfg.short} (sin respuesta)`);
+      }
+    }
+    if (eps.key !== key) return; /* el usuario ya cambió de sistema/punto */
+    if (!parts.length) {
+      eps.data = null;
+      $("eps-head").textContent =
+        sysKeys.length === 1 && ENS_SYSTEMS[sysKeys[0]].ai
+          ? "El AIFS-ENS no se está actualizando en la fuente abierta — sin probabilidades (vuelve cuando su pasada sea fresca)."
+          : dropped.length
+            ? `Sin datos: ${dropped.join(" · ")}.`
+            : "Sin datos del ensemble ahora mismo.";
+      $("eps-note").hidden = true;
+      $("conf-badge").hidden = true;
+      return;
+    }
+    let hourly = parts[0].hourly;
+    let counts = null;
+    if (pool || parts.length > 1) ({ hourly, counts } = ensPoolHourly(parts));
+    eps.data = { at: Date.now(), hourly, ensName: label, counts, dropped };
     epsRender();
   } catch (err) {
     if (err && err.name === "AbortError") return;
@@ -926,12 +1038,20 @@ function epsChip(pct, count, total, label) {
   </div>`;
 }
 
+/* viento sostenido: mismos umbrales en kt que el producto prob24 del mapa */
+const EPS_WIND_THR = [
+  { kt: 20, kmh: 37.0 },
+  { kt: 35, kmh: 64.8 },
+  { kt: 50, kmh: 92.6 },
+];
+
 function epsRender() {
   if (!eps.data) return;
   const h = eps.data.hourly;
   const times = h.time || [];
   const temps = epsSeries("temperature_2m");
   const rains = epsSeries("precipitation");
+  const winds = epsSeries("wind_speed_10m");
   const gusts = epsSeries("wind_gusts_10m");
   const snows = epsSeries("snowfall");
   const N = temps.length;
@@ -940,13 +1060,24 @@ function epsRender() {
     return;
   }
 
+  /* abanico: solo variables con miembros reales en el sistema activo */
+  const avail = { temp: temps.length, rain: rains.length, wind: winds.length, gusts: gusts.length };
+  document.querySelectorAll("#eps-fanvar [data-value]").forEach((b) => {
+    b.style.display = avail[b.dataset.value] ? "" : "none";
+  });
+
   const fan = epsFanData(temps);
   /* confianza: dispersión media (σ) de la temperatura en las próximas 72 h */
   const sd72 = fan.sd.slice(0, 72).filter((v) => v != null);
   const sdMean = sd72.length ? sd72.reduce((a, b) => a + b, 0) / sd72.length : null;
   const conf = sdMean == null ? null : sdMean < 1.0 ? "alta" : sdMean < 2.2 ? "media" : "baja";
+  const desglose = eps.data.counts
+    ? ` (${Object.entries(eps.data.counts)
+        .map(([k, c]) => `${ENS_SYSTEMS[k].short} ${c}`)
+        .join(" + ")})`
+    : "";
   $("eps-head").textContent =
-    `${N} escenarios · dispersión media ±${sdMean == null ? "—" : sdMean.toFixed(1)} °C (72 h)` +
+    `${N} escenarios${desglose} · dispersión media ±${sdMean == null ? "—" : sdMean.toFixed(1)} °C (72 h)` +
     (conf ? ` · confianza ${conf.toUpperCase()}` : "");
   const cb = $("conf-badge");
   if (cb) {
@@ -958,46 +1089,74 @@ function epsRender() {
   epsDrawCurrentFan();
   $("eps-legend").hidden = false;
 
-  /* ── tablas de umbral con conteos reproducibles ── */
+  /* ── tablas de umbral con conteos reproducibles. El denominador es el
+     nº de miembros CON DATOS ese día: en los pools no todos los sistemas
+     cubren el mismo horizonte, y contar ausentes como "no supera" sería
+     inventarse probabilidad ── */
   const days = [...new Set(times.map((t) => t.slice(0, 10)))].slice(0, 3);
   const rows = [];
 
   /* lluvia por día */
   const rainSums = rains.map((m) => epsDailySums(times, m));
   for (const day of days) {
+    const withDay = rainSums.filter((s) => s.has(day));
+    if (!withDay.length) continue;
     const chips = EPS_RAIN_THR.map((thr) => {
-      const c = rainSums.filter((s) => (s.get(day) || 0) > thr).length;
-      return epsChip(Math.round((100 * c) / N), c, N, `>${thr} mm`);
+      const c = withDay.filter((s) => s.get(day) > thr).length;
+      return epsChip(Math.round((100 * c) / withDay.length), c, withDay.length, `>${thr} mm`);
     }).join("");
     rows.push(`<div class="eps-row"><span class="eps-row__label">Lluvia · ${fmtDayName(day, days.indexOf(day))}</span><div class="eps-chips">${chips}</div></div>`);
   }
 
-  /* ráfagas máximas en 48 h */
-  const gustMax = gusts.map((m) => {
-    let mx = null;
-    for (let i = 0; i < Math.min(48, m.length); i++) if (m[i] != null && (mx == null || m[i] > mx)) mx = m[i];
-    return mx;
-  });
-  const gustChips = EPS_GUST_THR.map(({ kt, kmh }) => {
-    const c = gustMax.filter((v) => v != null && v > kmh).length;
-    return epsChip(Math.round((100 * c) / N), c, N, `>${kmh} km/h (${kt} kt)`);
-  }).join("");
-  rows.push(`<div class="eps-row"><span class="eps-row__label">Ráfagas · próximas 48 h</span><div class="eps-chips">${gustChips}</div></div>`);
+  /* viento sostenido: máx del día por miembro, umbrales en kt (como prob24) */
+  if (winds.length) {
+    const wMax = winds.map((m) => epsDailyExtreme(times, m, Math.max));
+    for (const day of days) {
+      const withDay = wMax.filter((s) => s.has(day));
+      if (!withDay.length) continue;
+      const chips = EPS_WIND_THR.map(({ kt, kmh }) => {
+        const c = withDay.filter((s) => s.get(day) > kmh).length;
+        return epsChip(Math.round((100 * c) / withDay.length), c, withDay.length, `≥${kt} kt`);
+      }).join("");
+      rows.push(`<div class="eps-row"><span class="eps-row__label">Viento · ${fmtDayName(day, days.indexOf(day))}</span><div class="eps-chips">${chips}</div></div>`);
+    }
+  }
+
+  /* ráfagas máximas en 48 h (solo sistemas que las publican) */
+  if (gusts.length) {
+    const gustMax = gusts.map((m) => {
+      let mx = null;
+      for (let i = 0; i < Math.min(48, m.length); i++) if (m[i] != null && (mx == null || m[i] > mx)) mx = m[i];
+      return mx;
+    });
+    const gN = gustMax.filter((v) => v != null).length;
+    if (gN) {
+      const gustChips = EPS_GUST_THR.map(({ kt, kmh }) => {
+        const c = gustMax.filter((v) => v != null && v > kmh).length;
+        return epsChip(Math.round((100 * c) / gN), c, gN, `>${kmh} km/h (${kt} kt)`);
+      }).join("");
+      rows.push(`<div class="eps-row"><span class="eps-row__label">Ráfagas · próximas 48 h</span><div class="eps-chips">${gustChips}</div></div>`);
+    }
+  }
 
   /* helada y calor por día (mín/máx del día por miembro, °C) */
   const tMin = temps.map((m) => epsDailyExtreme(times, m, Math.min));
   const tMax = temps.map((m) => epsDailyExtreme(times, m, Math.max));
   const frostChips = days
     .map((day, i) => {
-      const c = tMin.filter((s) => s.has(day) && s.get(day) < 0).length;
-      return epsChip(Math.round((100 * c) / N), c, N, fmtDayName(day, i));
+      const withDay = tMin.filter((s) => s.has(day));
+      if (!withDay.length) return "";
+      const c = withDay.filter((s) => s.get(day) < 0).length;
+      return epsChip(Math.round((100 * c) / withDay.length), c, withDay.length, fmtDayName(day, i));
     })
     .join("");
   rows.push(`<div class="eps-row"><span class="eps-row__label">Helada (mín &lt; 0 °C)</span><div class="eps-chips">${frostChips}</div></div>`);
   const heatChips = days
     .map((day, i) => {
-      const c = tMax.filter((s) => s.has(day) && s.get(day) > 35).length;
-      return epsChip(Math.round((100 * c) / N), c, N, fmtDayName(day, i));
+      const withDay = tMax.filter((s) => s.has(day));
+      if (!withDay.length) return "";
+      const c = withDay.filter((s) => s.get(day) > 35).length;
+      return epsChip(Math.round((100 * c) / withDay.length), c, withDay.length, fmtDayName(day, i));
     })
     .join("");
   rows.push(`<div class="eps-row"><span class="eps-row__label">Calor (máx &gt; 35 °C)</span><div class="eps-chips">${heatChips}</div></div>`);
@@ -1007,9 +1166,11 @@ function epsRender() {
   const anySnow = days.some((day) => snowSums.some((s) => (s.get(day) || 0) > 0.1));
   if (anySnow) {
     for (const day of days) {
+      const withDay = snowSums.filter((s) => s.has(day));
+      if (!withDay.length) continue;
       const chips = [1, 5, 20].map((thr) => {
-        const c = snowSums.filter((s) => (s.get(day) || 0) > thr).length;
-        return epsChip(Math.round((100 * c) / N), c, N, `>${thr} cm`);
+        const c = withDay.filter((s) => s.get(day) > thr).length;
+        return epsChip(Math.round((100 * c) / withDay.length), c, withDay.length, `>${thr} cm`);
       }).join("");
       rows.push(`<div class="eps-row"><span class="eps-row__label">Nieve · ${fmtDayName(day, days.indexOf(day))}</span><div class="eps-chips">${chips}</div></div>`);
     }
@@ -1018,22 +1179,46 @@ function epsRender() {
   $("eps-thresholds").innerHTML = rows.join("");
   const note = $("eps-note");
   note.hidden = false;
+  const fuente = eps.data.counts
+    ? Object.entries(eps.data.counts)
+        .map(([k, c]) => `${ENS_SYSTEMS[k].label} (${c})`)
+        .join(" + ") + " · pesos iguales por miembro"
+    : eps.data.ensName;
   note.textContent =
-    `Cada porcentaje es el conteo directo de los ${N} escenarios del ${eps.data.ensName} que superan el umbral (se muestra N/${N}). ` +
-    "Confianza: σ media de temperatura a 72 h — alta < 1.0 °C, media < 2.2 °C, baja ≥ 2.2 °C. Umbrales de helada/calor fijos (0 °C / 35 °C).";
+    `Cada porcentaje es el conteo directo de los miembros que superan el umbral (N/M con M = miembros con datos ese día). ` +
+    `Fuente: ${fuente}. ` +
+    (eps.data.dropped && eps.data.dropped.length ? `Excluidos hoy: ${eps.data.dropped.join(", ")}. ` : "") +
+    "Abanico: bandas p10–p90 y p30–p70, mediana (p50) y media. Confianza: σ media de temperatura a 72 h — alta < 1.0 °C, media < 2.2 °C, baja ≥ 2.2 °C.";
 
   /* estructura expuesta para verificación externa (pruebas de aceptación) */
-  window.__fdcEpsCalc = { members: N, sdMean, conf, days };
+  window.__fdcEpsCalc = { members: N, sdMean, conf, days, counts: eps.data.counts, dropped: eps.data.dropped };
 }
 
 /* abanico de la variable elegida (temperatura / lluvia / ráfagas) */
 function epsDrawCurrentFan() {
   if (!eps.data) return;
-  const cfgF = EPS_FAN_VARS[eps.fanVar] || EPS_FAN_VARS.temp;
-  const members = epsSeries(cfgF.base);
+  let cfgF = EPS_FAN_VARS[eps.fanVar] || EPS_FAN_VARS.temp;
+  let members = epsSeries(cfgF.base);
+  if (!members.length && eps.fanVar !== "temp") {
+    /* el sistema activo no publica esa variable: cae a temperatura */
+    eps.fanVar = "temp";
+    setSegValue("eps-fanvar", "temp");
+    cfgF = EPS_FAN_VARS.temp;
+    members = epsSeries(cfgF.base);
+  }
   const times = (eps.data.hourly && eps.data.hourly.time) || [];
   if (!members.length || !times.length) return;
-  epsDrawFan(times, members, epsFanData(members), cfgF.unit);
+  const fan = epsFanData(members);
+  /* expuesto para verificación externa: percentiles/media reproducibles */
+  window.__fdcEpsFan = {
+    var: eps.fanVar,
+    members: members.length,
+    p30: fan.p30,
+    p50: fan.p50,
+    p70: fan.p70,
+    mean: fan.mean,
+  };
+  epsDrawFan(times, members, fan, cfgF.unit);
 }
 
 /* abanico de percentiles + espagueti de todos los miembros */
@@ -1096,12 +1281,20 @@ function epsDrawFan(times, members, fan, unit = "°") {
   }
 
   band(fan.p10, fan.p90, "rgba(122,162,255,0.16)");
-  band(fan.p25, fan.p75, "rgba(122,162,255,0.26)");
+  band(fan.p30, fan.p70, "rgba(122,162,255,0.26)");
   ctx.beginPath();
   for (let i = 0; i < n; i++) ctx.lineTo(X(i), Y(fan.p50[i]));
   ctx.strokeStyle = "rgba(255,224,138,0.95)";
   ctx.lineWidth = 1.6;
   ctx.stroke();
+  /* media: punteada, distinguible de la mediana */
+  ctx.beginPath();
+  ctx.setLineDash([5, 4]);
+  for (let i = 0; i < n; i++) if (fan.mean[i] != null) ctx.lineTo(X(i), Y(fan.mean[i]));
+  ctx.strokeStyle = "rgba(126,231,196,0.9)";
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.setLineDash([]);
 
   /* eje: mín y máx (en la unidad de la variable) */
   ctx.fillStyle = "rgba(196,208,240,0.7)";
@@ -4814,6 +5007,19 @@ document.querySelectorAll("#eps-fanvar .seg__btn").forEach((btn) => {
     epsDrawCurrentFan();
   });
 });
+
+/* sistema de ensambles (EPS/GEFS/GEPS/ICON/AIFS/Súper/Grand) */
+document.querySelectorAll("#eps-model .seg__btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setSegValue("eps-model", btn.dataset.value);
+    eps.sys = btn.dataset.value;
+    try {
+      localStorage.setItem("fdc-eps-sys", eps.sys);
+    } catch (_) {}
+    if (currentSpot) loadEps(currentSpot.lat, currentSpot.lon);
+  });
+});
+setSegValue("eps-model", ENS_SYSTEMS[eps.sys] || ENS_POOLS[eps.sys] ? eps.sys : "eps");
 
 $("euro-slider").addEventListener("input", (e) => {
   euro.step = Number(e.target.value);

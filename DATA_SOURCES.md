@@ -123,6 +123,21 @@ Producto propio: % de los ~50 miembros perturbados (`pf`) del ENS del IFS que su
 - **Alineación de miembros**: cada variable diaria se calcula solo sobre la **intersección** de miembros presentes en todos los pasos del día; si quedan <30, ese día no se emite (nada de probabilidades con muestra coja).
 - **Nota**: el ENS abierto no publica el miembro de control por separado en el índice (`cf` no aparece; el propio índice sugiere `pf`), así que el conteo típico es 50.
 
+## 16 · Ensambles multi-modelo, súper y grand ensamble (sonda 33896739097)
+
+**Decisión del dueño (2026-09-04)**: la regla «solo ECMWF» deja de aplicar a la sección de ensambles del panel — se piden a propósito varios sistemas, cada miembro etiquetado por su fuente. El mapa y el pronóstico puntual siguen siendo ECMWF.
+
+Fuente por punto: `ensemble-api.open-meteo.com` (miembros reales por hora). Verificado en vivo desde un runner (corrida 33896739097, punto 18.5 N / 69.9 W, las 4 variables pedidas):
+
+- **EPS** `ecmwf_ifs025`: 51 miembros; temperatura, lluvia, viento y ráfagas con datos.
+- **GEFS** `gfs025` (NOAA): 31 miembros; las 4 variables con datos.
+- **GEPS/CMCE** `gem_global` (ECCC): 21 miembros; **sin ráfagas** (todas nulas — la fila y el abanico de ráfagas se ocultan para este sistema).
+- **ICON-EPS** `icon_seamless` (DWD): 40 miembros; sin ráfagas.
+- **AIFS-ENS (IA)** `ecmwf_aifs025`: 51 miembros con series; ADEMÁS el `aifs-ens/enfo` de ECMWF open data respondió `latest=2026-09-04 06:00` (el ensamble de IA está vivo en la fuente cruda). Como esta fuente estuvo CONGELADA meses en 2025, el AIFS solo entra cuando su `last_run_initialisation_time` es fresco (<48 h) — si no, se excluye y se dice.
+- **Descartados con evidencia**: BOM `bom_access_global_ensemble` (18 miembros pero TODO nulo) y UKMO `ukmo_global_ensemble_20km` (timeout TLS en la sonda).
+
+Productos por sistema y por pool: **media + percentiles p30/p50/p70** (además p10/p90) por hora en el abanico, y **probabilidades por umbral** con conteo directo de miembros (lluvia diaria, viento sostenido ≥20/35/50 kt — mismos umbrales del prob24 del mapa —, ráfagas, helada, calor, nieve). **Súper-ensamble** = EPS+GEFS+GEPS+ICON (143 miembros); **grand ensamble** = súper + AIFS-ENS (194 cuando está fresco). Los pools usan **pesos iguales por miembro** (se declara en la nota) y el denominador de cada probabilidad es el nº de miembros CON DATOS ese día — no se cuenta a un ausente como «no supera».
+
 ## Límites y atribución
 
 - **Open-Meteo**: gratuito sin clave para uso no comercial (límite documentado por el proveedor ~10 000 llamadas/día; no medido aquí). La app minimiza llamadas (estáticos del robot primero, cachés, intervalos mínimos) y maneja 429 con enfriamiento. Atribución: «Open-Meteo.com» (CC-BY 4.0) — presente en el crédito del mapa.

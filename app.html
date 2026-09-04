@@ -194,9 +194,19 @@
               Probabilidades · <span id="eps-title">EPS de ECMWF</span>
             </p>
             <p class="eps-head" id="eps-head">—</p>
+            <div class="seg seg--tight eps-fanvars" id="eps-model" role="group" aria-label="Sistema de ensambles">
+              <button class="seg__btn is-active" data-value="eps" title="ENS del IFS de ECMWF · 51 miembros">EPS</button>
+              <button class="seg__btn" data-value="gefs" title="GEFS de NOAA · 31 miembros">GEFS</button>
+              <button class="seg__btn" data-value="geps" title="GEPS de ECCC (Canadá) · 21 miembros">GEPS</button>
+              <button class="seg__btn" data-value="icon" title="ICON-EPS de DWD · 40 miembros">ICON</button>
+              <button class="seg__btn" data-value="aifs" title="AIFS-ENS de ECMWF (IA) · 51 miembros">AIFS</button>
+              <button class="seg__btn" data-value="super" title="Todos los ensambles físicos juntos, pesos iguales">Súper</button>
+              <button class="seg__btn" data-value="grand" title="Súper + ensambles de IA, pesos iguales">Grand</button>
+            </div>
             <div class="seg seg--tight eps-fanvars" id="eps-fanvar" role="group">
               <button class="seg__btn is-active" data-value="temp">Temperatura</button>
               <button class="seg__btn" data-value="rain" data-i18n="var_rain">Lluvia</button>
+              <button class="seg__btn" data-value="wind" data-i18n="var_wind">Viento</button>
               <button class="seg__btn" data-value="gusts" data-i18n="var_gusts">Ráfagas</button>
             </div>
             <canvas
@@ -207,8 +217,9 @@
             ></canvas>
             <div class="eps-legendrow" id="eps-legend" hidden>
               <span><i class="eps-sw eps-sw--b1"></i> p10–p90</span>
-              <span><i class="eps-sw eps-sw--b2"></i> p25–p75</span>
-              <span><i class="eps-sw eps-sw--med"></i> mediana</span>
+              <span><i class="eps-sw eps-sw--b2"></i> p30–p70</span>
+              <span><i class="eps-sw eps-sw--med"></i> mediana (p50)</span>
+              <span><i class="eps-sw eps-sw--mean"></i> media</span>
               <span><i class="eps-sw eps-sw--spag"></i> escenarios</span>
             </div>
             <div id="eps-thresholds"></div>

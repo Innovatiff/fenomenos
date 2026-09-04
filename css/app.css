@@ -1074,6 +1074,11 @@
 .eps-sw--b1 { background: rgba(122, 162, 255, 0.2); }
 .eps-sw--b2 { background: rgba(122, 162, 255, 0.38); }
 .eps-sw--med { background: rgba(255, 224, 138, 0.95); height: 0.25rem; }
+.eps-sw--mean {
+  height: 0;
+  border-top: 2px dashed rgba(126, 231, 196, 0.9);
+  background: none;
+}
 .eps-sw--spag { background: rgba(150, 180, 255, 0.35); height: 0.15rem; }
 
 .eps-row {
