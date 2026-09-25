@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08121c">
+<title>Radar del Caribe · Fenómenos del Caribe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Gugi&display=swap');
+:root{color-scheme:dark;--bg:#00060f;--panel:#0a1430;--line:#263458;--muted:#9aa7c2;--accent:#b8caff}*{box-sizing:border-box;margin:0}body{background:var(--bg);color:#fff;font:14px/1.6 Inter,system-ui,sans-serif}a{color:inherit;text-decoration:none}button,select{font:inherit}.site-header{height:86px;border-bottom:1px solid #263458;background:#101b38;display:flex;align-items:center;justify-content:space-between;padding:0 max(28px,calc((100vw - 1280px)/2));gap:24px}.logo{display:flex;align-items:center;gap:12px;font-family:Gugi,sans-serif;font-size:16px}.logo img{width:44px;height:44px}.nav{display:flex;align-items:center;gap:30px;color:#ccd2e0}.nav .current{color:white}.app-link{border:1px solid #506087;border-radius:9px;padding:9px 18px;background:#172554}main{max-width:1280px;margin:auto;padding:42px 28px 35px;position:relative}body:before{content:'';position:absolute;top:86px;left:0;right:0;height:360px;pointer-events:none;background:radial-gradient(ellipse at 50% 0,#172554aa,transparent 70%),linear-gradient(#36436612 1px,transparent 1px),linear-gradient(90deg,#36436612 1px,transparent 1px);background-size:auto,46px 46px,46px 46px}.breadcrumbs{font-size:12px;color:#8793ad;margin-bottom:22px;display:flex;gap:10px}.intro{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:26px}.brand{font-size:10px;letter-spacing:.22em;color:#a7b8e2;text-transform:uppercase;font-weight:700;margin-bottom:8px}h1{font:clamp(28px,4vw,42px)/1.3 Gugi,sans-serif;letter-spacing:-.04em}.sub{color:#a9b5ce;font-size:14px;margin-top:9px}.region{min-width:245px}label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}button,select{color:#e2e8f8;background:#121e3e;border:1px solid #344368;border-radius:9px;min-height:42px;padding:8px 14px}select{width:100%}button{cursor:pointer;transition:background .2s,border-color .2s}button:hover{background:#243557;border-color:#7b8cba}button:disabled{opacity:.4;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #c3d1ff;outline-offset:4px}.player{border:1px solid #3b496d;border-radius:18px;overflow:hidden;background:#040a18;box-shadow:0 20px 80px #0008}.statusbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 22px;background:linear-gradient(110deg,#152345,#0b142b);border-bottom:1px solid #273553;font-size:11px;color:#a7b4d0;letter-spacing:.025em}.mode{color:#ffb020;font-weight:600}.stage{height:clamp(280px,48vh,530px);display:flex;align-items:center;justify-content:center;position:relative;background:#020710}.stage img{display:block;max-width:100%;max-height:100%;object-fit:contain}.empty{color:var(--muted);padding:25px;text-align:center}.controls{padding:18px 22px;background:linear-gradient(120deg,#111d3c,#091227);border-top:1px solid #2c3b5d}.timebar,.buttons,.transport{display:flex;justify-content:space-between;align-items:center;gap:12px}.timebar strong{font-size:15px;font-variant-numeric:tabular-nums}.counter{color:var(--muted);font-size:11px}input[type=range]{width:100%;min-height:24px;margin:8px 0 0;accent-color:#b9c9f7;cursor:pointer}.endpoints{display:flex;justify-content:space-between;color:#8998b6;font-size:10px;margin:0 0 14px}.transport{justify-content:flex-start;flex-wrap:wrap;gap:8px}#play{background:#d9e3ff;color:#0b1631;border-color:#d9e3ff;font-weight:700;min-width:142px}#play:hover{background:white}.speed{display:flex;align-items:center;gap:12px}.speed label{margin:0}.speed select{width:auto}.notice{font-size:11px;color:var(--muted);min-height:0;margin-top:8px}.notice:empty{display:none}.notice.error{color:#ffbd75}.export-row{margin-top:14px;padding-top:14px;border-top:1px solid #2a3754;display:flex;align-items:center;gap:12px}.export-row #gifStatus{margin:0;flex:1}.export-row button{font-size:12px;min-height:36px}.footrow{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:20px 0 8px}footer{color:#8491ad;font-size:11px}footer p{margin:5px 0}.site-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #23304a;margin-top:28px;padding-top:20px;color:#8491ad;font-size:11px}.site-footer strong{font-family:Gugi;font-weight:400;color:#c3cbe0}.player:fullscreen{display:flex;flex-direction:column;border:0;border-radius:0;height:100%;width:100%}.player:fullscreen .stage{flex:1;min-height:0;height:auto}[hidden]{display:none!important}@media(max-width:640px){.site-header{height:72px;padding:0 16px}.logo{font-size:12px;max-width:220px}.logo img{width:36px;height:36px}.nav{gap:0}.nav a:not(.current){display:none}main{padding:24px 14px}.intro{align-items:stretch;flex-direction:column;gap:18px}.region{min-width:0}.stage{height:38vh}.controls{padding:14px}.buttons{align-items:stretch;flex-direction:column}.speed{justify-content:space-between}.timebar strong{font-size:12px}.endpoints{font-size:9px}.export-row{flex-wrap:wrap}.export-row #gifStatus{flex-basis:100%}.site-footer{align-items:flex-start;gap:12px;flex-direction:column}.statusbar{padding:12px}.statusbar>span:last-child{font-size:10px}}
+</style>
+<link rel="icon" href="/img/favicon.png" type="image/png">
+<script src="/js/analytics.js" defer></script>
+</head>
+<body><div class="site-header"><a class="logo" href="/index.html"><img src="/img/logo.png" alt="">Fenómenos del Caribe Media</a><nav class="nav" aria-label="Navegación principal"><a href="/articulos.html">Artículos</a><a class="current" href="/radar/full/" aria-current="page">Radar</a><a class="app-link" href="/acceso.html">Lanzar app ↗</a></nav></div>
+<main><div class="breadcrumbs"><a href="/index.html">Inicio</a><span>/</span><span>Radares del Caribe</span></div>
+<header class="intro"><div><div class="brand">Vigilancia meteorológica</div><h1>Radares del Caribe</h1><div class="sub">Observa la lluvia. Sigue su evolución en el Caribe.</div></div><div class="region"><label for="region">Región del radar</label><select id="region"><option value="full">Región completa</option><option value="rd">República Dominicana</option><option value="pr-rd">Puerto Rico y Rep. Dominicana</option><option value="antillas">Antillas</option><option value="belice">Belice</option></select></div></header>
+<section class="player" id="player" aria-label="Reproductor de radar">
+<div class="statusbar"><span id="mode" class="mode">Cargando radar</span><span>RADAR · OBSERVACIONES</span></div>
+<div class="stage" id="stage"><span class="empty" id="empty">Cargando imágenes disponibles…</span><img id="radar" alt="Imagen del radar" hidden></div>
+<div class="controls">
+<div class="timebar"><strong id="timestamp">—</strong><span id="counter" class="counter">0 / 0</span></div>
+<input id="timeline" aria-label="Imagen de la secuencia" type="range" min="0" max="0" value="0" disabled>
+<div class="endpoints"><span id="start">—</span><span id="end">—</span></div>
+<div class="buttons"><div class="transport"><button id="prev" aria-label="Imagen anterior" disabled>◀</button><button id="play" disabled>▶ Reproducir</button><button id="next" aria-label="Imagen siguiente" disabled>▶</button><button id="latest" disabled>Última</button><button id="fullscreen" aria-label="Pantalla completa">⛶</button></div><div class="speed"><label for="speed">Velocidad</label><select id="speed"><option value="1400">0.5×</option><option value="700" selected>1×</option><option value="350">2×</option><option value="175">4×</option></select></div></div>
+<p id="notice" class="notice" role="status" aria-live="polite"></p>
+<div class="export-row">
+<button id="gif" disabled>↓ Descargar GIF</button><button id="cancelGif" hidden>Cancelar GIF</button>
+<a id="saveGif" hidden style="color:var(--accent);padding:10px" download>Guardar GIF</a>
+<p id="gifStatus" class="notice" role="status" aria-live="polite">Exporta esta región a GIF con la velocidad seleccionada. Máximo 960 px; se crea en tu navegador.</p></div>
+</div></section>
+<footer><div class="footrow"><span id="freshness">Comprobando observaciones…</span><span>Actualización automática cada 2 minutos</span></div><p>Fuente: Barbados Meteorological Services. Horas en UTC. La cobertura depende de los radares disponibles; no sustituye avisos oficiales.</p></footer>
+<noscript>Activa JavaScript para reproducir las imágenes del radar.</noscript>
+<div class="site-footer"><strong>Fenómenos del Caribe Media</strong><span>Vigilancia y análisis de tiempo peligroso.</span></div></main>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const regions = ['full','rd','pr-rd','antillas','belice'];
+  const selected = location.pathname.split('/').filter(Boolean).findLast(x => regions.includes(x)) || 'full';
+  $('region').value = selected;
+  let frames = [], index = -1, playing = false, timer, generation = 0, fetching = false, refreshError = false;
+  let exporting = false, gifController, gifUrl;
+  const cache = new Map(); // Only current/adjacent decoded images, not a second full image archive.
+  const label = f => `${f.ts.slice(0,4)}-${f.ts.slice(4,6)}-${f.ts.slice(6,8)} ${f.ts.slice(8,10)}:${f.ts.slice(10,12)} UTC`;
+  function controls() {
+    $('play').textContent = playing ? 'Ⅱ Pausar' : '▶ Reproducir';
+    $('mode').textContent = !frames.length ? 'Sin imágenes' : playing ? '● Reproduciendo' : 'Ⅱ En pausa';
+    ['prev','play','next','timeline'].forEach(id => $(id).disabled = exporting || frames.length < 2);
+    $('latest').disabled = exporting || !frames.length;
+    $('gif').disabled = exporting || !frames.length;
+    $('region').disabled = $('speed').disabled = exporting;
+  }
+  function notice(message = '', error = false) { $('notice').textContent = message; $('notice').classList.toggle('error', error); }
+  function freshness() {
+    if (!frames.length) return;
+    const last = frames[frames.length-1];
+    const t = Date.parse(label(last).replace(' UTC','Z').replace(' ','T'));
+    const old = Date.now() - t > 90 * 60000;
+    $('freshness').textContent = `Última observación: ${label(last)}${old ? ' · Datos con más de 90 minutos de antigüedad' : ''}`;
+  }
+  function load(frame) {
+    if (cache.has(frame.src)) return cache.get(frame.src);
+    const promise = new Promise((resolve,reject) => {
+      const img = new Image();
+      const timeout = setTimeout(() => { img.onload = img.onerror = null; img.src = ''; reject(new Error('Tiempo de carga agotado')); },20000);
+      img.onload = () => { clearTimeout(timeout); resolve(img); };
+      img.onerror = () => { clearTimeout(timeout); reject(new Error('No se pudo cargar la imagen')); };
+      img.src = frame.src;
+    });
+    cache.set(frame.src,promise);
+    promise.catch(() => cache.delete(frame.src));
+    return promise;
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (playing && !document.hidden && frames.length > 1) timer = setTimeout(() => show((index+1)%frames.length), Number($('speed').value) * (index === frames.length-1 ? 2 : 1));
+  }
+  async function show(i) {
+    if (!frames.length) return;
+    clearTimeout(timer);
+    const ticket = ++generation, frame = frames[(i + frames.length)%frames.length];
+    notice('Cargando imagen…');
+    try {
+      const img = await load(frame);
+      if (ticket !== generation) return;
+      index = frames.findIndex(f => f.ts === frame.ts);
+      const old = $('radar'); img.id = 'radar'; img.alt = `Radar ${$('region').selectedOptions[0].textContent}, ${label(frame)}`; img.hidden = false;
+      if (old !== img) old.replaceWith(img);
+      $('empty').hidden = true;
+      $('timestamp').textContent = label(frame);
+      $('counter').textContent = `${index+1} / ${frames.length}`;
+      $('timeline').value = index; $('timeline').setAttribute('aria-valuetext',label(frame));
+      notice(refreshError ? 'No se pudo actualizar la lista. Mostrando la última secuencia disponible.' : '', refreshError);
+      const next = frames[(index+1)%frames.length];
+      const keep = new Set([frame.src,next.src]);
+      for (const key of cache.keys()) if (!keep.has(key)) cache.delete(key);
+      if (!document.hidden && frames.length > 1) load(next).catch(() => {});
+      schedule();
+    } catch (_) {
+      if (ticket !== generation) return;
+      playing = false; controls();
+      notice('No se pudo cargar esta imagen. Prueba otra imagen o pulsa Reproducir para reintentar.',true);
+      if (index < 0) $('empty').textContent = 'Imagen no disponible temporalmente.';
+    }
+  }
+  function pause() { playing = false; clearTimeout(timer); controls(); }
+  async function refresh() {
+    if (fetching || exporting) return;
+    fetching = true;
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(),15000);
+    try {
+      const res = await fetch('./images.json',{cache:'no-store',signal:controller.signal});
+      if (!res.ok) throw new Error('HTTP');
+      const data = await res.json();
+      if (exporting) return;
+      if (!Array.isArray(data)) throw new Error('Formato');
+      const seen = new Set();
+      const next = data.filter(f => f && /^\d{12}$/.test(f.ts) && f.src === `./imgs/${f.ts}.png` && !seen.has(f.ts) && seen.add(f.ts)).sort((a,b) => a.ts.localeCompare(b.ts)).slice(-24);
+      if (!next.length) throw new Error('Sin imágenes');
+      refreshError = false;
+      if (next.map(f=>f.ts).join() === frames.map(f=>f.ts).join()) { freshness(); return; }
+      const first = !frames.length, current = frames[index]?.ts;
+      frames = next;
+      $('timeline').max = frames.length-1; $('start').textContent = label(frames[0]); $('end').textContent = label(frames[frames.length-1]);
+      if (first) playing = !matchMedia('(prefers-reduced-motion: reduce)').matches && frames.length > 1;
+      controls(); freshness();
+      const preserved = frames.findIndex(f=>f.ts === current);
+      await show(first ? 0 : preserved >= 0 ? preserved : frames.length-1);
+    } catch (_) {
+      refreshError = true;
+      notice(frames.length ? 'No se pudo actualizar la lista. Mostrando la última secuencia disponible.' : 'No se pudo cargar el radar. Se reintentará automáticamente en 2 minutos.',true);
+      if (!frames.length) { $('empty').textContent = 'Radar no disponible temporalmente.'; controls(); $('freshness').textContent = 'Sin datos disponibles'; }
+    } finally { clearTimeout(timeout); fetching = false; }
+  }
+  $('play').onclick = () => { playing = !playing; controls(); if (playing) show((index+1)%frames.length); else clearTimeout(timer); };
+  $('prev').onclick = () => { pause(); show(index-1); };
+  $('next').onclick = () => { pause(); show(index+1); };
+  $('latest').onclick = () => { pause(); show(frames.length-1); };
+  $('timeline').oninput = () => { pause(); show(Number($('timeline').value)); };
+  $('speed').onchange = schedule;
+  $('region').onchange = () => { location.href = `../${$('region').value}/`; };
+  $('gif').onclick = async () => {
+    if (exporting || !frames.length) return;
+    const snapshot = frames.map(f => ({...f}));
+    const delay = Number($('speed').value), region = $('region').selectedOptions[0].textContent;
+    const resume = playing;
+    exporting = true; pause(); ++generation;
+    $('cancelGif').hidden = false; $('gif').textContent = 'Creando GIF…';
+    $('saveGif').hidden = true;
+    if (gifUrl) { URL.revokeObjectURL(gifUrl); gifUrl = null; }
+    gifController = new AbortController();
+    const signal = gifController.signal;
+    const timeout = setTimeout(() => gifController.abort(),180000);
+    const status = (text,error=false) => { $('gifStatus').textContent = text; $('gifStatus').classList.toggle('error',error); };
+    status('Preparando el codificador GIF…');
+    try {
+      const { createRadarGif } = await import('../gif-export-v1.js');
+      const blob = await createRadarGif({frames:snapshot,region,delay,signal,onProgress:(n,total) => status(`Creando GIF: ${n} de ${total} imágenes…`)});
+      if (signal.aborted) throw new DOMException('Cancelado','AbortError');
+      gifUrl = URL.createObjectURL(blob);
+      const link = $('saveGif'); link.href = gifUrl;
+      link.download = `radar-${selected}-${snapshot[0].ts}-${snapshot[snapshot.length-1].ts}.gif`;
+      link.hidden = false;
+      status(`GIF listo (${(blob.size/1048576).toFixed(1)} MB). Si no se descarga, pulsa «Guardar GIF».`);
+      link.click();
+    } catch (error) {
+      status(signal.aborted || error.name === 'AbortError' ? 'Creación cancelada. Puedes volver a intentarlo.' : `No se pudo crear el GIF. ${error.message || 'Inténtalo nuevamente.'}`,true);
+    } finally {
+      clearTimeout(timeout); exporting = false; gifController = null;
+      $('cancelGif').hidden = true; $('gif').textContent = '↓ Descargar GIF';
+      playing = resume; controls(); schedule();
+    }
+  };
+  $('cancelGif').onclick = () => gifController?.abort();
+  window.addEventListener('pagehide',() => { gifController?.abort(); if (gifUrl) URL.revokeObjectURL(gifUrl); });
+  if (!document.fullscreenEnabled) $('fullscreen').hidden = true;
+  $('fullscreen').onclick = async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await $('player').requestFullscreen(); } catch (_) { notice('Pantalla completa no disponible en este navegador.'); } };
+  document.addEventListener('fullscreenchange',() => $('fullscreen').setAttribute('aria-label',document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'));
+  document.addEventListener('visibilitychange',() => { if (document.hidden) clearTimeout(timer); else { refresh(); schedule(); } });
+  setInterval(() => { if (!document.hidden) { refresh(); freshness(); } },120000);
+  refresh();
+})();
+</script>
+</body>
+</html>
