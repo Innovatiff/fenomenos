@@ -4,14 +4,11 @@
    recientes desde Firestore.
    ══════════════════════════════════════════════════════════════════════════ */
 
-import { startAnalytics } from "./firebase-init.js";
 import { fetchPublished } from "./db.js";
 import { articleCard } from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
-
-startAnalytics();
 
 const grid = document.getElementById("home-articles");
 const empty = document.getElementById("home-articles-empty");

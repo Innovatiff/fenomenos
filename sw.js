@@ -12,7 +12,7 @@
    · CDN (MapLibre, Ionicons, fuentes): caché primero (inmutables).
    Preparado para avisos push futuros (listener ya cableado). */
 
-const VERSION = "fdc-v4";
+const VERSION = "fdc-v5";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 const API = `${VERSION}-api`;
@@ -23,6 +23,7 @@ const SHELL_URLS = [
   "css/app.css",
   "css/style.css",
   "js/app.js",
+  "js/analytics.js",
   "img/logo.png",
   "manifest.webmanifest",
 ];

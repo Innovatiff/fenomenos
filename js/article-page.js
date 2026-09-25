@@ -4,7 +4,6 @@
    renderizador compartido. Solo se muestran artículos publicados.
    ══════════════════════════════════════════════════════════════════════════ */
 
-import { startAnalytics } from "./firebase-init.js";
 import {
   fetchArticle,
   fetchPublished,
@@ -25,8 +24,6 @@ import {
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
-
-startAnalytics();
 
 const root = document.getElementById("post-root");
 

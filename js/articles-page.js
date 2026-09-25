@@ -4,14 +4,11 @@
    pinta filtros por etiqueta (con conteo) y búsqueda instantánea.
    ══════════════════════════════════════════════════════════════════════════ */
 
-import { startAnalytics } from "./firebase-init.js";
 import { fetchPublished, fetchTags } from "./db.js";
 import { articleCard, articleTagList, normalizeText } from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
 window.__fdcModuleOk = true;
-
-startAnalytics();
 
 const grid = document.getElementById("articles-grid");
 const filters = document.getElementById("tag-filters");

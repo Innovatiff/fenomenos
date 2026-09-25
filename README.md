@@ -310,3 +310,34 @@ Todo se controla desde `:root` en `css/style.css`.
   (nunca `innerHTML`), de modo que lo almacenado no puede inyectar HTML.
 - Las animaciones respetan `prefers-reduced-motion`; si el JS no carga, el
   contenido igual se ve.
+
+## Radar del servidor propio en Netlify
+
+Los enlaces «Radares del Caribe» abren `/radar/full/`. El archivo
+`_redirects` debe incluirse en la raíz publicada en Netlify: sirve el
+reproductor existente y sus imágenes desde
+`http://150.230.24.24/output/radar-web/` mediante un proxy. El navegador
+usa el HTTPS del sitio; el tramo Netlify-servidor todavía usa HTTP.
+Las regiones, imágenes, secuencias y exportación GIF siguen administrándose
+en el servidor original. Esta integración abre el reproductor independiente;
+no añade una capa georreferenciada a Fenómenos App.
+
+Tras desplegar, comprobar `/radar/full/`, el cambio de región,
+`/radar/rd/images.json`, la reproducción y la descarga GIF. Un servidor
+estático local no interpreta `_redirects`; requiere Netlify para verificar
+la ruta pública y el proxy.
+
+## Google Analytics 4
+
+`js/analytics.js` configura la etiqueta `G-XNMZEKJHQ9` una vez por página.
+Todas las páginas HTML de este repositorio cargan ese archivo. Se usa la
+etiqueta de Google directamente, sin iniciar Firebase Analytics, para no
+recuperar el identificador de medición anterior del proyecto Firebase.
+Firebase Authentication y Firestore conservan su configuración. Las visitas
+a localhost o por file:// no se registran. El reproductor `/radar/`, servido
+por el servidor externo, necesita su propia etiqueta en el HTML del servidor
+para registrar también las visitas a esas páginas.
+
+Tras desplegar, verificar la recepción en el informe Tiempo real de GA4
+con una visita al sitio sin bloqueadores. La comprobación local no confirma
+la recepción de eventos en la propiedad.

@@ -1,0 +1,4 @@
+# Radar servido por Netlify; conserva las rutas relativas del reproductor.
+/radar /radar/full/ 302
+/radar/ /radar/full/ 302
+/radar/* http://150.230.24.24/output/radar-web/:splat 200
