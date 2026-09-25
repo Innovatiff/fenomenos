@@ -330,7 +330,7 @@ la ruta pública y el proxy.
 
 ## Google Analytics 4
 
-`js/analytics.js` configura la etiqueta `G-XNMZEKJHQ9` una vez por página.
+`js/analytics.js` configura la etiqueta `G-92SH61163V` una vez por página.
 Todas las páginas HTML de este repositorio cargan ese archivo. Se usa la
 etiqueta de Google directamente, sin iniciar Firebase Analytics, para no
 recuperar el identificador de medición anterior del proyecto Firebase.
