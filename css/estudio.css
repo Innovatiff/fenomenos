@@ -237,24 +237,36 @@
   gap: 1.2rem;
   min-width: 0;
 }
-.studio__topbar-left img {
+.studio__topbar-left > img {
   border-radius: 50%;
   flex-shrink: 0;
 }
 .studio__topbar-title {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
   min-width: 0;
+  border-left: 1px solid rgba(204, 210, 224, 0.45);
+  padding-left: 1.2rem;
 }
 .studio__topbar-title strong {
   font-size: 1.5rem;
   color: #fff;
   white-space: nowrap;
 }
-.studio__topbar-title span {
-  font-size: 1.15rem;
-  color: var(--text-5);
-  white-space: nowrap;
+/* Keep the shared wordmark colors; do not style its nested spans as subtitles. */
+.studio__topbar-title .header__wordmark {
+  border-left: 0;
+  padding-left: 0;
+  flex-shrink: 0;
+}
+.studio__topbar-title .header__wordmark-name {
+  font-size: 20px;
+}
+.studio__topbar-title .header__wordmark-spiral {
+  width: 27px;
+  height: 27px;
 }
 
 .studio__topbar-right {
