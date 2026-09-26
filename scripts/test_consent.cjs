@@ -18,16 +18,29 @@ function assertEnabled(env, enabled) {
 }
 const env=setup();assert.equal(env.scripts.length,0);assertEnabled(env,false);
 const cmp=env.context.googlefc;
-cmp.ConsentModePurposeStatusEnum={UNKNOWN:0,GRANTED:1,DENIED:2,NOT_APPLICABLE:3,NOT_CONFIGURED:4};
+// Exact enum names observed in the production CMP, not shortened test aliases.
+cmp.ConsentModePurposeStatusEnum={
+  CONSENT_MODE_PURPOSE_STATUS_UNKNOWN:0,
+  CONSENT_MODE_PURPOSE_STATUS_GRANTED:1,
+  CONSENT_MODE_PURPOSE_STATUS_DENIED:2,
+  CONSENT_MODE_PURPOSE_STATUS_NOT_APPLICABLE:3,
+  CONSENT_MODE_PURPOSE_STATUS_NOT_CONFIGURED:4
+};
 const ready=cmp.callbackQueue.find(x=>x.CONSENT_MODE_DATA_READY).CONSENT_MODE_DATA_READY;
 let state=0;
 const values=()=>({analyticsStoragePurposeConsentStatus:state,adStoragePurposeConsentStatus:2,adUserDataPurposeConsentStatus:2,adPersonalizationPurposeConsentStatus:2});
 cmp.getGoogleConsentModeValues=values;
-for(state of [undefined,0,2,4]){ready();assert.equal(env.scripts.length,0);assertEnabled(env,false);}
+for(state of [undefined,null,"1",0,2,4]){ready();assert.equal(env.scripts.length,0);assertEnabled(env,false);}
 state=1;ready();ready();assert.equal(env.scripts.length,1);assertEnabled(env,true);
 assert.equal(env.scripts[0].src,'https://www.googletagmanager.com/gtag/js?id=G-92SH61163V');
 assert.equal(env.updates.filter(x=>x.args[0]==='config').length,1,'No extra tag/config for connected destination');
 state=2;ready();assertEnabled(env,false);
+assert.equal(env.updates.at(-1).args[2].analytics_storage,'denied');
+// Reproduce the user's production result: every purpose explicitly granted.
+cmp.getGoogleConsentModeValues=()=>({analyticsStoragePurposeConsentStatus:1,adStoragePurposeConsentStatus:1,adUserDataPurposeConsentStatus:1,adPersonalizationPurposeConsentStatus:1});
+ready();assertEnabled(env,true);
+assert.deepEqual({...env.updates.at(-1).args[2]}, {analytics_storage:'granted',ad_storage:'granted',ad_user_data:'granted',ad_personalization:'granted'});
+cmp.getGoogleConsentModeValues=values;
 state=3;ready();assert.equal(env.scripts.length,1);assertEnabled(env,true);
 cmp.getGoogleConsentModeValues=()=>{throw new Error('CMP unavailable');};
 ready();assertEnabled(env,false);

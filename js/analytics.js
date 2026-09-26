@@ -39,7 +39,10 @@
       return;
     }
     const permitted = value =>
-      value !== undefined && (value === statuses.GRANTED || value === statuses.NOT_APPLICABLE);
+      typeof value === "number" && (
+        value === statuses.CONSENT_MODE_PURPOSE_STATUS_GRANTED ||
+        value === statuses.CONSENT_MODE_PURPOSE_STATUS_NOT_APPLICABLE
+      );
     const allowed = permitted(values.analyticsStoragePurposeConsentStatus);
     setAnalyticsEnabled(allowed);
     window.gtag("consent", "update", {
