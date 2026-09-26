@@ -744,7 +744,6 @@ async function submitComment(e) {
   const name = anon
     ? "Anónimo"
     : document.getElementById("c-name").value.trim() || "Anónimo";
-  const email = document.getElementById("c-email").value.trim();
   const text = document.getElementById("c-text").value.trim();
 
   if (!text) {
@@ -763,7 +762,6 @@ async function submitComment(e) {
       rootId: cReplyTo ? cReplyTo.rootId || cReplyTo.id : null,
       depth: cReplyTo ? Math.min((cReplyTo.depth || 0) + 1, 2) : 0,
       name,
-      email,
       text,
     });
 

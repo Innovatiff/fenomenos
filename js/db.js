@@ -77,14 +77,13 @@ export async function fetchComments(articleId) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function addComment({ articleId, parentId, rootId, depth, name, email, text }) {
+export async function addComment({ articleId, parentId, rootId, depth, name, text }) {
   const ref = await addDoc(collection(db, "comments"), {
     articleId,
     parentId: parentId || null,
     rootId: rootId || null,
     depth: depth || 0,
     name,
-    email: email || "",
     text,
     likes: 0,
     status: "pending",
