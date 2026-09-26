@@ -5,6 +5,7 @@
    ══════════════════════════════════════════════════════════════════════════ */
 
 import { fetchPublished, fetchTags } from "./db.js";
+import { fetchArchive, newestFirst } from "./archive-catalog.js";
 import { articleCard, articleTagList, normalizeText } from "./render-article.js";
 
 /* señal para el watchdog de la página: los módulos remotos cargaron */
@@ -19,6 +20,17 @@ const search = document.getElementById("search");
 let articles = [];
 let activeTag = "";
 let term = "";
+let visibleLimit = 24;
+const moreButton = document.createElement("button");
+moreButton.type = "button";
+moreButton.className = "btn btn--ghost";
+moreButton.textContent = "Mostrar más artículos";
+moreButton.hidden = true;
+grid.after(moreButton);
+moreButton.addEventListener("click", () => {
+  visibleLimit += 24;
+  renderGrid();
+});
 
 function clearSkeletons() {
   grid.querySelectorAll(".skeleton").forEach((el) => el.remove());
@@ -58,6 +70,7 @@ function chipButton(label, tag, count) {
   }
   btn.addEventListener("click", () => {
     activeTag = tag;
+    visibleLimit = 24;
     filters
       .querySelectorAll(".chip")
       .forEach((c) => c.classList.toggle("is-active", c === btn));
@@ -74,17 +87,18 @@ function matches(article) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
-  return haystack.includes(term);
+  return normalizeText(haystack).includes(term);
 }
 
 function renderGrid() {
   grid.textContent = "";
   const visible = articles.filter(matches);
 
-  visible.forEach((a) =>
+  visible.slice(0, visibleLimit).forEach((a) =>
     grid.appendChild(articleCard(a, { revealed: true, reactions: true }))
   );
 
+  moreButton.hidden = visible.length <= visibleLimit;
   empty.classList.toggle("is-visible", visible.length === 0);
   if (!visible.length) {
     emptyText.textContent = term
@@ -96,7 +110,8 @@ function renderGrid() {
 }
 
 search.addEventListener("input", () => {
-  term = search.value.trim().toLowerCase();
+  term = normalizeText(search.value);
+  visibleLimit = 24;
   renderGrid();
 });
 
@@ -125,8 +140,30 @@ function showCategoryNote() {
 
 (async () => {
   try {
-    const [published, tags] = await Promise.all([fetchPublished(), fetchTags()]);
-    articles = published;
+    const [liveResult, archiveResult, tagsResult] = await Promise.allSettled([
+      fetchPublished(), fetchArchive(), fetchTags(),
+    ]);
+    if (liveResult.status === "rejected" && archiveResult.status === "rejected") {
+      throw new Error("No se pudo cargar ninguna fuente de artículos");
+    }
+    const published = liveResult.status === "fulfilled" ? liveResult.value : [];
+    const archive = archiveResult.status === "fulfilled" ? archiveResult.value : [];
+    const tags = tagsResult.status === "fulfilled" ? tagsResult.value : [];
+    const labels = new Map(tags.map((tag) => [normalizeText(tag), tag]));
+    articles = newestFirst([...published, ...archive]).map((article) => ({
+      ...article,
+      tags: [...new Set(articleTagList(article).map((tag) => {
+        const key = normalizeText(tag);
+        if (!labels.has(key)) labels.set(key, tag);
+        return labels.get(key);
+      }))],
+    }));
+    if (liveResult.status === "rejected" || archiveResult.status === "rejected") {
+      const notice = document.createElement("p");
+      notice.setAttribute("role", "status");
+      notice.textContent = "Parte del catálogo no está disponible. Puedes consultar los artículos cargados e intentar de nuevo más tarde.";
+      grid.before(notice);
+    }
     if (CATEGORY_PARAM) {
       const want = normalizeText(CATEGORY_PARAM);
       articles = articles.filter((a) =>

@@ -1456,3 +1456,51 @@
   gap: 1.2rem;
   margin-top: 1.2rem;
 }
+
+/* Estilo de lectura compartido por artículos, archivo y vista previa del Estudio. */
+.post {
+  --article-reading-size: clamp(20px, 1.5vw, 22px);
+  color: #dce1ea;
+}
+.post .post__body,
+.post .post__text,
+.post .post__quote,
+.post .post__excerpt,
+.post .post__footer-text,
+.post .post__body > .post__text:first-child > p:first-child {
+  font-size: var(--article-reading-size);
+  line-height: 1.85;
+  color: #dce1ea;
+  overflow-wrap: anywhere;
+}
+.post .post__text :where(p, div, span, li, td, th, blockquote, figcaption, a, strong, em, b, i),
+.post .post__list,
+.post .post__heading,
+.post .post__caption,
+.post .post__cite,
+.post .post__meta,
+.post .post__footer-label {
+  color: #dce1ea;
+}
+.post .post__text p + p {
+  margin-top: 1.25em;
+}
+.post .post__title {
+  color: #dce1ea;
+  -webkit-text-fill-color: #dce1ea;
+  line-height: 1.25;
+}
+.post .post__caption,
+.post .post__cite,
+.post .post__meta,
+.post .post__footer-label {
+  font-size: 16px;
+  line-height: 1.65;
+}
+/* El resaltado conserva el contraste con texto blanco. */
+.post mark,
+.post [style*="background-color"] {
+  background-color: #28436e !important;
+  color: #dce1ea !important;
+  -webkit-text-fill-color: #dce1ea;
+}
