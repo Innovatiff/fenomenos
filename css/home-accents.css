@@ -3,6 +3,21 @@
 .hero__stat--value { color: #fff; }
 .hero__stat--label { color: var(--accent-gold); }
 
+@media (max-width: 35.999em) {
+  .hero__strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 1.4rem;
+  }
+  .hero__stat:last-child {
+    grid-column: 1 / -1;
+    border-left: 0;
+  }
+  .hero__stat:last-child .hero__stat--value {
+    white-space: nowrap;
+    text-align: center;
+  }
+}
+
 @media (max-width: 47.999em) {
   .footer__cols > .footer__col:first-child { grid-column: 1 / -1; }
 }
