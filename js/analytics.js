@@ -21,10 +21,11 @@
   const denied = { ad_storage: "denied", analytics_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" };
   window.gtag("consent", "default", denied);
   window.googlefc = window.googlefc || {};
-  const cmp = window.googlefc;
-  cmp.callbackQueue = cmp.callbackQueue || [];
+  window.googlefc.callbackQueue = window.googlefc.callbackQueue || [];
 
-  cmp.callbackQueue.push({ CONSENT_MODE_DATA_READY: () => {
+  window.googlefc.callbackQueue.push({ CONSENT_MODE_DATA_READY: () => {
+    // Resolve the live API; the bootstrap namespace can be replaced during initialization.
+    const cmp = window.googlefc;
     // Only invoke CMP methods from its documented callback queue.
     let values;
     try { values = cmp.getGoogleConsentModeValues(); } catch {
@@ -61,7 +62,8 @@
     document.head.appendChild(script);
   }});
 
-  cmp.callbackQueue.push({ CONSENT_API_READY: () => {
+  window.googlefc.callbackQueue.push({ CONSENT_API_READY: () => {
+    const cmp = window.googlefc;
     if (typeof cmp.showRevocationMessage !== "function" || document.getElementById("fdc-privacy-settings")) return;
     const host = document.querySelector('.footer__institutional, nav[aria-label="Información del sitio"], .site-footer');
     if (!host) return;
@@ -75,7 +77,9 @@
       // Stop analytics while the visitor revisits their choices.
       setAnalyticsEnabled(false);
       window.gtag("consent", "update", denied);
-      cmp.callbackQueue.push({ CONSENT_API_READY: () => cmp.showRevocationMessage() });
+      window.googlefc.callbackQueue.push({
+        CONSENT_API_READY: () => window.googlefc.showRevocationMessage()
+      });
     });
     host.appendChild(button);
   }});

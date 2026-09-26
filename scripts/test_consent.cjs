@@ -54,4 +54,24 @@ cmp.callbackQueue.at(-1).CONSENT_API_READY();assert.equal(revoked,1);
 state=1;ready();assertEnabled(env,true);assert.equal(env.scripts.length,1);
 vm.runInContext(code,env.context);assert.equal(env.scripts.length,1);
 assert.equal(setup('localhost').scripts.length,0);
+// Google may initialize a new namespace object after our bootstrap queues callbacks.
+const replaced=setup();
+const queued=replaced.context.googlefc.callbackQueue;
+let replacementState=1;
+replaced.context.googlefc={
+  ConsentModePurposeStatusEnum:cmp.ConsentModePurposeStatusEnum,
+  getGoogleConsentModeValues:()=>({analyticsStoragePurposeConsentStatus:replacementState}),
+  callbackQueue:[],
+  showRevocationMessage:()=>{}
+};
+const replacementReady=queued.find(x=>x.CONSENT_MODE_DATA_READY).CONSENT_MODE_DATA_READY;
+replacementReady();assertEnabled(replaced,true);assert.equal(replaced.scripts.length,1);
+replacementState=2;replacementReady();assertEnabled(replaced,false);
+queued.find(x=>x.CONSENT_API_READY).CONSENT_API_READY();
+assert.equal(replaced.buttons.length,1);
+let latestRevoked=0;
+replaced.context.googlefc={...replaced.context.googlefc,callbackQueue:[],showRevocationMessage:()=>latestRevoked++};
+replaced.buttons[0].click();
+replaced.context.googlefc.callbackQueue.at(-1).CONSENT_API_READY();
+assert.equal(latestRevoked,1);
 console.log('PASS: both GA4 IDs gated for initial/unknown/denied/unconfigured consent, grant, revocation, re-grant, CMP errors; one tag/config only.');
