@@ -1,0 +1,46 @@
+/* Restrained gold accents over the original homepage palette. */
+:root { --accent-gold: #f4c542; }
+.eyebrow:not(.eyebrow--live),
+.card__link:hover,
+.card__link:focus-visible {
+  color: var(--accent-gold);
+}
+.eyebrow:not(.eyebrow--live)::before,
+.mission .card:not(:last-child)::after {
+  background-color: var(--accent-gold);
+}
+.card:hover .card__icon {
+  color: var(--accent-gold);
+  border-color: rgba(244, 197, 66, 0.35);
+}
+.card:hover .card__inner::before {
+  background-image: linear-gradient(90deg, transparent, rgba(244, 197, 66, 0.5), transparent);
+}
+.btn--ghost:hover { border-color: var(--accent-gold); }
+:focus-visible { outline-color: var(--accent-gold); }
+
+/* Keep the hero headline nearly white with only a subtle tonal fade. */
+.hero__heading {
+  background-image: linear-gradient(180deg, #ffffff 65%, #e8edf6 100%);
+}
+
+/* White logos gain the same gold accent as the other icons on hover/focus. */
+.brand__logo:has(.brand__regional-mark) {
+  position: relative;
+  isolation: isolate;
+}
+.brand__logo:has(.brand__regional-mark)::after {
+  content: "";
+  position: absolute;
+  inset: 0.6rem;
+  background: var(--accent-gold);
+  mix-blend-mode: multiply;
+  opacity: 0;
+  transition: opacity 0.25s var(--ease);
+  pointer-events: none;
+}
+.card--brand:hover .brand__logo::after,
+.card--brand:focus-within .brand__logo::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .brand__logo:has(.brand__regional-mark)::after { transition: none; }
+}
