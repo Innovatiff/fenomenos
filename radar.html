@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
+<base href="/radar/full/">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#08121c">
@@ -38,6 +39,7 @@
   const $ = id => document.getElementById(id);
   const regions = ['full','rd','pr-rd','antillas','belice'];
   const selected = location.pathname.split('/').filter(Boolean).findLast(x => regions.includes(x)) || 'full';
+  document.querySelector('base').href = `/radar/${selected}/`;
   $('region').value = selected;
   let frames = [], index = -1, playing = false, timer, generation = 0, fetching = false, refreshError = false;
   let exporting = false, gifController, gifUrl;
