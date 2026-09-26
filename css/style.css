@@ -468,6 +468,38 @@ section {
   }
 }
 
+/* Improve mission card copy contrast while preserving the original layout. */
+.mission .card__text {
+  color: #bbc4d4;
+}
+
+/* Connect the mission steps in reading order. */
+.mission .grid--4 {
+  grid-template-columns: 1fr;
+  gap: 3.6rem;
+}
+.mission .card { position: relative; }
+.mission .card:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  width: 2.4rem;
+  height: 2.4rem;
+  left: calc(50% - 1.2rem);
+  bottom: -3rem;
+  background: var(--text-3);
+  clip-path: polygon(44% 0, 56% 0, 56% 73%, 81% 48%, 89% 56%, 50% 95%, 11% 56%, 19% 48%, 44% 73%);
+  pointer-events: none;
+}
+@media (min-width: 64em) {
+  .mission .grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mission .card:not(:last-child)::after {
+    left: auto;
+    right: -3rem;
+    bottom: calc(50% - 1.2rem);
+    transform: rotate(-90deg);
+  }
+}
+
 /* Scroll reveal — scoped to .js so nothing is invisible without JavaScript */
 
 .js .reveal {
@@ -1454,6 +1486,12 @@ section {
   object-fit: contain;
   border-radius: 0.6rem;
 }
+/* Present the supplied navy-on-white logos as white marks on dark cards. */
+.brand__logo .brand__regional-mark {
+  filter: grayscale(1) contrast(2) invert(1);
+  mix-blend-mode: screen;
+  border-radius: 0;
+}
 .brand__logo ion-icon {
   font-size: 3rem;
   color: #e8e9ee;
@@ -2086,3 +2124,13 @@ section {
     display: none;
   }
 }
+
+/* Keep the third specialized card centered and equal in width on desktop. */
+@media (min-width: 64em) {
+  .brands--specialized > .card:last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc((100% - 2rem) / 2);
+  }
+}
+.brand__social--pending { cursor: default; }
