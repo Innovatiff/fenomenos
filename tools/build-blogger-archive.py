@@ -16,6 +16,7 @@ origin='https://fenomenosdelcaribe.org'
 health_path=M/'image-http-check.json'
 health=json.loads(health_path.read_text()) if health_path.exists() else []
 unavailable={x['url'] for x in health if x['status']!='200' or not x['contentType'].startswith('image/')}
+overrides=json.loads((R/'tools/archive-image-overrides.json').read_text())
 template=(R/'articulo.html').read_text()
 # Retain existing navigation, mobile menu, styles, footer and common behavior.
 template=re.sub(r'<script type="module" src="js/article-page.js"></script>','',template)
@@ -31,6 +32,8 @@ for path in paths:
  if path in title_overrides:body=body.replace('<h1 class="post__title">Entrada sin título</h1>','<h1 class="post__title">'+html.escape(e['title'])+'</h1>')
  # Only rewrite links to selected pages. All other historic links remain at origin.
  body=re.sub(r'href="(/(?:20\d\d/|p/)[^"]*)"',lambda m:'href="'+(m[1] if m[1].split('#')[0].split('?')[0] in paths else 'https://www.huracanescaribe.com'+m[1])+'"',body)
+ for original,replacement in overrides.items():
+  body=body.replace(html.escape(original,quote=True),html.escape(replacement,quote=True))
  for unavailable_url in unavailable:
   escaped=html.escape(unavailable_url,quote=True)
   body=re.sub(r'<img\b[^>]*src="'+re.escape(escaped)+r'"[^>]*>', '<span class="archive-image-unavailable">Imagen del archivo original no disponible.</span>', body)

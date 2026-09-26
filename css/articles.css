@@ -1459,7 +1459,7 @@
 
 /* Estilo de lectura compartido por artículos, archivo y vista previa del Estudio. */
 .post {
-  --article-reading-size: clamp(20px, 1.5vw, 22px);
+  --article-reading-size: clamp(18px, 1.4vw, 20px);
   color: #dce1ea;
 }
 .post .post__body,

@@ -7,7 +7,7 @@
 }
 .post-shell > .post .post__text {
   font-family: "Inter", system-ui, sans-serif;
-  font-size: clamp(20px, 1.5vw, 22px);
+  font-size: var(--article-reading-size);
   line-height: 1.85;
   color: #dce1ea;
   overflow-wrap: anywhere;

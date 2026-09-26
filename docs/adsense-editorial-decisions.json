@@ -1,0 +1,32 @@
+{
+  "context": "El propietario confirma que Low-value content corresponde al sitio anterior a la migración. No se atribuye el rechazo a los artículos importados.",
+  "entries": [
+    {
+      "path": "/2025/12/frente-frio-de-camino-al-caribe-llegara.html",
+      "decision": "REWRITE_REQUIRED",
+      "status": "NEEDS_EDITORIAL_REVIEW",
+      "publish": false,
+      "reason": "El original solo contiene una publicación social y una pregunta; no aporta el análisis meteorológico independiente para reconstruir un artículo.",
+      "required": "El propietario debe aportar el análisis histórico y sus fuentes, o decidir conservarlo únicamente en Blogger. No convertirlo en alerta actual."
+    },
+    {
+      "path": "/2025/07/guia-agosto2024.html",
+      "decision": "REWRITE_REQUIRED",
+      "status": "NEEDS_EDITORIAL_REVIEW",
+      "publish": false,
+      "reason": "Promociona una guía de agosto de 2024, pero no incluye el PDF y contiene TUENLACE y TULINK. Quitar los botones no recuperaría el producto prometido.",
+      "required": "Confirmar que existe la guía y aportar sus enlaces auténticos y permisos, o decidir archivarla únicamente en Blogger. Conservar la fecha original."
+    }
+  ],
+  "institutional_review": [
+    "Confirmar vigencia de huracanescaribe@gmail.com y responsable legal/operativo del proyecto.",
+    "Confirmar plazos de retención, región de Firebase, proveedores y gestión de solicitudes.",
+    "Verificar CMP y consentimiento en producción; no se puede deducir desde el repositorio la configuración del panel de AdSense.",
+    "Verificar privacidad de correos en Firestore: db.js guarda email en el mismo documento de comentario que fetchComments lee. No se inspeccionaron reglas ni datos y no se afirma una filtración comprobada."
+  ],
+  "other_editorial_review": [
+    "Mantener las 40 páginas antiguas restantes en Blogger hasta decidir sus equivalencias; no reconstruir las herramientas en este sprint.",
+    "Confirmar derechos y atribuciones de las imágenes históricas. Cambiar la variante del mismo recurso no acredita una licencia nueva.",
+    "Revisar los fallos adicionales de recursos externos que aparezcan en la auditoría actual; no cambiar en masa imágenes fuera de los cuatro casos autorizados."
+  ]
+}
