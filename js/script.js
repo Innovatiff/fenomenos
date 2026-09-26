@@ -112,11 +112,15 @@
   /* ─────────────────  3. HEADER + PRODUCTS DROPDOWN  ───────────────── */
 
   const headerBar = $(".header__container");
+  const headerHero = $(".project-hero");
   const toTop = $("#to-top");
 
   function onScroll() {
     const y = window.scrollY;
     headerBar && headerBar.classList.toggle("is-scrolled", y > 24);
+    if (headerBar && headerHero) {
+      headerBar.classList.toggle("is-over-hero", headerHero.getBoundingClientRect().bottom > 72);
+    }
     toTop && toTop.classList.toggle("is-visible", y > 700);
   }
   window.addEventListener("scroll", onScroll, { passive: true });

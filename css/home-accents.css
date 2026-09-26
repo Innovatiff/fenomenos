@@ -80,8 +80,82 @@
   transition: opacity 0.25s var(--ease);
   pointer-events: none;
 }
-.card--brand:hover .brand__logo::after,
-.card--brand:focus-within .brand__logo::after { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .card--brand:hover .brand__logo::after { opacity: 1; }
+}
+.card--brand:active .brand__logo::after,
+.card--brand:has(:focus-visible) .brand__logo::after { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .brand__logo:has(.brand__regional-mark)::after { transition: none; }
+}
+
+/* Mobile brand stays centered while the bar expands beyond the hero. */
+@media (max-width: 47.999em) {
+  .header__container {
+    min-height: 5.6rem;
+    padding: .7rem;
+    transition: width .45s var(--ease), min-height .45s var(--ease),
+      padding .45s var(--ease), background-color .3s var(--ease),
+      border-color .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .header__left { width: 100%; min-height: 4rem; }
+  .header__left::after {
+    content: "";
+    position: absolute;
+    left: 4.8rem;
+    height: 3rem;
+    border-left: 1px solid rgba(204, 210, 224, .45);
+  }
+  .header__left .header__logo { width: 3.6rem; height: 3.6rem; }
+  .header__left .header__wordmark {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    mix-blend-mode: screen;
+    padding-left: 0;
+    border-left: 0;
+    transition: transform .45s var(--ease);
+  }
+  .header__left .header__logo {
+    transition: width .45s var(--ease), height .45s var(--ease);
+  }
+  .header__container.is-over-hero {
+    width: min(100% - 4rem, 140rem);
+    min-height: 4.8rem;
+    padding: .3rem .7rem;
+  }
+  .is-over-hero .header__left .header__wordmark { transform: translateX(-50%) scale(.88); }
+  .is-over-hero .header__left .header__logo { width: 3rem; height: 3rem; }
+  .header__right { flex-shrink: 0; }
+}
+@media (max-width: 47.999em) and (prefers-reduced-motion: reduce) {
+  .header__container, .header__left .header__wordmark, .header__left .header__logo { transition: none; }
+}
+
+/* Compact regional and specialized rows on phones. */
+@media (max-width: 47.999em) {
+  #cobertura > .container > .section__head { margin-bottom: 2.4rem; }
+  .brands { gap: 1rem; }
+  .brands .brand { padding: 1.4rem; gap: 1.2rem; }
+  .brands .brand__logo {
+    width: 4.6rem;
+    height: 4.6rem;
+    border-radius: 1.2rem;
+  }
+  .brands .brand__body { min-width: 0; gap: .4rem; }
+  .brands .brand__title { font-size: 1.6rem; line-height: 1.35; }
+  .brands .brand__text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 1.4rem;
+    line-height: 1.45;
+  }
+  .brands .brand__social {
+    margin-top: 0;
+    min-height: 4.4rem;
+    padding-top: 0;
+    font-size: 1.3rem;
+  }
 }
