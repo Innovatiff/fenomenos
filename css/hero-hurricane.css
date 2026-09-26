@@ -1,0 +1,59 @@
+  .fc-sys{position:absolute;left:50%;top:50%;width:1em;height:1em;transform:translate(-50%,-50%);font-size:clamp(150px,24vw,300px);animation:fcsys 30s linear infinite;pointer-events:none}
+  @keyframes fcsys{0%{opacity:0}6%{opacity:1}88%{opacity:1}100%{opacity:0}}
+  .fc-spin{position:absolute;inset:0;animation:fcspin 43s cubic-bezier(.42,0,.58,1) infinite}
+  /* Independent rotation rhythm: slow turns, bursts, and gentle braking.
+     Four full turns keep the loop seamless. */
+  @keyframes fcspin {
+    0% { transform: rotate(0deg); }
+    16% { transform: rotate(-45deg); }
+    24% { transform: rotate(-310deg); }
+    43% { transform: rotate(-365deg); }
+    53% { transform: rotate(-740deg); }
+    69% { transform: rotate(-805deg); }
+    82% { transform: rotate(-1260deg); }
+    100% { transform: rotate(-1440deg); }
+  }
+  .fc-orbit{position:absolute;left:50%;top:50%;width:0;height:0}
+  .fc-cloud{position:absolute;left:0;top:0;border-radius:50%;object-fit:cover;filter:blur(2px);-webkit-mask-image:radial-gradient(closest-side,#000 60%,transparent 98%);mask-image:radial-gradient(closest-side,#000 60%,transparent 98%);opacity:0;animation:fccin 30s linear infinite}
+  @keyframes fccin{0%{opacity:0;transform:translate(-50%,-50%) translateX(.52em) scale(.9)}8%{opacity:.62}30%{transform:translate(-50%,-50%) translateX(.36em) scale(.95)}50%{opacity:.62;transform:translate(-50%,-50%) translateX(.16em) scale(.9)}65%{opacity:0;transform:translate(-50%,-50%) translateX(.09em) scale(.8)}100%{opacity:0;transform:translate(-50%,-50%) translateX(.09em) scale(.8)}}
+  .fc-eye{position:absolute;left:50%;top:50%;width:.8em;height:.8em;border-radius:50%;object-fit:cover;-webkit-mask-image:radial-gradient(closest-side,#000 74%,transparent 99%);mask-image:radial-gradient(closest-side,#000 74%,transparent 99%);opacity:0;animation:fceye 30s linear infinite}
+  @keyframes fceye{0%,48%{opacity:0;transform:translate(-50%,-50%) scale(.72)}62%{opacity:.95;transform:translate(-50%,-50%) scale(1)}84%{opacity:.95;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.06)}}
+  @media (prefers-reduced-motion:reduce){.fc-sys,.fc-sys *{animation:none!important}.fc-sys{opacity:.5}.fc-eye{opacity:.9!important}.fc-cloud{display:none}}
+
+
+/* One small weather system travels across the original hero background. */
+.fc-drift {
+ position: absolute;
+ inset: 0;
+ z-index: 4;
+ overflow: hidden;
+ pointer-events: none;
+ opacity: .32;
+}
+.fc-traveler {
+ position: absolute;
+ width: 0;
+ height: 0;
+ animation: fcwander 73s ease-in-out infinite alternate;
+ animation-delay: -16s;
+}
+.fc-sys, .fc-sys * { animation-delay: -21s; }
+@keyframes fcwander {
+ 0% { left: 15%; top: 25%; }
+ 17% { left: 22%; top: 29%; }
+ 27% { left: 75%; top: 35%; }
+ 40% { left: 73%; top: 37%; }
+ 49% { left: 45%; top: 75%; }
+ 66% { left: 41%; top: 72%; }
+ 74% { left: 12%; top: 58%; }
+ 89% { left: 18%; top: 54%; }
+ 100% { left: 82%; top: 22%; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .fc-traveler { animation: none; left: 75%; top: 35%; }
+ .fc-eye { transform: translate(-50%, -50%); }
+}
+
+/* JS overrides only travel and rotation; CSS keeps the formation stages. */
+.fc-drift--random .fc-traveler { animation: none; left: 0; top: 0; will-change: transform; }
+.fc-drift--random .fc-spin { animation: none; will-change: transform; }
