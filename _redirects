@@ -1,4 +1,14 @@
-# Radar servido por Netlify; conserva las rutas relativas del reproductor.
+# Reproductor local; imágenes y exportador servidos desde el radar original.
 /radar /radar/full/ 302
 /radar/ /radar/full/ 302
+/radar/full /radar/full/ 301
+/radar/full/ /radar.html 200
+/radar/rd /radar/rd/ 301
+/radar/rd/ /radar.html 200
+/radar/pr-rd /radar/pr-rd/ 301
+/radar/pr-rd/ /radar.html 200
+/radar/antillas /radar/antillas/ 301
+/radar/antillas/ /radar.html 200
+/radar/belice /radar/belice/ 301
+/radar/belice/ /radar.html 200
 /radar/* http://150.230.24.24/output/radar-web/:splat 200

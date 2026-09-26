@@ -318,8 +318,9 @@ Los enlaces «Radares del Caribe» abren `/radar/full/`. El archivo
 reproductor existente y sus imágenes desde
 `http://150.230.24.24/output/radar-web/` mediante un proxy. El navegador
 usa el HTTPS del sitio; el tramo Netlify-servidor todavía usa HTTP.
-Las regiones, imágenes, secuencias y exportación GIF siguen administrándose
-en el servidor original. Esta integración abre el reproductor independiente;
+El reproductor `radar.html` usa el diseño del sitio y se comparte entre
+las cinco regiones. Las imágenes, secuencias y módulos de exportación GIF
+se obtienen del servidor original. Esta integración abre el reproductor independiente;
 no añade una capa georreferenciada a Fenómenos App.
 
 Tras desplegar, comprobar `/radar/full/`, el cambio de región,
@@ -329,14 +330,13 @@ la ruta pública y el proxy.
 
 ## Google Analytics 4
 
-`js/analytics.js` configura la etiqueta `G-XNMZEKJHQ9` una vez por página.
+`js/analytics.js` configura la etiqueta `G-92SH61163V` una vez por página.
 Todas las páginas HTML de este repositorio cargan ese archivo. Se usa la
 etiqueta de Google directamente, sin iniciar Firebase Analytics, para no
 recuperar el identificador de medición anterior del proyecto Firebase.
 Firebase Authentication y Firestore conservan su configuración. Las visitas
-a localhost o por file:// no se registran. El reproductor `/radar/`, servido
-por el servidor externo, necesita su propia etiqueta en el HTML del servidor
-para registrar también las visitas a esas páginas.
+a localhost o por file:// no se registran. El reproductor local `radar.html`
+también carga la etiqueta, incluidas las cinco rutas regionales `/radar/`.
 
 Tras desplegar, verificar la recepción en el informe Tiempo real de GA4
 con una visita al sitio sin bloqueadores. La comprobación local no confirma

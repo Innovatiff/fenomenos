@@ -1,6 +1,6 @@
 /* Una sola etiqueta GA4 para el sitio, independiente de Firebase. */
 (() => {
-  const measurementId = "G-XNMZEKJHQ9";
+  const measurementId = "G-92SH61163V";
   if (
     !["http:", "https:"].includes(location.protocol) ||
     ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) ||
