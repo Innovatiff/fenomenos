@@ -363,7 +363,9 @@ export function articleCard(article, { revealed = false, reactions = false } = {
   const li = el("li", "card card--article" + (revealed ? "" : " reveal"));
   const a = document.createElement("a");
   a.className = "card__inner";
-  a.href = "articulo.html?id=" + encodeURIComponent(article.id);
+  const archivePath = article.isArchive && /^\/20\d{2}\/\d{2}\/[a-zA-Z0-9_-]+\.html$/.test(article.archivePath || "")
+    ? article.archivePath : null;
+  a.href = archivePath || "articulo.html?id=" + encodeURIComponent(article.id);
 
   const media = el("span", "article__media");
   if (article.cover) {
