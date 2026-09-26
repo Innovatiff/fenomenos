@@ -1,5 +1,7 @@
 /* Restrained gold accents over the original homepage palette. */
 :root { --accent-gold: #f4c542; }
+.hero__stat--value { color: #fff; }
+.hero__stat--label { color: var(--accent-gold); }
 
 @media (max-width: 47.999em) {
   .footer__cols > .footer__col:first-child { grid-column: 1 / -1; }
@@ -157,4 +159,67 @@
     padding-top: 0;
     font-size: 1.3rem;
   }
+}
+
+/* Give the app one clear primary action, with quieter supporting links. */
+.header__container.has-hero .header__right--right {
+  transition: opacity .45s ease, transform .6s cubic-bezier(.22, 1, .36, 1), visibility .45s;
+  transform-origin: center;
+}
+.header__container.has-hero:not(.is-past-hero) .header__right--right {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(-24px, 48px) scale(1.15);
+}
+.header__container.has-hero.is-past-hero .header__right--right {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(0, 0) scale(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .header__container.has-hero .header__right--right {
+    transition: none;
+    transform: none;
+  }
+}
+.hero__actions {
+  flex-direction: column;
+  align-items: center;
+  max-width: 62rem;
+}
+.hero__launch {
+  width: min(100%, 30rem);
+  min-height: 5.6rem;
+  justify-content: center;
+  padding: 1.3rem 2.4rem;
+  background: var(--accent-gold);
+  color: #000;
+  border: 1px solid var(--accent-gold);
+  font-size: 1.8rem;
+  font-weight: 800;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero__launch {
+    transition: background-color .25s ease, box-shadow .25s ease;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero__launch:hover {
+    background: #f8d366;
+    color: #000;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .5), 0 0 16px rgba(244, 197, 66, .22);
+  }
+}
+.hero__launch {
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
+}
+.hero__secondary-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; width: 100%; }
+.hero__secondary-actions .btn { min-height: 4.4rem; padding: 1rem 1.6rem; font-size: 1.3rem; }
+.hero__secondary-actions .btn__back { display: flex; }
+@media (max-width: 35.999em) {
+  .hero__secondary-actions { flex-direction: column; align-items: center; gap: .6rem; }
+  .hero__secondary-actions .btn, .hero__secondary-actions .btn__back { width: auto; }
 }

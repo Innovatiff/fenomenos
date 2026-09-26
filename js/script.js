@@ -118,6 +118,7 @@
   function onScroll() {
     const y = window.scrollY;
     headerBar && headerBar.classList.toggle("is-scrolled", y > 24);
+    headerBar && headerBar.classList.toggle("is-past-hero", headerHero ? headerHero.getBoundingClientRect().bottom <= 72 : y > 24);
     if (headerBar && headerHero) {
       headerBar.classList.toggle("is-over-hero", headerHero.getBoundingClientRect().bottom > 72);
     }

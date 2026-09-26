@@ -901,6 +901,15 @@ section {
   background-position: 20%;
 }
 
+.header__container.is-past-hero .header__right--start {
+  background: #f4c542;
+  color: #000;
+  font-weight: 700;
+}
+.header__container.is-past-hero .header__right--start:hover {
+  background: #f8d366;
+}
+
 /* ────────────────────  6. PRODUCTS DROPDOWN (desktop)  ───────────────── */
 
 .products__dropdown {
@@ -1125,6 +1134,34 @@ section {
   padding: 1.2rem 0.6rem 0.6rem;
   border-top: 0.1rem solid var(--line);
 }
+
+.mobile-nav__cta .btn__back {
+  display: block;
+  padding: 0;
+  background: none;
+  border-radius: 12px;
+}
+.mobile-nav__cta .btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 20px;
+  border: 1px solid #f4c542;
+  border-radius: 12px;
+  background: #f4c542;
+  color: #000;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: none;
+  box-shadow: none;
+}
+.mobile-nav__cta .btn:hover,
+.mobile-nav__cta .btn:active {
+  background: #f8d366;
+  color: #000;
+}
+.mobile-nav__link { min-height: 48px; }
 
 @media (min-width: 64em) {
   .mobile-nav {
