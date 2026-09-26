@@ -42,6 +42,15 @@
 </head>
 
   <body>
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;pointer-events:none">
+      <defs>
+        <filter id="wordmark-white" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -0.2126 -0.7152 -0.0722 0 1" />
+          <feComponentTransfer><feFuncA type="linear" slope="1.2" /></feComponentTransfer>
+          <feComposite in2="SourceAlpha" operator="in" />
+        </filter>
+      </defs>
+    </svg>
     <a href="#contenido" class="skip-link">Ir al contenido</a>
 
     <!-- ══════════════════════════════ HEADER ══════════════════════════════ -->
@@ -63,7 +72,7 @@
 
         <div class="header__right">
           <nav class="header__nav" aria-label="Navegación principal">
-            <a href="articulos.html" class="header__nav--links">Artículos</a>
+            <a href="#articulos" class="header__nav--links">Artículos</a>
 
             <!-- «Datos y mapas» oculto hasta que sus páginas estén listas; quita `hidden` para reactivarlo -->
             <div class="header__nav--box" hidden>
@@ -211,7 +220,7 @@
       <div class="mobile-nav__panel">
         <div class="mobile-nav__inner">
           <nav aria-label="Navegación móvil">
-            <a href="articulos.html" class="mobile-nav__link">Artículos</a>
+            <a href="#articulos" class="mobile-nav__link">Artículos</a>
 
             <!-- «Datos y mapas» oculto hasta que sus páginas estén listas; quita `hidden` para reactivarlo -->
             <div class="mobile-nav__group" hidden>
@@ -960,7 +969,7 @@
         <div class="container">
           <div class="section__head reveal">
             <p class="eyebrow">Últimos artículos</p>
-            <h2 class="heading__secondary">Aprende antes del evento</h2>
+            <h2 class="heading__secondary">Artículos y análisis</h2>
             <p class="section__lead">
               Análisis, guías y contenido educativo sobre fenómenos
               meteorológicos y riesgos naturales en la región.

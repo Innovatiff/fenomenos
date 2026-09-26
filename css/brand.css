@@ -1,0 +1,53 @@
+/* Shared Fenómenos Media identity and restrained gold accents. */
+:root { --accent-gold: #f4c542; }
+/* Compact white-and-gold wordmark beside the existing header symbol. */
+.header__wordmark {
+  font-family: "Inter", system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-transform: uppercase;
+  line-height: 1;
+  border-left: 1px solid rgba(204, 210, 224, 0.45);
+  padding-left: 12px;
+}
+.header__wordmark-name {
+  display: flex;
+  align-items: center;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+.header__wordmark .header__wordmark-spiral {
+  width: 32px;
+  height: 32px;
+  margin: -4px -1px;
+  object-fit: contain;
+  /* Convert the original white background to transparency, not black. */
+  filter: url(#wordmark-white);
+}
+.header__wordmark-media {
+  color: var(--accent-gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 3.6px;
+  padding-left: 3.6px;
+}
+
+.eyebrow:not(.eyebrow--live), .post__back, .archive-card__date { color: var(--accent-gold); }
+.eyebrow:not(.eyebrow--live)::before { background-color: var(--accent-gold); }
+.card:hover .card__icon, .card__link:hover, .footer__link:hover { color: var(--accent-gold); }
+.btn--ghost:hover { border-color: var(--accent-gold); }
+:focus-visible { outline-color: var(--accent-gold); }
+.site-header .nav .current { color: var(--accent-gold); }
+input[type=range] { accent-color: var(--accent-gold); }
+.auth__logo-row .header__wordmark, .logo .header__wordmark { flex-shrink: 0; }
+.header__wordmark { mix-blend-mode: screen; }
+@media (max-width: 479px) {
+ .header__wordmark-name { font-size: 20px; }
+ .header__wordmark .header__wordmark-spiral { width: 27px; height: 27px; }
+}
+
+.archive-entry-link { color: var(--accent-gold); }

@@ -42,9 +42,9 @@ for path in paths:
  note='<p class="archive-notice">Archivo de Huracanes Caribe · Publicado originalmente el '+html.escape(e['published'][:10])+'. Se conserva como material de consulta histórica. Para alertas vigentes, consulta las autoridades meteorológicas de tu país.</p>'
  main='<main id="contenido" class="post-page"><div class="post-shell"><a class="post__back" href="/archivo/">← Archivo de Huracanes Caribe</a>'+note+body+'</div></main>'
  page=template[:start]+main+template[end:]
- page=re.sub(r'<title>.*?</title>','<title>'+html.escape(e['title'])+' | Fenómenos del Caribe</title>',page,flags=re.S)
+ page=re.sub(r'<title>.*?</title>','<title>'+html.escape(e['title'])+' | Fenómenos Media</title>',page,flags=re.S)
  page=re.sub(r'<meta\s+name="description".*?/>','<meta name="description" content="'+html.escape(desc,quote=True)+'" />',page,flags=re.S)
- schema={'@context':'https://schema.org','@type':'Article','headline':e['title'],'datePublished':e['published'],'dateModified':e['updated'],'author':{'@type':'Person','name':e['author']} if e['author']!='Huracanes Caribe' else {'@type':'Organization','name':e['author']},'mainEntityOfPage':url,'publisher':{'@type':'Organization','name':'Fenómenos del Caribe'},'isBasedOn':'https://www.huracanescaribe.com'+path}
+ schema={'@context':'https://schema.org','@type':'Article','headline':e['title'],'datePublished':e['published'],'dateModified':e['updated'],'author':{'@type':'Person','name':e['author']} if e['author']!='Huracanes Caribe' else {'@type':'Organization','name':e['author']},'mainEntityOfPage':url,'publisher':{'@type':'Organization','name':'Fenómenos Media'},'isBasedOn':'https://www.huracanescaribe.com'+path}
  if not e['author']:schema.pop('author',None)
  meta='<link rel="canonical" href="'+url+'"><meta property="og:type" content="article"><meta property="og:title" content="'+html.escape(e['title'],quote=True)+'"><meta property="og:description" content="'+html.escape(desc,quote=True)+'"><meta property="og:url" content="'+url+'"><meta name="twitter:card" content="summary"><link rel="stylesheet" href="/css/archive.css"><script type="application/ld+json">'+json.dumps(schema,ensure_ascii=False).replace('<','\\u003c')+'</script>'
  page=page.replace('</head>',meta+'</head>')
@@ -58,7 +58,7 @@ for year in sorted({e['date'][:4] for e in items},reverse=True):
  for e in sorted((e for e in items if e['date'].startswith(year)),key=lambda e:e['date'],reverse=True):listing+='<li><time datetime="'+e['date']+'">'+e['date'][:10]+'</time><a href="'+e['path']+'">'+html.escape(e['title'])+'</a></li>'
  listing+='</ul>'
 listing+='</div></main>'
-index=template[:start]+listing+template[end:];index=re.sub(r'<title>.*?</title>','<title>Archivo de Huracanes Caribe | Fenómenos del Caribe</title>',index,flags=re.S)
+index=template[:start]+listing+template[end:];index=re.sub(r'<title>.*?</title>','<title>Archivo de Huracanes Caribe | Fenómenos Media</title>',index,flags=re.S)
 index=index.replace('</head>','<link rel="canonical" href="'+origin+'/archivo/"><link rel="stylesheet" href="/css/archive.css"></head>')
 (R/'archivo').mkdir(exist_ok=True);(R/'archivo/index.html').write_text(index)
 # Add entries idempotently, preserving all pre-existing sitemap URLs.

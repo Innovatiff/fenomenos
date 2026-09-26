@@ -27,9 +27,19 @@
     ></script>
     <script type="module" src="js/acceso.js"></script>
     <script src="js/analytics.js" defer></script>
+<link rel="stylesheet" href="/css/brand.css" />
 </head>
 
   <body class="auth-body">
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;pointer-events:none">
+      <defs>
+        <filter id="wordmark-white" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -0.2126 -0.7152 -0.0722 0 1" />
+          <feComponentTransfer><feFuncA type="linear" slope="1.2" /></feComponentTransfer>
+          <feComposite in2="SourceAlpha" operator="in" />
+        </filter>
+      </defs>
+    </svg>
     <main class="auth">
       <!-- ══════════════ PANEL DE MARCA ══════════════ -->
       <section class="auth__brand" aria-hidden="true">
@@ -37,7 +47,7 @@
         <div class="auth__brand-inner">
           <a href="index.html" class="auth__logo-row">
             <img src="img/logo.png" alt="" width="48" height="48" />
-            <span>Fenómenos del Caribe Media</span>
+            <span class="header__wordmark"><span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span>
           </a>
 
           <h1 class="heading__primary auth__headline">

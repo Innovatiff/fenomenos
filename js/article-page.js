@@ -106,7 +106,7 @@ function hasCategory(article, category) {
     renderArticle(root, article, { headingTag: PAGE_CATEGORY ? "h2" : "h1" });
     if (PAGE_CATEGORY) addCategoryExtras(catArticles);
 
-    if (!PAGE_CATEGORY) document.title = article.title + " | Fenómenos del Caribe";
+    if (!PAGE_CATEGORY) document.title = article.title + " | Fenómenos Media";
     if (!PAGE_CATEGORY && article.excerpt) {
       const meta = document.getElementById("meta-description");
       if (meta) meta.setAttribute("content", article.excerpt);
@@ -177,7 +177,7 @@ function buildShare(article) {
   box.hidden = false;
 
   const url = location.href;
-  const title = article.title || "Fenómenos del Caribe";
+  const title = article.title || "Fenómenos Media";
 
   const links = [
     {

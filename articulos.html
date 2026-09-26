@@ -13,7 +13,7 @@
       content="Artículos, guías y análisis sobre huracanes, tiempo severo, sismos y otros fenómenos naturales del Caribe, Centroamérica, México y Estados Unidos."
     />
 
-    <title>Artículos | Fenómenos del Caribe</title>
+    <title>Artículos | Fenómenos Media</title>
 
     <link rel="icon" href="img/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png" />
@@ -35,9 +35,19 @@
     <script type="module" src="js/articles-page.js"></script>
     <script src="js/analytics.js" defer></script>
 <link rel="canonical" href="https://fenomenosdelcaribe.org/articulos" />
+<link rel="stylesheet" href="/css/brand.css" />
 </head>
 
   <body>
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;pointer-events:none">
+      <defs>
+        <filter id="wordmark-white" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -0.2126 -0.7152 -0.0722 0 1" />
+          <feComponentTransfer><feFuncA type="linear" slope="1.2" /></feComponentTransfer>
+          <feComposite in2="SourceAlpha" operator="in" />
+        </filter>
+      </defs>
+    </svg>
     <a href="#contenido" class="skip-link">Ir al contenido</a>
 
     <!-- ══════════════════════════════ HEADER ══════════════════════════════ -->
@@ -46,12 +56,12 @@
         <a href="index.html" class="header__left">
           <img
             src="img/logo.png"
-            alt="Fenómenos del Caribe"
+            alt=""
             class="header__logo"
             width="44"
             height="44"
           />
-          <span class="header__logo--text">Fenómenos del Caribe Media</span>
+          <span class="header__wordmark"><span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span>
         </a>
 
         <div class="header__right">
@@ -248,7 +258,7 @@
         <div class="container page-hero__container">
           <p class="eyebrow">Publicaciones</p>
           <h1 class="heading__primary page-hero__title">Artículos y análisis</h1>
-          <p><a href="/archivo/">Explorar el archivo de Huracanes Caribe →</a></p>
+          <p><a class="archive-entry-link" href="/archivo/">Explorar el archivo de Huracanes Caribe →</a></p>
           <p class="page-hero__lead">
             Guías, análisis y contenido educativo sobre huracanes, tiempo
             severo, sismos y otros fenómenos naturales de la región. Aprende
@@ -323,16 +333,16 @@
             <a href="index.html" class="footer__logo-row">
               <img
                 src="img/logo.png"
-                alt="Fenómenos del Caribe"
+                alt=""
                 class="footer__logo"
                 width="44"
                 height="44"
                 loading="lazy"
               />
-              <span class="footer__logo-text">Fenómenos del Caribe</span>
+              <span class="header__wordmark"><span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span>
             </a>
             <p class="footer__tagline">
-              Todo sobre fenómenos del Caribe. Vigilancia y análisis de tiempo
+              Fenómenos Media. Vigilancia y análisis de tiempo
               peligroso para el Caribe, Centroamérica, México y Estados Unidos.
             </p>
           </div>
@@ -385,7 +395,7 @@
 
         <div class="footer__bottom">
           <p class="footer__copy">
-            © <span id="year">2026</span> Fenómenos del Caribe. Todos los
+            © <span id="year">2026</span> Fenómenos Media. Todos los
             derechos reservados.
           </p>
           <ul class="footer__social">
