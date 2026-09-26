@@ -1,5 +1,46 @@
 /* Restrained gold accents over the original homepage palette. */
 :root { --accent-gold: #f4c542; }
+
+@media (max-width: 47.999em) {
+  .footer__cols > .footer__col:first-child { grid-column: 1 / -1; }
+}
+.footer__link[aria-disabled="true"] { cursor: default; }
+.footer__link[aria-disabled="true"]:hover { color: var(--text-4); }
+
+/* Compact white-and-gold wordmark beside the existing header symbol. */
+.header__wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  text-transform: uppercase;
+  line-height: 1;
+  border-left: 1px solid rgba(204, 210, 224, 0.45);
+  padding-left: 1.2rem;
+}
+.header__wordmark-name {
+  display: flex;
+  align-items: center;
+  color: #fff;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04rem;
+}
+.header__wordmark-spiral {
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: -0.4rem -0.1rem;
+  object-fit: contain;
+  filter: grayscale(1) contrast(2) invert(1);
+  mix-blend-mode: screen;
+}
+.header__wordmark-media {
+  color: var(--accent-gold);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: 0.36rem;
+  padding-left: 0.36rem;
+}
 .eyebrow:not(.eyebrow--live),
 .card__link:hover,
 .card__link:focus-visible {
