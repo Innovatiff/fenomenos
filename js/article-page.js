@@ -103,11 +103,11 @@ function hasCategory(article, category) {
       }
     }
 
-    renderArticle(root, article);
+    renderArticle(root, article, { headingTag: PAGE_CATEGORY ? "h2" : "h1" });
     if (PAGE_CATEGORY) addCategoryExtras(catArticles);
 
-    document.title = article.title + " | Fenómenos del Caribe";
-    if (article.excerpt) {
+    if (!PAGE_CATEGORY) document.title = article.title + " | Fenómenos del Caribe";
+    if (!PAGE_CATEGORY && article.excerpt) {
       const meta = document.getElementById("meta-description");
       if (meta) meta.setAttribute("content", article.excerpt);
     }

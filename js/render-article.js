@@ -249,7 +249,7 @@ export function renderSections(sections) {
 }
 
 /** Renderiza el artículo completo (cabecera + cuerpo + pie) dentro de `root`. */
-export function renderArticle(root, article) {
+export function renderArticle(root, article, { headingTag = "h1" } = {}) {
   root.textContent = "";
 
   const header = el("header", "post__head");
@@ -263,7 +263,7 @@ export function renderArticle(root, article) {
   meta.appendChild(el("span", "post__read", readMinutes(article) + " min de lectura"));
   header.appendChild(meta);
 
-  const h1 = el("h1", "heading__primary post__title");
+  const h1 = el(headingTag === "h2" ? "h2" : "h1", "heading__primary post__title");
   if (article.titleHtml && htmlToPlainText(article.titleHtml).trim()) {
     h1.innerHTML = sanitizeHtml(article.titleHtml);
   } else {
