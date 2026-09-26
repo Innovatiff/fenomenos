@@ -9,8 +9,13 @@
     window.__fdcConsentBridgeStarted
   ) return;
   window.__fdcConsentBridgeStarted = true;
-  const disableKey = `ga-disable-${measurementId}`;
-  window[disableKey] = true;
+  // The Google tag routes to this additional GA4 destination remotely.
+  // Keep every connected measurement ID covered when destinations change.
+  const measurementIds = [measurementId, "G-XNMZEKJHQ9"];
+  const setAnalyticsEnabled = enabled => {
+    for (const id of measurementIds) window[`ga-disable-${id}`] = !enabled;
+  };
+  setAnalyticsEnabled(false);
   window.dataLayer = window.dataLayer || [];
   window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
   const denied = { ad_storage: "denied", analytics_storage: "denied", ad_user_data: "denied", ad_personalization: "denied" };
@@ -23,20 +28,20 @@
     // Only invoke CMP methods from its documented callback queue.
     let values;
     try { values = cmp.getGoogleConsentModeValues(); } catch {
-      window[disableKey] = true;
+      setAnalyticsEnabled(false);
       window.gtag("consent", "update", denied);
       return;
     }
     const statuses = cmp.ConsentModePurposeStatusEnum;
     if (!statuses || !values) {
-      window[disableKey] = true;
+      setAnalyticsEnabled(false);
       window.gtag("consent", "update", denied);
       return;
     }
     const permitted = value =>
       value !== undefined && (value === statuses.GRANTED || value === statuses.NOT_APPLICABLE);
     const allowed = permitted(values.analyticsStoragePurposeConsentStatus);
-    window[disableKey] = !allowed;
+    setAnalyticsEnabled(allowed);
     window.gtag("consent", "update", {
       analytics_storage: allowed ? "granted" : "denied",
       ad_storage: permitted(values.adStoragePurposeConsentStatus) ? "granted" : "denied",
@@ -65,7 +70,7 @@
     button.style.cssText = "background:transparent;border:0;color:inherit;font:inherit;cursor:pointer;padding:0;text-decoration:underline";
     button.addEventListener("click", () => {
       // Stop analytics while the visitor revisits their choices.
-      window[disableKey] = true;
+      setAnalyticsEnabled(false);
       window.gtag("consent", "update", denied);
       cmp.callbackQueue.push({ CONSENT_API_READY: () => cmp.showRevocationMessage() });
     });
