@@ -12,6 +12,20 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+  // Keep the public site's shared navigation consistent without rewriting articles.
+  // App, administration and weather tools are outside the store integration.
+  if (!/^\/(?:app|acceso|estudio|radar|proximamente)(?:[/.]|$)/.test(location.pathname)) {
+    for (const [selector, className] of [['.header__nav', 'header__nav--links'], ['.mobile-nav nav', 'mobile-nav__link']]) {
+      const nav = $(selector);
+      if (!nav || nav.querySelector('a[href="/tienda/"]')) continue;
+      const link = document.createElement('a');
+      link.href = '/tienda/';
+      link.className = className;
+      link.textContent = 'Tienda';
+      nav.append(link);
+    }
+  }
+
   const desktop = window.matchMedia("(min-width: 64em)"); // full nav
   const calmMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 

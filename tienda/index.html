@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#000b33" />
+  <title>Tienda oficial | Fenómenos Media</title>
+  <meta name="description" content="Descubre la tienda oficial de Fenómenos Media, con productos de nuestra comunidad a través de Spreadshop." />
+  <link rel="canonical" href="https://fenomenosdelcaribe.org/tienda/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Fenómenos Media" />
+  <meta property="og:title" content="Tienda oficial | Fenómenos Media" />
+  <meta property="og:description" content="Productos de la comunidad Fenómenos Media a través de Spreadshop." />
+  <meta property="og:url" content="https://fenomenosdelcaribe.org/tienda/" />
+  <meta property="og:image" content="https://fenomenosdelcaribe.org/img/logo.png" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="icon" href="/img/favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+  <link rel="stylesheet" href="/css/shop-shell.css" />
+  <link rel="stylesheet" href="/css/shop.css" />
+  <script defer src="/js/script.js"></script>
+  <script defer src="/js/shop-config.js"></script>
+  <script defer src="/js/shop-metadata.js"></script>
+  <script defer src="/js/shop.js"></script>
+  <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+</head>
+<body class="shop-page">
+    <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;pointer-events:none">
+      <defs>
+        <filter id="wordmark-white" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -0.2126 -0.7152 -0.0722 0 1" />
+          <feComponentTransfer><feFuncA type="linear" slope="1.2" /></feComponentTransfer>
+          <feComposite in2="SourceAlpha" operator="in" />
+        </filter>
+      </defs>
+    </svg>
+<a href="#contenido" class="skip-link">Ir al contenido</a>
+    <header class="header" id="inicio">
+      <div class="header__container">
+        <a href="/index.html#inicio" class="header__left">
+          <img
+            src="/img/logo.png"
+            alt=""
+            class="header__logo"
+            width="44"
+            height="44"
+          />
+          <span class="header__logo--text header__wordmark">
+            <span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="24" height="24" /><span aria-hidden="true">menos</span></span>
+            <span class="header__wordmark-media">Media</span>
+          </span>
+        </a>
+
+        <div class="header__right">
+          <nav class="header__nav" aria-label="Navegación principal">
+            <a href="/index.html#articulos" class="header__nav--links">Artículos</a>
+            <a href="/tienda/" aria-current="page" class="header__nav--links">Tienda</a>
+
+            <!-- «Datos y mapas» oculto hasta que sus páginas estén listas; quita `hidden` para reactivarlo -->
+            <div class="header__nav--box" hidden>
+              <button
+                class="header__nav--links header__nav--products"
+                aria-expanded="false"
+                aria-controls="dropdown-datos"
+              >
+                Datos y mapas
+                <ion-icon
+                  class="header__nav--icon"
+                  name="chevron-down-outline"
+                ></ion-icon>
+              </button>
+
+              <div class="products__dropdown hidden" id="dropdown-datos">
+                <div class="products__dropdown--container">
+                  <span class="products__dropdown--heading">Herramientas</span>
+                  <div class="products__dropdown--links">
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="map-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Mapas de análisis</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Capas sinópticas y de riesgo, actualizadas.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/radar/full/"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="radio-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Radares del Caribe</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Lluvia y tormentas en tiempo real.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="earth-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Pronóstico regional</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >El panorama del Caribe y las Américas.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="locate-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Pronósticos locales</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >El tiempo en tu país y tu zona.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="layers-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Modelo europeo interactivo</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Explora el ECMWF capa por capa.</span
+                        >
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <a href="/index.html#cobertura" class="header__nav--links">Cobertura</a>
+            <a href="/index.html#comunidad" class="header__nav--links">Comunidad</a>
+          </nav>
+
+          <div class="header__right--right">
+            <div class="header__right--sep" aria-hidden="true"></div>
+            <div class="header__right--start-back">
+              <a href="/app.html" class="header__right--start"
+                >Lanzar app</a
+              >
+            </div>
+          </div>
+
+          <button
+            class="header__burger"
+            id="burger"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+            aria-label="Abrir menú"
+          >
+            <span class="header__burger--bar"></span>
+            <span class="header__burger--bar"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══════════  PHONE NAV — a dropdown under the pill, not a takeover  ═══════ -->
+    <div class="mobile-nav" id="mobile-nav" hidden>
+      <div class="mobile-nav__backdrop" data-close></div>
+
+      <div class="mobile-nav__panel">
+        <div class="mobile-nav__inner">
+          <nav aria-label="Navegación móvil">
+            <a href="/index.html#articulos" class="mobile-nav__link">Artículos</a>
+            <a href="/tienda/" aria-current="page" class="mobile-nav__link">Tienda</a>
+
+            <!-- «Datos y mapas» oculto hasta que sus páginas estén listas; quita `hidden` para reactivarlo -->
+            <div class="mobile-nav__group" hidden>
+              <button
+                class="mobile-nav__link mobile-nav__toggle"
+                aria-expanded="false"
+              >
+                Datos y mapas
+                <ion-icon name="chevron-down-outline"></ion-icon>
+              </button>
+              <div class="mobile-nav__sub">
+                <div>
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="map-outline"></ion-icon>Mapas de análisis</a
+                  >
+                  <a
+                    href="/radar/full/"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="radio-outline"></ion-icon>Radares del
+                    Caribe</a
+                  >
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="earth-outline"></ion-icon>Pronóstico
+                    regional</a
+                  >
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="locate-outline"></ion-icon>Pronósticos
+                    locales</a
+                  >
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="layers-outline"></ion-icon>Modelo europeo
+                    interactivo</a
+                  >
+                </div>
+              </div>
+            </div>
+
+            <a href="/index.html#cobertura" class="mobile-nav__link">Cobertura</a>
+            <a href="/index.html#comunidad" class="mobile-nav__link">Comunidad</a>
+          </nav>
+
+          <div class="mobile-nav__cta">
+            <div class="btn__back">
+              <a href="/app.html" class="btn btn--primary"
+                >Lanzar app</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main id="contenido" class="shop-main">
+      <div class="shop-intro">
+        <p class="shop-eyebrow">Fenómenos Media</p>
+        <h1>Tienda oficial</h1>
+        <p>Lleva contigo tu pasión por los fenómenos naturales.</p>
+      </div>
+      <section class="shop-surface" aria-label="Catálogo de la tienda">
+        <div id="shop">Cargando tienda...</div>
+      </section>
+      <aside id="shop-fallback" class="shop-fallback" hidden aria-label="Acceso alternativo a la tienda">
+        <p id="shop-fallback-message" role="status"></p>
+        <a id="shop-direct" class="shop-button" target="_blank" rel="noopener noreferrer" hidden>Visitar tienda</a>
+        <button id="shop-retry" class="shop-retry" type="button" hidden>Reintentar</button>
+      </aside>
+      <noscript><p class="shop-note">Activa JavaScript para ver el catálogo o <a href="https://fenomenos-media.myspreadshop.com" target="_blank" rel="noopener noreferrer">Visitar tienda</a>.</p></noscript>
+      <p class="shop-note">Catálogo y proceso de compra a través de Spreadshop. <a href="/p/privacy.html#tienda">Información de privacidad</a>.</p>
+    </main>
+    <footer class="footer">
+      <div class="container footer__container">
+<nav class="footer__institutional" aria-label="Información del sitio" style="display:flex;flex-wrap:wrap;gap:1rem;margin-block:1.5rem"><a class="footer__link" href="/index.html">Inicio</a><a class="footer__link" href="/articulos.html">Artículos</a><a class="footer__link" href="/radar.html">Radar</a><a class="footer__link" href="/p/acerca-de.html">Acerca de</a><a class="footer__link" href="/p/privacy.html">Privacidad</a><a class="footer__link" href="/p/contacto.html">Contacto</a></nav>
+        <div class="footer__top">
+          <div class="footer__brand">
+            <a href="/index.html#inicio" class="footer__logo-row">
+              <img
+                src="/img/logo.png"
+                alt=""
+                class="footer__logo"
+                width="44"
+                height="44"
+                loading="lazy"
+              />
+              <span class="header__wordmark">
+                <span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="32" height="32" loading="lazy" /><span aria-hidden="true">menos</span></span>
+                <span class="header__wordmark-media">Media</span>
+              </span>
+            </a>
+            <p class="footer__tagline">
+              Fenómenos Media. Vigilancia y análisis de tiempo
+              peligroso para el Caribe, Centroamérica, México y Estados Unidos.
+            </p>
+          </div>
+
+          <nav class="footer__cols" aria-label="Navegación del pie de página">
+
+
+            <div class="footer__col">
+              <h3 class="footer__col-title">Herramientas</h3>
+              <a
+                href="/radar/full/"
+                class="footer__link"
+                >Radares del Caribe</a
+              >
+
+              <a
+                href="/articulos.html"
+                class="footer__link"
+                >Artículos</a
+              >
+            </div>
+
+            <div class="footer__col">
+              <h3 class="footer__col-title">Páginas regionales</h3>
+              <a
+                href="https://www.facebook.com/FenomenosCaribe"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Fenómenos Caribe</a
+              >
+              <a
+                href="https://www.facebook.com/fenomenosusa"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Fenómenos USA</a
+              >
+              <a
+                href="https://www.facebook.com/FenomenosCAmerica"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Fenómenos Centroamérica</a
+              >
+              <a
+                href="https://www.facebook.com/FenomenosMexico"
+                class="footer__link"
+                target="_blank"
+                rel="noopener"
+                >Fenómenos México</a
+              >
+            </div>
+            <div class="footer__col">
+              <h3 class="footer__col-title">Páginas especializadas</h3>
+              <a href="https://www.facebook.com/HuracanesCaribe" class="footer__link" target="_blank" rel="noopener">Huracanes Caribe</a>
+              <a href="https://www.facebook.com/terremotoscaribe/" class="footer__link" target="_blank" rel="noopener">Terremotos Caribe</a>
+              <span class="footer__link" role="link" aria-disabled="true">Fenómenos Espaciales Caribe</span>
+            </div>
+          </nav>
+        </div>
+
+        <div class="footer__bottom">
+          <p class="footer__copy">
+            © <span id="year">2026</span> Fenómenos Media. Todos los
+            derechos reservados.
+          </p>
+          <ul class="footer__social">
+            <li>
+              <a
+                href="https://www.facebook.com/HuracanesCaribe"
+                aria-label="Facebook"
+                target="_blank"
+                rel="noopener"
+                ><ion-icon name="logo-facebook"></ion-icon
+              ></a>
+            </li>
+
+
+
+          </ul>
+        </div>
+      </div>
+    </footer>
+</body>
+</html>
