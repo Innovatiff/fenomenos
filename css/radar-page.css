@@ -1,0 +1,35 @@
+/* Match the homepage shell while keeping radar controls scoped to the player. */
+.radar-page { background: var(--bg); }
+.radar-page main { padding-top: 130px; }
+.radar-page .intro .radar-eyebrow { color: var(--accent-gold); }
+.radar-page .header__burger { min-height: 0; padding: 0; }
+.radar-page .header__right--start {
+  background: var(--accent-gold);
+  color: #06090f;
+  font-weight: 700;
+}
+.radar-page .header__right--start:hover { background: #ffdb75; color: #06090f; }
+.radar-page .player button,
+.radar-page main select {
+  border-radius: var(--r-pill);
+  border-color: var(--line-2);
+  background: rgba(18, 30, 67, .5);
+  color: var(--text-2);
+  transition: background .2s var(--ease), border-color .2s var(--ease);
+}
+.radar-page .player button:hover:not(:disabled),
+.radar-page main select:hover { border-color: var(--accent-gold); }
+.radar-page #play,
+.radar-page #gif {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: #06090f;
+  font-weight: 700;
+}
+.radar-page #play:hover:not(:disabled),
+.radar-page #gif:hover:not(:disabled) { background: #ffdb75; }
+.radar-page #timeline { accent-color: var(--accent-gold); }
+@media (max-width: 47.999em) {
+  .radar-page main { padding-top: 96px; }
+  .radar-page .header__left .header__wordmark { border-left: 0; padding-left: 0; }
+}

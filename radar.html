@@ -6,16 +6,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#08121c">
-<title>Radar del Caribe · Fenómenos Media</title>
+<title>Radares del Caribe · Fenómenos Media</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/home-accents.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Gugi&display=swap');
-:root{color-scheme:dark;--bg:#00060f;--panel:#0a1430;--line:#263458;--muted:#9aa7c2;--accent:#b8caff}*{box-sizing:border-box;margin:0}body{background:var(--bg);color:#fff;font:14px/1.6 Inter,system-ui,sans-serif}a{color:inherit;text-decoration:none}button,select{font:inherit}.site-header{height:86px;border-bottom:1px solid #263458;background:#101b38;display:flex;align-items:center;justify-content:space-between;padding:0 max(28px,calc((100vw - 1280px)/2));gap:24px}.logo{display:flex;align-items:center;gap:12px;font-family:Gugi,sans-serif;font-size:16px}.logo img{width:44px;height:44px}.nav{display:flex;align-items:center;gap:30px;color:#ccd2e0}.nav .current{color:white}.app-link{border:1px solid #506087;border-radius:9px;padding:9px 18px;background:#172554}main{max-width:1280px;margin:auto;padding:42px 28px 35px;position:relative}body:before{content:'';position:absolute;top:86px;left:0;right:0;height:360px;pointer-events:none;background:radial-gradient(ellipse at 50% 0,#172554aa,transparent 70%),linear-gradient(#36436612 1px,transparent 1px),linear-gradient(90deg,#36436612 1px,transparent 1px);background-size:auto,46px 46px,46px 46px}.breadcrumbs{font-size:12px;color:#8793ad;margin-bottom:22px;display:flex;gap:10px}.intro{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:26px}.brand{font-size:10px;letter-spacing:.22em;color:#a7b8e2;text-transform:uppercase;font-weight:700;margin-bottom:8px}h1{font:clamp(28px,4vw,42px)/1.3 Gugi,sans-serif;letter-spacing:-.04em}.sub{color:#a9b5ce;font-size:14px;margin-top:9px}.region{min-width:245px}label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}button,select{color:#e2e8f8;background:#121e3e;border:1px solid #344368;border-radius:9px;min-height:42px;padding:8px 14px}select{width:100%}button{cursor:pointer;transition:background .2s,border-color .2s}button:hover{background:#243557;border-color:#7b8cba}button:disabled{opacity:.4;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #c3d1ff;outline-offset:4px}.player{border:1px solid #3b496d;border-radius:18px;overflow:hidden;background:#040a18;box-shadow:0 20px 80px #0008}.statusbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 22px;background:linear-gradient(110deg,#152345,#0b142b);border-bottom:1px solid #273553;font-size:11px;color:#a7b4d0;letter-spacing:.025em}.mode{color:#ffb020;font-weight:600}.stage{height:clamp(280px,48vh,530px);display:flex;align-items:center;justify-content:center;position:relative;background:#020710}.stage img{display:block;max-width:100%;max-height:100%;object-fit:contain}.empty{color:var(--muted);padding:25px;text-align:center}.controls{padding:18px 22px;background:linear-gradient(120deg,#111d3c,#091227);border-top:1px solid #2c3b5d}.timebar,.buttons,.transport{display:flex;justify-content:space-between;align-items:center;gap:12px}.timebar strong{font-size:15px;font-variant-numeric:tabular-nums}.counter{color:var(--muted);font-size:11px}input[type=range]{width:100%;min-height:24px;margin:8px 0 0;accent-color:#b9c9f7;cursor:pointer}.endpoints{display:flex;justify-content:space-between;color:#8998b6;font-size:10px;margin:0 0 14px}.transport{justify-content:flex-start;flex-wrap:wrap;gap:8px}#play{background:#d9e3ff;color:#0b1631;border-color:#d9e3ff;font-weight:700;min-width:142px}#play:hover{background:white}.speed{display:flex;align-items:center;gap:12px}.speed label{margin:0}.speed select{width:auto}.notice{font-size:11px;color:var(--muted);min-height:0;margin-top:8px}.notice:empty{display:none}.notice.error{color:#ffbd75}.export-row{margin-top:14px;padding-top:14px;border-top:1px solid #2a3754;display:flex;align-items:center;gap:12px}.export-row #gifStatus{margin:0;flex:1}.export-row button{font-size:12px;min-height:36px}.footrow{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:20px 0 8px}footer{color:#8491ad;font-size:11px}footer p{margin:5px 0}.site-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #23304a;margin-top:28px;padding-top:20px;color:#8491ad;font-size:11px}.site-footer strong{font-family:Gugi;font-weight:400;color:#c3cbe0}.player:fullscreen{display:flex;flex-direction:column;border:0;border-radius:0;height:100%;width:100%}.player:fullscreen .stage{flex:1;min-height:0;height:auto}[hidden]{display:none!important}@media(max-width:640px){.site-header{height:72px;padding:0 16px}.logo{font-size:12px;max-width:220px}.logo img{width:36px;height:36px}.nav{gap:0}.nav a:not(.current){display:none}main{padding:24px 14px}.intro{align-items:stretch;flex-direction:column;gap:18px}.region{min-width:0}.stage{height:38vh}.controls{padding:14px}.buttons{align-items:stretch;flex-direction:column}.speed{justify-content:space-between}.timebar strong{font-size:12px}.endpoints{font-size:9px}.export-row{flex-wrap:wrap}.export-row #gifStatus{flex-basis:100%}.site-footer{align-items:flex-start;gap:12px;flex-direction:column}.statusbar{padding:12px}.statusbar>span:last-child{font-size:10px}}
+:root{color-scheme:dark;--bg:#00060f;--panel:#0a1430;--line:#263458;--muted:#9aa7c2;--accent:#b8caff}*{box-sizing:border-box;margin:0}body{background:var(--bg);color:#fff;font:14px/1.6 Inter,system-ui,sans-serif}a{color:inherit;text-decoration:none}button,select{font:inherit}.site-header{height:86px;border-bottom:1px solid #263458;background:#101b38;display:flex;align-items:center;justify-content:space-between;padding:0 max(28px,calc((100vw - 1280px)/2));gap:24px}.logo{display:flex;align-items:center;gap:12px;font-family:Gugi,sans-serif;font-size:16px}.logo img{width:44px;height:44px}.nav{display:flex;align-items:center;gap:30px;color:#ccd2e0}.nav .current{color:white}.app-link{border:1px solid #506087;border-radius:9px;padding:9px 18px;background:#172554}main{max-width:1280px;margin:auto;padding:42px 28px 35px;position:relative}body:before{content:'';position:absolute;top:86px;left:0;right:0;height:360px;pointer-events:none;background:radial-gradient(ellipse at 50% 0,#172554aa,transparent 70%),linear-gradient(#36436612 1px,transparent 1px),linear-gradient(90deg,#36436612 1px,transparent 1px);background-size:auto,46px 46px,46px 46px}.breadcrumbs{font-size:12px;color:#8793ad;margin-bottom:22px;display:flex;gap:10px}.intro{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:26px}.radar-eyebrow{font-size:10px;letter-spacing:.22em;color:#a7b8e2;text-transform:uppercase;font-weight:700;margin-bottom:8px}h1{font:clamp(28px,4vw,42px)/1.3 Gugi,sans-serif;letter-spacing:-.04em}.sub{color:#a9b5ce;font-size:14px;margin-top:9px}.radar-region{min-width:245px}label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px}button,select{color:#e2e8f8;background:#121e3e;border:1px solid #344368;border-radius:9px;min-height:42px;padding:8px 14px}select{width:100%}button{cursor:pointer;transition:background .2s,border-color .2s}button:hover{background:#243557;border-color:#7b8cba}button:disabled{opacity:.4;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid #c3d1ff;outline-offset:4px}.player{border:1px solid #3b496d;border-radius:18px;overflow:hidden;background:#040a18;box-shadow:0 20px 80px #0008}.statusbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 22px;background:linear-gradient(110deg,#152345,#0b142b);border-bottom:1px solid #273553;font-size:11px;color:#a7b4d0;letter-spacing:.025em}.mode{color:#ffb020;font-weight:600}.stage{height:clamp(280px,48vh,530px);display:flex;align-items:center;justify-content:center;position:relative;background:#020710}.stage img{display:block;max-width:100%;max-height:100%;object-fit:contain}.empty{color:var(--muted);padding:25px;text-align:center}.controls{padding:18px 22px;background:linear-gradient(120deg,#111d3c,#091227);border-top:1px solid #2c3b5d}.timebar,.buttons,.transport{display:flex;justify-content:space-between;align-items:center;gap:12px}.timebar strong{font-size:15px;font-variant-numeric:tabular-nums}.counter{color:var(--muted);font-size:11px}input[type=range]{width:100%;min-height:24px;margin:8px 0 0;accent-color:#b9c9f7;cursor:pointer}.endpoints{display:flex;justify-content:space-between;color:#8998b6;font-size:10px;margin:0 0 14px}.transport{justify-content:flex-start;flex-wrap:wrap;gap:8px}#play{background:#d9e3ff;color:#0b1631;border-color:#d9e3ff;font-weight:700;min-width:142px}#play:hover{background:white}.speed{display:flex;align-items:center;gap:12px}.speed label{margin:0}.speed select{width:auto}.notice{font-size:11px;color:var(--muted);min-height:0;margin-top:8px}.notice:empty{display:none}.notice.error{color:#ffbd75}.export-row{margin-top:14px;padding-top:14px;border-top:1px solid #2a3754;display:flex;align-items:center;gap:12px}.export-row #gifStatus{margin:0;flex:1}.export-row button{font-size:12px;min-height:36px}.footrow{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:20px 0 8px}footer{color:#8491ad;font-size:11px}footer p{margin:5px 0}.site-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #23304a;margin-top:28px;padding-top:20px;color:#8491ad;font-size:11px}.site-footer strong{font-family:Gugi;font-weight:400;color:#c3cbe0}.player:fullscreen{display:flex;flex-direction:column;border:0;border-radius:0;height:100%;width:100%}.player:fullscreen .stage{flex:1;min-height:0;height:auto}[hidden]{display:none!important}@media(max-width:640px){.site-header{height:72px;padding:0 16px}.logo{font-size:12px;max-width:220px}.logo img{width:36px;height:36px}.nav{gap:0}.nav a:not(.current){display:none}main{padding:24px 14px}.intro{align-items:stretch;flex-direction:column;gap:18px}.radar-region{min-width:0}.stage{height:38vh}.controls{padding:14px}.buttons{align-items:stretch;flex-direction:column}.speed{justify-content:space-between}.timebar strong{font-size:12px}.endpoints{font-size:9px}.export-row{flex-wrap:wrap}.export-row #gifStatus{flex-basis:100%}.site-footer{align-items:flex-start;gap:12px;flex-direction:column}.statusbar{padding:12px}.statusbar>span:last-child{font-size:10px}}
 </style>
 <link rel="icon" href="/img/favicon.png" type="image/png">
 <script src="/js/analytics.js" defer></script>
 <link rel="stylesheet" href="/css/brand.css" />
+<link rel="stylesheet" href="/css/radar-page.css" />
+<script src="/js/script.js" defer></script>
 </head>
-<body>
+<body class="radar-page">
     <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;pointer-events:none">
       <defs>
         <filter id="wordmark-white" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
@@ -24,9 +28,237 @@
           <feComposite in2="SourceAlpha" operator="in" />
         </filter>
       </defs>
-    </svg><div class="site-header"><a class="logo" href="/index.html"><img src="/img/logo.png" alt=""><span class="header__wordmark"><span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span></a><nav class="nav" aria-label="Navegación principal"><a href="/articulos.html">Artículos</a><a class="current" href="/radar/full/" aria-current="page">Radar</a><a class="app-link" href="/acceso.html">Lanzar app ↗</a></nav></div>
-<main><div class="breadcrumbs"><a href="/index.html">Inicio</a><span>/</span><span>Radares del Caribe</span></div>
-<header class="intro"><div><div class="brand">Vigilancia meteorológica</div><h1>Radares del Caribe</h1><div class="sub">Observa la lluvia. Sigue su evolución en el Caribe.</div></div><div class="region"><label for="region">Región del radar</label><select id="region"><option value="full">Región completa</option><option value="rd">República Dominicana</option><option value="pr-rd">Puerto Rico y Rep. Dominicana</option><option value="antillas">Antillas</option><option value="belice">Belice</option></select></div></header>
+    </svg>    <header class="header" id="inicio">
+      <div class="header__container">
+        <a href="/index.html#inicio" class="header__left">
+          <img
+            src="/img/logo.png"
+            alt=""
+            class="header__logo"
+            width="44"
+            height="44"
+          />
+          <span class="header__logo--text header__wordmark">
+            <span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="24" height="24" /><span aria-hidden="true">menos</span></span>
+            <span class="header__wordmark-media">Media</span>
+          </span>
+        </a>
+
+        <div class="header__right">
+          <nav class="header__nav" aria-label="Navegación principal">
+            <a href="/index.html#articulos" class="header__nav--links">Artículos</a>
+            <a href="/tienda/" class="header__nav--links">Tienda</a>
+
+            <!-- «Datos y mapas» oculto hasta que sus páginas estén listas; quita `hidden` para reactivarlo -->
+            <div class="header__nav--box" hidden>
+              <button
+                class="header__nav--links header__nav--products"
+                aria-expanded="false"
+                aria-controls="dropdown-datos"
+              >
+                Datos y mapas
+                <ion-icon
+                  class="header__nav--icon"
+                  name="chevron-down-outline"
+                ></ion-icon>
+              </button>
+
+              <div class="products__dropdown hidden" id="dropdown-datos">
+                <div class="products__dropdown--container">
+                  <span class="products__dropdown--heading">Herramientas</span>
+                  <div class="products__dropdown--links">
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="map-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Mapas de análisis</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Capas sinópticas y de riesgo, actualizadas.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/radar/full/"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="radio-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Radares del Caribe</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Lluvia y tormentas en tiempo real.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="earth-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Pronóstico regional</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >El panorama del Caribe y las Américas.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="locate-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Pronósticos locales</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >El tiempo en tu país y tu zona.</span
+                        >
+                      </span>
+                    </a>
+
+                    <a
+                      href="/proximamente.html"
+                      class="products__dropdown--link"
+                    >
+                      <ion-icon
+                        class="products__dropdown--link-icon"
+                        name="layers-outline"
+                      ></ion-icon>
+                      <span class="products__dropdown--link-right">
+                        <span class="products__dropdown--link-right-heading"
+                          >Modelo europeo interactivo</span
+                        >
+                        <span class="products__dropdown--link-right-desc"
+                          >Explora el ECMWF capa por capa.</span
+                        >
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <a href="/index.html#cobertura" class="header__nav--links">Cobertura</a>
+            <a href="/index.html#comunidad" class="header__nav--links">Comunidad</a>
+          </nav>
+
+          <div class="header__right--right">
+            <div class="header__right--sep" aria-hidden="true"></div>
+            <div class="header__right--start-back">
+              <a href="/app.html" class="header__right--start"
+                >Lanzar app</a
+              >
+            </div>
+          </div>
+
+          <button
+            class="header__burger"
+            id="burger"
+            aria-expanded="false"
+            aria-controls="mobile-nav"
+            aria-label="Abrir menú"
+          >
+            <span class="header__burger--bar"></span>
+            <span class="header__burger--bar"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══════════  PHONE NAV — a dropdown under the pill, not a takeover  ═══════ -->
+    <div class="mobile-nav" id="mobile-nav" hidden>
+      <div class="mobile-nav__backdrop" data-close></div>
+
+      <div class="mobile-nav__panel">
+        <div class="mobile-nav__inner">
+          <nav aria-label="Navegación móvil">
+            <a href="/index.html#articulos" class="mobile-nav__link">Artículos</a>
+            <a href="/tienda/" class="mobile-nav__link">Tienda</a>
+
+            <!-- «Datos y mapas» oculto hasta que sus páginas estén listas; quita `hidden` para reactivarlo -->
+            <div class="mobile-nav__group" hidden>
+              <button
+                class="mobile-nav__link mobile-nav__toggle"
+                aria-expanded="false"
+              >
+                Datos y mapas
+                <ion-icon name="chevron-down-outline"></ion-icon>
+              </button>
+              <div class="mobile-nav__sub">
+                <div>
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="map-outline"></ion-icon>Mapas de análisis</a
+                  >
+                  <a
+                    href="/radar/full/"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="radio-outline"></ion-icon>Radares del
+                    Caribe</a
+                  >
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="earth-outline"></ion-icon>Pronóstico
+                    regional</a
+                  >
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="locate-outline"></ion-icon>Pronósticos
+                    locales</a
+                  >
+                  <a
+                    href="/proximamente.html"
+                    class="mobile-nav__sub--link"
+                    ><ion-icon name="layers-outline"></ion-icon>Modelo europeo
+                    interactivo</a
+                  >
+                </div>
+              </div>
+            </div>
+
+            <a href="/index.html#cobertura" class="mobile-nav__link">Cobertura</a>
+            <a href="/index.html#comunidad" class="mobile-nav__link">Comunidad</a>
+          </nav>
+
+          <div class="mobile-nav__cta">
+            <div class="btn__back">
+              <a href="/app.html" class="btn btn--primary"
+                >Lanzar app</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<main id="contenido">
+<header class="intro"><div><div class="radar-eyebrow">Vigilancia meteorológica</div><h1>Radares del Caribe</h1><div class="sub">Observa la lluvia. Sigue su evolución en el Caribe.</div></div><div class="radar-region"><label for="region">Región del radar</label><select id="region"><option value="full">Región completa</option><option value="rd">República Dominicana</option><option value="pr-rd">Puerto Rico y Rep. Dominicana</option><option value="antillas">Antillas</option><option value="belice">Belice</option></select></div></header>
 <section class="player" id="player" aria-label="Reproductor de radar">
 <div class="statusbar"><span id="mode" class="mode">Cargando radar</span><span>RADAR · OBSERVACIONES</span></div>
 <div class="stage" id="stage"><span class="empty" id="empty">Cargando imágenes disponibles…</span><img id="radar" alt="Imagen del radar" hidden></div>

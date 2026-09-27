@@ -15,6 +15,25 @@
 .shop-note a { color: var(--accent-gold); text-decoration: underline; }
 .shop-page [aria-current="page"] { color: var(--accent-gold); }
 .shop-page [hidden] { display: none !important; }
+@media (max-width: 47.999em) {
+  .shop-page .header__container { min-height: 56px; padding: 7px; }
+  .shop-page .header__left { width: 100%; min-height: 40px; }
+  .shop-page .header__left::after {
+    content: "";
+    position: absolute;
+    left: 48px;
+    height: 30px;
+    border-left: 1px solid rgba(204, 210, 224, .45);
+  }
+  .shop-page .header__left .header__wordmark {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    padding-left: 0;
+    border-left: 0;
+  }
+  .shop-page .header__right { flex-shrink: 0; }
+}
 @media (max-width: 479px) {
   .shop-main { width: calc(100% - 24px); padding-top: calc(var(--header-h) + 30px); }
   .shop-intro { margin-bottom: 20px; }
