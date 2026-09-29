@@ -21,9 +21,9 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/style.css?v=mission-tablet-1" />
     <link rel="stylesheet" href="css/articles.css" />
-    <link rel="stylesheet" href="css/home-accents.css" />
+    <link rel="stylesheet" href="css/home-accents.css?v=regional-flip-1" />
     <link rel="stylesheet" href="css/hero-hurricane.css" />
 
     <script
@@ -36,6 +36,7 @@
     ></script>
     <script defer src="js/script.js?v=mobile-header-1"></script>
     <script defer src="js/hero-hurricane.js"></script>
+    <script defer src="js/region-cards.js"></script>
     <script type="module" src="js/index-articles.js"></script>
     <script src="js/analytics.js" defer></script>
 <link rel="canonical" href="https://fenomenosdelcaribe.org/" />
@@ -353,10 +354,6 @@
                     Leer análisis y artículos
                   </a>
                 </div>
-                <a href="#cobertura" class="btn btn--ghost">
-                  <ion-icon name="earth-outline"></ion-icon>
-                  Conocer la cobertura
-                </a>
                 </div>
               </div>
             </div>
@@ -477,10 +474,9 @@
                 <span class="card__icon"
                   ><ion-icon name="telescope-outline"></ion-icon
                 ></span>
-                <h3 class="card__title">Datos meteorológicos de calidad</h3>
+                <h3 class="card__title">Datos oficiales de calidad</h3>
                 <p class="card__text">
-                  Recopilamos de fuentes oficiales como NHC, NWS, SMN, INSIVUMEH
-                  e INDOMET, entre otras.
+                  Recopilamos datos de las instituciones oficiales más reconocidas del mundo.
                 </p>
               </div>
             </li>
@@ -490,7 +486,7 @@
                 <span class="card__icon"
                   ><ion-icon name="analytics-outline"></ion-icon
                 ></span>
-                <h3 class="card__title">Análisis de fenómenos peligrosos</h3>
+                <h3 class="card__title">Análisis detallado</h3>
                 <p class="card__text">
                   Evaluamos riesgos meteorológicos severos con modelos
                   actualizados y monitoreo constante.
@@ -503,7 +499,7 @@
                 <span class="card__icon"
                   ><ion-icon name="shield-checkmark-outline"></ion-icon
                 ></span>
-                <h3 class="card__title">Información confiable y simple</h3>
+                <h3 class="card__title">Información en lenguaje simple</h3>
                 <p class="card__text">
                   Traducimos datos técnicos en información comprensible para el
                   público general.
@@ -516,246 +512,10 @@
                 <span class="card__icon"
                   ><ion-icon name="notifications-outline"></ion-icon
                 ></span>
-                <h3 class="card__title">Vigilancia e informaciones oportunas</h3>
+                <h3 class="card__title">Publicación oportuna</h3>
                 <p class="card__text">
-                  Publicamos avisos en la web, en redes sociales y en nuestras
-                  comunidades.
+                  Compartimos los avisos en nuestra web, en redes sociales y en nuestras comunidades.
                 </p>
-              </div>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- ═══════════════════════ COBERTURA DE FENÓMENOS ═══════════════════ -->
-      <section class="section coverage" id="cobertura">
-        <div class="container">
-          <div class="section__head reveal">
-            <p class="eyebrow">Cobertura de fenómenos</p>
-            <h2 class="heading__secondary">Cuatro regiones de vigilancia</h2>
-            <p class="section__lead">
-              Cada región tiene su propia sala de monitoreo y su propia
-              comunidad. Sigue la que te afecta.
-            </p>
-          </div>
-
-          <ul class="brands">
-            <li class="card card--brand reveal">
-              <div class="card__inner brand">
-                <a
-                  class="brand__cover"
-                  href="fenomenos-mexico.html"
-                  aria-label="Fenómenos México — ver lo último"
-                ></a>
-                <span class="brand__logo">
-                  <img class="brand__regional-mark" src="img/regions/mexico.png" alt="" width="1600" height="1600" loading="lazy" />
-                </span>
-                <span class="brand__body">
-                  <span class="brand__title">Fenómenos México</span>
-                  <span class="brand__text"
-                    >Información actualizada sobre todos los fenómenos
-                    significativos en México, así como sus impactos y riesgos
-                    asociados.</span
-                  >
-                  <a
-                    href="https://www.facebook.com/FenomenosMexico?mibextid=wwXIfr&rdid=j11Ad3pkZMqoBQoH&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1K92dVHBB7%2F%3Fmibextid%3DwwXIfr"
-                    class="card__link brand__social"
-                    target="_blank"
-                    rel="noopener"
-                    >Redes sociales
-                    <ion-icon name="arrow-forward-outline"></ion-icon
-                  ></a
-                  >
-                </span>
-              </div>
-            </li>
-
-            <li class="card card--brand reveal">
-              <div class="card__inner brand">
-                <a
-                  class="brand__cover"
-                  href="fenomenos-caribe.html"
-                  aria-label="Fenómenos del Caribe — ver lo último"
-                ></a>
-                <span class="brand__logo">
-                  <img class="brand__regional-mark" src="img/regions/caribe.png" alt="" width="1600" height="1600" loading="lazy" />
-                </span>
-                <span class="brand__body">
-                  <span class="brand__title">Fenómenos del Caribe</span>
-                  <span class="brand__text"
-                    >Información actualizada sobre todos los fenómenos
-                    significativos para la región del Caribe, así como sus
-                    impactos y riesgos asociados. Cubrimos República Dominicana,
-                    Cuba, Puerto Rico, entre otros.</span
-                  >
-                  <a
-                    href="https://www.facebook.com/FenomenosCaribe?mibextid=wwXIfr&rdid=RgcnIzfn3mrMcbWI&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1EYfDM1PAN%2F%3Fmibextid%3DwwXIfr"
-                    class="card__link brand__social"
-                    target="_blank"
-                    rel="noopener"
-                    >Redes sociales
-                    <ion-icon name="arrow-forward-outline"></ion-icon
-                  ></a
-                  >
-                </span>
-              </div>
-            </li>
-
-            <li class="card card--brand reveal">
-              <div class="card__inner brand">
-                <a
-                  class="brand__cover"
-                  href="fenomenos-centroamerica.html"
-                  aria-label="Fenómenos Centroamérica — ver lo último"
-                ></a>
-                <span class="brand__logo">
-                  <img class="brand__regional-mark" src="img/regions/centroamerica.png" alt="" width="1600" height="1600" loading="lazy" />
-                </span>
-                <span class="brand__body">
-                  <span class="brand__title">Fenómenos Centroamérica</span>
-                  <span class="brand__text"
-                    >Información actualizada sobre todos los fenómenos
-                    significativos para la región de Centroamérica, así como sus
-                    impactos y riesgos asociados. Cubrimos Guatemala, El
-                    Salvador, Honduras, Nicaragua, entre otros.</span
-                  >
-                  <a
-                    href="https://www.facebook.com/FenomenosCAmerica?mibextid=wwXIfr&rdid=6PW1SSpx8RnFUxIu&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F19BV4oEcFo%2F%3Fmibextid%3DwwXIfr"
-                    class="card__link brand__social"
-                    target="_blank"
-                    rel="noopener"
-                    >Redes sociales
-                    <ion-icon name="arrow-forward-outline"></ion-icon
-                  ></a
-                  >
-                </span>
-              </div>
-            </li>
-
-            <li class="card card--brand reveal">
-              <div class="card__inner brand">
-                <a
-                  class="brand__cover"
-                  href="fenomenos-usa.html"
-                  aria-label="Fenómenos USA — ver lo último"
-                ></a>
-                <span class="brand__logo">
-                  <img class="brand__regional-mark" src="img/regions/usa.png" alt="" width="1600" height="1600" loading="lazy" />
-                </span>
-                <span class="brand__body">
-                  <span class="brand__title">Fenómenos USA</span>
-                  <span class="brand__text"
-                    >Información actualizada sobre todos los fenómenos
-                    significativos para la región de Estados Unidos, así como
-                    sus impactos y riesgos asociados.</span
-                  >
-                  <a
-                    href="https://www.facebook.com/fenomenosusa?mibextid=wwXIfr&rdid=PUnUgw50WGCjzEro&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1NroUFKKt3%2F%3Fmibextid%3DwwXIfr"
-                    class="card__link brand__social"
-                    target="_blank"
-                    rel="noopener"
-                    >Redes sociales
-                    <ion-icon name="arrow-forward-outline"></ion-icon
-                  ></a
-                  >
-                </span>
-              </div>
-            </li>
-          </ul>
-
-          <!-- Páginas especializadas — misma sección de cobertura -->
-          <div class="section__head section__head--sub reveal" id="especializadas">
-            <h3 class="heading__secondary heading__secondary--sub">
-              +3 páginas especializadas
-            </h3>
-          </div>
-
-          <ul class="brands brands--specialized">
-            <li class="card card--brand reveal">
-              <div class="card__inner brand">
-                <a
-                  class="brand__cover"
-                  href="huracanes-caribe.html"
-                  aria-label="Huracanes Caribe — ver lo último"
-                ></a>
-                <span class="brand__logo">
-                  <img
-                    class="brand__regional-mark"
-                    src="img/regions/huracanes.png"
-                    width="1320" height="1320"
-                    alt="Huracanes Caribe"
-                    loading="lazy"
-                  />
-                </span>
-                <span class="brand__body">
-                  <span class="brand__title">Huracanes Caribe</span>
-                  <span class="brand__text"
-                    >Información actualizada sobre ciclones tropicales en el
-                    Caribe y todo el Atlántico, así como sus impactos y riesgos
-                    asociados.</span
-                  >
-                  <a
-                    href="https://www.facebook.com/HuracanesCaribe?mibextid=wwXIfr&rdid=VWOrxxAcNOk4pr5f&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1EEqhYbfPK%2F%3Fmibextid%3DwwXIfr"
-                    class="card__link brand__social"
-                    target="_blank"
-                    rel="noopener"
-                    >Redes sociales
-                    <ion-icon name="arrow-forward-outline"></ion-icon
-                  ></a
-                  >
-                </span>
-              </div>
-            </li>
-
-            <li class="card card--brand reveal">
-              <div class="card__inner brand">
-                <a
-                  class="brand__cover"
-                  href="terremotos-caribe.html"
-                  aria-label="Terremotos Caribe — ver lo último"
-                ></a>
-                <span class="brand__logo">
-                  <img
-                    class="brand__regional-mark"
-                    src="img/regions/terremotos.png"
-                    width="1320" height="1320"
-                    alt="Terremotos Caribe"
-                    loading="lazy"
-                  />
-                </span>
-                <span class="brand__body">
-                  <span class="brand__title">Terremotos Caribe</span>
-                  <span class="brand__text"
-                    >Monitoreo sísmico, alertas y análisis de actividad tectónica
-                    relevante en la región.</span
-                  >
-                  <a
-                    href="https://www.facebook.com/terremotoscaribe?mibextid=wwXIfr&rdid=DxAoZmERmqyYcJ0x&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DZtKLxHEp%2F%3Fmibextid%3DwwXIfr"
-                    class="card__link brand__social"
-                    target="_blank"
-                    rel="noopener"
-                    >Redes sociales
-                    <ion-icon name="arrow-forward-outline"></ion-icon
-                  ></a
-                  >
-                </span>
-              </div>
-            </li>
-
-            <li class="card card--brand reveal">
-              <div class="card__inner brand">
-                <span class="brand__logo">
-                  <img class="brand__regional-mark"
-                    src="img/regions/especiales.png" alt="Fenómenos Espaciales Caribe"
-                    width="1320" height="1320" loading="lazy" />
-                </span>
-                <span class="brand__body">
-                  <span class="brand__title">Fenómenos Espaciales Caribe</span>
-                  <span class="brand__text">Información sobre eventos espaciales como eclipses, lluvias de meteoros, cometas y otros fenómenos astronómicos, con énfasis en su observación desde el Caribe.</span>
-                  <span class="card__link brand__social brand__social--pending" role="link" aria-disabled="true">Redes sociales
-                    <ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon>
-                  </span>
-                </span>
               </div>
             </li>
           </ul>
@@ -769,11 +529,10 @@
             <div class="section__head section__head--left reveal">
               <p class="eyebrow">Qué recibes</p>
               <h2 class="heading__secondary">
-                Vigilancia diseñada<br />para tu localidad
+                Vigilancia diseñada<br />para tu región
               </h2>
               <p class="section__lead">
-                Nuestros principales servicios de monitoreo y análisis del
-                tiempo, sin tecnicismos innecesarios.
+                Monitoreo y análisis de tiempo peligroso en un lenguaje claro, sin tecnicismos.
               </p>
               <div class="btn__back btn__back--inline">
                 <a
@@ -835,15 +594,166 @@
         </div>
       </section>
 
+      <!-- ═══════════════════════ COBERTURA DE FENÓMENOS ═══════════════════ -->
+      <section class="section coverage" id="cobertura">
+        <div class="container">
+          <div class="section__head reveal">
+            <p class="eyebrow">Cobertura regional</p>
+            <h2 class="heading__secondary">Cuatro regiones de vigilancia</h2>
+            <p class="section__lead">
+              Cada región tiene su propia sala de monitoreo y su propia
+              comunidad. Sigue la que te afecta.
+            </p>
+          </div>
+
+          <ul class="brands brands--regions">
+            <li class="card card--brand reveal region-card" data-region-page="fenomenos-mexico.html">
+              <div class="card__inner brand">
+                <button type="button" class="region-card__identity region-card__toggle" aria-label="Abrir opciones de Fenómenos México" aria-expanded="false">
+                  <span class="brand__logo">
+                    <img class="brand__regional-mark" src="img/regions/mexico.png" alt="" width="1600" height="1600" loading="lazy" />
+                  </span>
+                  <h3 class="brand__title">Fenómenos México</h3>
+                  <ion-icon class="region-card__flip" name="sync-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <div class="region-card__options" hidden>
+                  <button class="region-card__back" type="button" aria-label="Volver a Fenómenos México">← Volver</button>
+                  <a class="region-card__option" href="sala-mexico.html">Sala</a>
+                  <a class="region-card__option" href="articulos.html?categoria=Fen%C3%B3menos%20M%C3%A9xico">Artículos</a>
+                  <a class="region-card__option" href="https://www.facebook.com/FenomenosMexico" target="_blank" rel="noopener">Facebook Page</a>
+                </div>
+              </div>
+            </li>
+
+            <li class="card card--brand reveal region-card" data-region-page="fenomenos-caribe.html">
+              <div class="card__inner brand">
+                <button type="button" class="region-card__identity region-card__toggle" aria-label="Abrir opciones de Fenómenos Caribe" aria-expanded="false">
+                  <span class="brand__logo">
+                    <img class="brand__regional-mark" src="img/regions/caribe.png" alt="" width="1600" height="1600" loading="lazy" />
+                  </span>
+                  <h3 class="brand__title">Fenómenos Caribe</h3>
+                  <ion-icon class="region-card__flip" name="sync-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <div class="region-card__options" hidden>
+                  <button class="region-card__back" type="button" aria-label="Volver a Fenómenos Caribe">← Volver</button>
+                  <a class="region-card__option" href="sala-caribe.html">Sala</a>
+                  <a class="region-card__option" href="articulos.html?categoria=Fen%C3%B3menos%20del%20Caribe">Artículos</a>
+                  <a class="region-card__option" href="https://www.facebook.com/FenomenosCaribe" target="_blank" rel="noopener">Facebook Page</a>
+                </div>
+              </div>
+            </li>
+
+            <li class="card card--brand reveal region-card" data-region-page="fenomenos-centroamerica.html">
+              <div class="card__inner brand">
+                <button type="button" class="region-card__identity region-card__toggle" aria-label="Abrir opciones de Fenómenos Centroamérica" aria-expanded="false">
+                  <span class="brand__logo">
+                    <img class="brand__regional-mark" src="img/regions/centroamerica.png" alt="" width="1600" height="1600" loading="lazy" />
+                  </span>
+                  <h3 class="brand__title">Fenómenos Centroamérica</h3>
+                  <ion-icon class="region-card__flip" name="sync-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <div class="region-card__options" hidden>
+                  <button class="region-card__back" type="button" aria-label="Volver a Fenómenos Centroamérica">← Volver</button>
+                  <a class="region-card__option" href="sala-centroamerica.html">Sala</a>
+                  <a class="region-card__option" href="articulos.html?categoria=Fen%C3%B3menos%20Centroam%C3%A9rica">Artículos</a>
+                  <a class="region-card__option" href="https://www.facebook.com/FenomenosCAmerica" target="_blank" rel="noopener">Facebook Page</a>
+                </div>
+              </div>
+            </li>
+
+            <li class="card card--brand reveal region-card" data-region-page="fenomenos-usa.html">
+              <div class="card__inner brand">
+                <button type="button" class="region-card__identity region-card__toggle" aria-label="Abrir opciones de Fenómenos USA" aria-expanded="false">
+                  <span class="brand__logo">
+                    <img class="brand__regional-mark" src="img/regions/usa.png" alt="" width="1600" height="1600" loading="lazy" />
+                  </span>
+                  <h3 class="brand__title">Fenómenos USA</h3>
+                  <ion-icon class="region-card__flip" name="sync-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <div class="region-card__options" hidden>
+                  <button class="region-card__back" type="button" aria-label="Volver a Fenómenos USA">← Volver</button>
+                  <a class="region-card__option" href="sala-usa.html">Sala</a>
+                  <a class="region-card__option" href="articulos.html?categoria=Fen%C3%B3menos%20USA">Artículos</a>
+                  <a class="region-card__option" href="https://www.facebook.com/fenomenosusa" target="_blank" rel="noopener">Facebook Page</a>
+                </div>
+              </div>
+            </li>
+          </ul>
+
+          <!-- Páginas especializadas — misma sección de cobertura -->
+          <div class="section__head section__head--sub reveal" id="especializadas">
+            <h3 class="heading__secondary heading__secondary--sub">
+              +3 páginas especializadas
+            </h3>
+          </div>
+
+          <ul class="brands brands--regions brands--specialized">
+            <li class="card card--brand reveal region-card">
+              <div class="card__inner brand">
+                <button type="button" class="region-card__identity region-card__toggle" aria-label="Abrir opciones de Huracanes Caribe" aria-expanded="false">
+                  <span class="brand__logo">
+                    <img class="brand__regional-mark" src="img/regions/huracanes.png" alt="" width="1320" height="1320" loading="lazy" />
+                  </span>
+                  <h3 class="brand__title">Huracanes Caribe</h3>
+                  <ion-icon class="region-card__flip" name="sync-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <div class="region-card__options" hidden>
+                  <button class="region-card__back" type="button" aria-label="Volver a Huracanes Caribe">← Volver</button>
+                  <a class="region-card__option" href="sala-huracanes-caribe.html">Sala</a>
+                  <a class="region-card__option" href="articulos.html?categoria=Huracanes%20Caribe">Artículos</a>
+                  <a class="region-card__option" href="https://www.facebook.com/HuracanesCaribe" target="_blank" rel="noopener">Facebook Page</a>
+                </div>
+              </div>
+            </li>
+
+            <li class="card card--brand reveal region-card">
+              <div class="card__inner brand">
+                <button type="button" class="region-card__identity region-card__toggle" aria-label="Abrir opciones de Terremotos Caribe" aria-expanded="false">
+                  <span class="brand__logo">
+                    <img class="brand__regional-mark" src="img/regions/terremotos.png" alt="" width="1320" height="1320" loading="lazy" />
+                  </span>
+                  <h3 class="brand__title">Terremotos Caribe</h3>
+                  <ion-icon class="region-card__flip" name="sync-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <div class="region-card__options" hidden>
+                  <button class="region-card__back" type="button" aria-label="Volver a Terremotos Caribe">← Volver</button>
+                  <a class="region-card__option" href="sala-terremotos-caribe.html">Sala</a>
+                  <a class="region-card__option" href="articulos.html?categoria=Terremotos%20Caribe">Artículos</a>
+                  <a class="region-card__option" href="https://www.facebook.com/terremotoscaribe" target="_blank" rel="noopener">Facebook Page</a>
+                </div>
+              </div>
+            </li>
+
+            <li class="card card--brand reveal region-card">
+              <div class="card__inner brand">
+                <button type="button" class="region-card__identity region-card__toggle" aria-label="Abrir opciones de Fenómenos Espaciales Caribe" aria-expanded="false">
+                  <span class="brand__logo">
+                    <img class="brand__regional-mark" src="img/regions/especiales.png" alt="" width="1320" height="1320" loading="lazy" />
+                  </span>
+                  <h3 class="brand__title">Fenómenos Espaciales Caribe</h3>
+                  <ion-icon class="region-card__flip" name="sync-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <div class="region-card__options" hidden>
+                  <button class="region-card__back" type="button" aria-label="Volver a Fenómenos Espaciales Caribe">← Volver</button>
+                  <a class="region-card__option" href="sala-fenomenos-espaciales-caribe.html">Sala</a>
+                  <a class="region-card__option" href="articulos.html?categoria=Fen%C3%B3menos%20Espaciales%20Caribe">Artículos</a>
+                  <span class="region-card__option" role="link" aria-disabled="true" title="Enlace pendiente">Facebook Page</span>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+
       <!-- ═══════════════════════ COBERTURA REGIONAL ═══════════════════════ -->
       <section class="section regions" id="regiones">
         <div class="container">
           <div class="section__head reveal">
-            <p class="eyebrow">Cobertura regional</p>
-            <h2 class="heading__secondary">Personalizada por país</h2>
+            <p class="eyebrow">Cobertura local</p>
+            <h2 class="heading__secondary">Análisis de riesgos por país</h2>
             <p class="section__lead">
-              El Caribe, Centroamérica, México y Estados Unidos — y seguimos
-              creciendo.
+              Conoce los fenómenos que pueden afectar a tu país y cómo prepararte
             </p>
           </div>
 
@@ -864,9 +774,6 @@
             <li class="region"><span class="region__flag">🇳🇮</span>Nicaragua</li>
             <li class="region"><span class="region__flag">🇨🇷</span>Costa Rica</li>
             <li class="region"><span class="region__flag">🇵🇦</span>Panamá</li>
-            <li class="region region--more">
-              <span class="region__flag">❇️</span>Entre otros
-            </li>
           </ul>
         </div>
       </section>

@@ -490,8 +490,37 @@ section {
   clip-path: polygon(44% 0, 56% 0, 56% 73%, 81% 48%, 89% 56%, 50% 95%, 11% 56%, 19% 48%, 44% 73%);
   pointer-events: none;
 }
-@media (min-width: 64em) {
+@media (min-width: 48em) and (max-width: 74.999em) {
+  .mission .grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mission .card:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .mission .card:nth-child(4) { grid-column: 1; grid-row: 2; }
+  .mission .card__title { min-height: 2.6em; }
+  .mission .card:nth-child(1)::after {
+    left: auto;
+    right: -3rem;
+    bottom: calc(50% - 1.2rem);
+    transform: rotate(-90deg);
+  }
+  .mission .card:nth-child(3)::after {
+    left: -3rem;
+    bottom: calc(50% - 1.2rem);
+    transform: rotate(90deg);
+  }
+}
+@media (min-width: 75em) {
   .mission .grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mission .card__title { min-height: 3.9em; }
+  @supports (grid-template-rows: subgrid) {
+    .mission .grid--4 { row-gap: 1.2rem; }
+    .mission .card,
+    .mission .card__inner {
+      display: grid;
+      grid-row: span 3;
+      grid-template-rows: subgrid;
+    }
+    .mission .card__inner { height: auto; }
+    .mission .card__title { min-height: 0; }
+  }
   .mission .card:not(:last-child)::after {
     left: auto;
     right: -3rem;

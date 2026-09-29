@@ -86,6 +86,7 @@
 .brand__logo:has(.brand__regional-mark) {
   position: relative;
   isolation: isolate;
+  mix-blend-mode: screen;
 }
 .brand__logo:has(.brand__regional-mark)::after {
   content: "";
@@ -237,4 +238,146 @@
 @media (max-width: 35.999em) {
   .hero__secondary-actions { flex-direction: column; align-items: center; gap: .6rem; }
   .hero__secondary-actions .btn, .hero__secondary-actions .btn__back { width: auto; }
+}
+
+/* Compact regional and specialized cards. */
+.brands.brands--regions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+  align-items: stretch;
+}
+.brands--regions .card { min-width: 0; }
+.brands--regions .brand {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 1.4rem 1rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem;
+  text-align: center;
+}
+.brands--regions .brand > * { flex-shrink: 0; }
+.region-card__identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  text-decoration: none;
+}
+.brands--regions .brand__logo {
+  width: 6.4rem;
+  height: 6.4rem;
+  border-color: transparent;
+  background: transparent;
+}
+.brands--regions .brand__title {
+  font-size: 1.8rem;
+  line-height: 1.35;
+  min-height: 2.7em;
+  display: grid;
+  align-content: center;
+  overflow-wrap: anywhere;
+}
+.brands--regions .brand__social {
+  margin-top: auto;
+  padding-top: 0;
+  min-height: 4.4rem;
+  font-size: 1.2rem;
+}
+.region-card__identity:focus-visible,
+.brands--regions .brand__social:focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 3px;
+}
+.brands--regions.brands--specialized > .card:last-child {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc((100% - 1.2rem) / 2);
+}
+@media (min-width: 64em) {
+  .brands.brands--regions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.6rem; }
+  .brands--regions .brand { padding: 1.6rem; }
+  .brands--regions .brand__logo { width: 8rem; height: 8rem; }
+  .brands--regions .brand__title { font-size: 2.1rem; }
+  .brands--regions .brand__social { font-size: 1.3rem; }
+  .brands.brands--regions.brands--specialized {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: calc((100% - 1.6rem) * .75);
+    margin-inline: auto;
+  }
+  .brands--regions.brands--specialized > .card:last-child {
+    grid-column: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+}
+
+@media (max-width: 35.999em) {
+  .brands--regions .brand__logo { width: 5rem; height: 5rem; }
+}
+
+/* Gold Facebook links retain a comfortable touch target. */
+.brands--regions .brand__social {
+  color: var(--accent-gold);
+  min-width: 4.4rem;
+  justify-content: center;
+}
+.brands--regions .brand__social ion-icon { font-size: 2.4rem; }
+
+@media (max-width: 47.999em) {
+  .brands--regions .brand__title { font-size: 1.6rem; }
+}
+
+/* A regional card reveals its destinations without changing the grid. */
+.region-card .brand { min-height: 18rem; position: relative; }
+.region-card__toggle {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  flex: 1;
+  justify-content: center;
+}
+.region-card__toggle::after { content: ''; position: absolute; inset: 0; }
+.region-card__options { width: 100%; display: grid; gap: .2rem; }
+.region-card [hidden] { display: none; }
+.region-card__back {
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font: inherit;
+  font-size: 1.2rem;
+  min-height: 3.2rem;
+  cursor: pointer;
+  justify-self: start;
+}
+.region-card__option {
+  display: grid;
+  place-items: center;
+  min-height: 4.4rem;
+  border-radius: .8rem;
+  color: var(--accent-gold);
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.region-card__option:hover { background: rgba(244,197,66,.08); }
+.region-card__option:focus-visible,
+.region-card__back:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 1px; }
+.region-card__option[aria-disabled] { color: var(--text-3); }
+@media (min-width: 64em) { .region-card .brand { min-height: 21rem; } }
+
+.region-card__flip {
+  position: absolute;
+  right: 1.2rem;
+  top: 1.2rem;
+  font-size: 1.8rem;
+  color: var(--accent-gold);
+  opacity: .8;
+  pointer-events: none;
 }
