@@ -268,8 +268,8 @@
   text-decoration: none;
 }
 .brands--regions .brand__logo {
-  width: 6.4rem;
-  height: 6.4rem;
+  width: 10rem;
+  height: 10rem;
   border-color: transparent;
   background: transparent;
 }
@@ -300,7 +300,7 @@
 @media (min-width: 64em) {
   .brands.brands--regions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.6rem; }
   .brands--regions .brand { padding: 1.6rem; }
-  .brands--regions .brand__logo { width: 8rem; height: 8rem; }
+  .brands--regions .brand__logo { width: 11rem; height: 11rem; }
   .brands--regions .brand__title { font-size: 2.1rem; }
   .brands--regions .brand__social { font-size: 1.3rem; }
   .brands.brands--regions.brands--specialized {
@@ -316,7 +316,7 @@
 }
 
 @media (max-width: 35.999em) {
-  .brands--regions .brand__logo { width: 5rem; height: 5rem; }
+  .brands--regions .brand__logo { width: 8.4rem; height: 8.4rem; }
 }
 
 /* Gold Facebook links retain a comfortable touch target. */
