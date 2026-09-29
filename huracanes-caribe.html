@@ -23,7 +23,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/articles.css" />
+    <link rel="stylesheet" href="css/articles.css?v=category-note-1" />
 
     <script
       type="module"
@@ -264,7 +264,14 @@
         <header class="post__head" id="category-intro">
           <h1 class="heading__primary post__title">Huracanes Caribe</h1>
           <p class="post__excerpt">Información actualizada sobre ciclones tropicales en el Caribe y todo el Atlántico, así como sus impactos y riesgos asociados.</p>
-          <p>Esta sección muestra el artículo publicado más reciente de esta categoría. También puedes consultar <a href="/articulos">todos los artículos</a> y el <a href="/archivo/">archivo histórico</a>.</p>
+          <aside class="category-note" aria-label="Sobre este listado">
+            <span class="category-note__label">Última publicación</span>
+            <p>A continuación encontrarás el artículo más reciente de esta categoría.</p>
+            <nav class="category-note__links" aria-label="Explorar publicaciones">
+              <a href="articulos.html">Todos los artículos <span aria-hidden="true">→</span></a>
+              <a href="/archivo/">Archivo histórico <span aria-hidden="true">→</span></a>
+            </nav>
+          </aside>
         </header>
         <div class="post-layout">
           <article class="post">
