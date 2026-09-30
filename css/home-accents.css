@@ -381,3 +381,7 @@
   opacity: .8;
   pointer-events: none;
 }
+
+/* Gold heading above the original neutral institution labels. */
+.logos__heading { color: var(--accent-gold); }
+.logos__container--box-line-sep { animation-duration: 52s; }
