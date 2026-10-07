@@ -529,11 +529,11 @@ section {
   }
 }
 
-/* Scroll reveal — scoped to .js so nothing is invisible without JavaScript */
+/* Content stays visible even when observers or deferred scripts do not run. */
 
 .js .reveal {
-  opacity: 0;
-  transform: translateY(2.4rem);
+  opacity: 1;
+  transform: none;
   transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
 }
 .js .reveal.is-in {
@@ -551,8 +551,8 @@ section {
 .project-hero {
   position: relative;
   display: flex;
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: min(100vh, 90rem);
+  min-height: min(100svh, 90rem);
   overflow: hidden;
   border-bottom: 0.1rem solid var(--line);
 }
