@@ -4,12 +4,12 @@
    pinta filtros por etiqueta (con conteo) y búsqueda instantánea.
    ══════════════════════════════════════════════════════════════════════════ */
 
-import { fetchPublished, fetchTags } from "./db.js";
+function withDeadline(promise) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("Fuente lenta")), 8000))]);
+}
+const liveDB = import("./db.js");
 import { fetchArchive, newestFirst } from "./archive-catalog.js";
 import { articleCard, articleTagList, normalizeText } from "./render-article.js";
-
-/* señal para el watchdog de la página: los módulos remotos cargaron */
-window.__fdcModuleOk = true;
 
 const grid = document.getElementById("articles-grid");
 const filters = document.getElementById("tag-filters");
@@ -17,10 +17,11 @@ const empty = document.getElementById("catalog-empty");
 const emptyText = document.getElementById("catalog-empty-text");
 const search = document.getElementById("search");
 
-let articles = [];
+const initialArticles = JSON.parse(document.getElementById("initial-articles").textContent);
+let articles = [...initialArticles];
 let activeTag = "";
 let term = "";
-let visibleLimit = 24;
+let visibleLimit = initialArticles.length;
 const moreButton = document.createElement("button");
 moreButton.type = "button";
 moreButton.className = "btn btn--ghost";
@@ -52,7 +53,6 @@ function renderFilters(tags) {
 
   filters.textContent = "";
   const all = chipButton("Todos", "", articles.length);
-  all.classList.add("is-active");
   filters.appendChild(all);
   ordered.forEach((tag) => filters.appendChild(chipButton(tag, tag, counts.get(tag))));
 }
@@ -61,6 +61,7 @@ function chipButton(label, tag, count) {
   const btn = document.createElement("button");
   btn.className = "chip";
   btn.dataset.tag = tag;
+  btn.classList.toggle("is-active", tag === activeTag);
   btn.appendChild(document.createTextNode(label));
   if (count != null) {
     const n = document.createElement("span");
@@ -91,12 +92,10 @@ function matches(article) {
 }
 
 function renderGrid() {
-  grid.textContent = "";
   const visible = articles.filter(matches);
 
-  visible.slice(0, visibleLimit).forEach((a) =>
-    grid.appendChild(articleCard(a, { revealed: true, reactions: true }))
-  );
+  const cards = visible.slice(0, visibleLimit).map(a => articleCard(a, { revealed: true, reactions: true }));
+  grid.replaceChildren(...cards);
 
   moreButton.hidden = visible.length <= visibleLimit;
   empty.classList.toggle("is-visible", visible.length === 0);
@@ -138,10 +137,12 @@ function showCategoryNote() {
   bar.parentNode.insertBefore(note, bar);
 }
 
+renderFilters([]);
+
 (async () => {
   try {
     const [liveResult, archiveResult, tagsResult] = await Promise.allSettled([
-      fetchPublished(), fetchArchive(), fetchTags(),
+      withDeadline(liveDB.then(db => db.fetchPublished())), withDeadline(fetchArchive()), withDeadline(liveDB.then(db => db.fetchTags())),
     ]);
     if (liveResult.status === "rejected" && archiveResult.status === "rejected") {
       throw new Error("No se pudo cargar ninguna fuente de artículos");
@@ -150,7 +151,7 @@ function showCategoryNote() {
     const archive = archiveResult.status === "fulfilled" ? archiveResult.value : [];
     const tags = tagsResult.status === "fulfilled" ? tagsResult.value : [];
     const labels = new Map(tags.map((tag) => [normalizeText(tag), tag]));
-    articles = newestFirst([...published, ...archive]).map((article) => ({
+    articles = newestFirst([...new Map([...initialArticles, ...archive, ...published].map(a => [a.archivePath || a.id, a])).values()]).map((article) => ({
       ...article,
       tags: [...new Set(articleTagList(article).map((tag) => {
         const key = normalizeText(tag);
@@ -177,7 +178,7 @@ function showCategoryNote() {
   } catch (err) {
     console.error("No se pudieron cargar los artículos:", err);
     clearSkeletons();
-    empty.classList.add("is-visible");
+    empty.classList.toggle("is-visible", !grid.children.length);
     emptyText.textContent =
       "No pudimos cargar los artículos en este momento. Intenta de nuevo más tarde.";
   }

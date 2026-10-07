@@ -1,36 +1,17 @@
-/* ══════════════════════════════════════════════════════════════════════════
-   FENÓMENOS DEL CARIBE — index-articles.js
-   Sección «Últimos artículos» de la portada: carga los 4 publicados más
-   recientes desde Firestore.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-import { fetchPublished } from "./db.js";
+/* Keep real initial cards visible while the optional live source loads. */
 import { articleCard } from "./render-article.js";
-
-/* señal para el watchdog de la página: los módulos remotos cargaron */
-window.__fdcModuleOk = true;
-
+import { newestFirst } from "./archive-catalog.js";
 const grid = document.getElementById("home-articles");
-const empty = document.getElementById("home-articles-empty");
-
+const initial = JSON.parse(document.getElementById("initial-articles").textContent);
 (async () => {
   try {
-    const articles = await fetchPublished();
-    grid.textContent = "";
-
-    if (!articles.length) {
-      empty.classList.add("is-visible");
-      return;
-    }
-
-    articles
-      .slice(0, 4)
-      .forEach((a) =>
-        grid.appendChild(articleCard(a, { revealed: true, reactions: true }))
-      );
+    const { fetchPublished } = await import("./db.js");
+    const live = await fetchPublished();
+    if (!live.length) return;
+    const articles = newestFirst([...new Map([...initial, ...live].map(a => [a.archivePath || a.id, a])).values()]).slice(0, 4);
+    const cards = articles.map(a => articleCard(a, { revealed: true, reactions: true }));
+    grid.replaceChildren(...cards);
   } catch (err) {
-    console.error("No se pudieron cargar los artículos:", err);
-    grid.textContent = "";
-    empty.classList.add("is-visible");
+    console.warn("Se conserva el catálogo inicial; fuente en vivo no disponible.", err);
   }
 })();

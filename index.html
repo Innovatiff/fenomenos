@@ -898,31 +898,11 @@
           </div>
 
           <ul class="grid grid--4 articles__grid" id="home-articles">
-            <li class="skeleton" aria-hidden="true">
-              <div class="skeleton__block skeleton__block--media"></div>
-              <div class="skeleton__block skeleton__block--line w-40"></div>
-              <div class="skeleton__block skeleton__block--line w-80"></div>
-              <div class="skeleton__block skeleton__block--line"></div>
-            </li>
-            <li class="skeleton" aria-hidden="true">
-              <div class="skeleton__block skeleton__block--media"></div>
-              <div class="skeleton__block skeleton__block--line w-40"></div>
-              <div class="skeleton__block skeleton__block--line w-80"></div>
-              <div class="skeleton__block skeleton__block--line"></div>
-            </li>
-            <li class="skeleton" aria-hidden="true">
-              <div class="skeleton__block skeleton__block--media"></div>
-              <div class="skeleton__block skeleton__block--line w-40"></div>
-              <div class="skeleton__block skeleton__block--line w-80"></div>
-              <div class="skeleton__block skeleton__block--line"></div>
-            </li>
-            <li class="skeleton" aria-hidden="true">
-              <div class="skeleton__block skeleton__block--media"></div>
-              <div class="skeleton__block skeleton__block--line w-40"></div>
-              <div class="skeleton__block skeleton__block--line w-80"></div>
-              <div class="skeleton__block skeleton__block--line"></div>
-            </li>
-          </ul>
+<li class="card card--article"><a class="card__inner" href="/2025/12/perspectiva-de-tiempo-peligroso-rep.html"><span class="article__media"></span><span class="article__meta">Archivo · <time datetime="2025-12-12T23:13:00.010Z">2025-12-12</time></span><h3 class="card__title">Perspectiva de Tiempo Peligroso | Sábado 13 DIC 2025</h3><p class="card__text">TIEMPO SEVERO CARIBE PERSPECTIVA DE TIEMPO PELIGROSO CREADO EL SABADO 13 DE DICIEMBRE DEL 2025 VÁLIDO PAR EL DOMINGO 14 DE DICIEMBRE DEL 2025 REGIÓN DEL CA</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/2025/12/perspectiva-de-tiempo-peligroso-viernes.html"><span class="article__media"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4vaE0crl9-M4Ft-tF1c1A05TcGDMEpeEqN-EZ8fnqocQNkMyp37_eOV4XKGx38dB4-K6C3weKKmfG3LvoZ3fiA6SxeuGdrRzCSdvLKMs00pfBajmn958yIzKcZgpyLWj7YqcIkajGfIe8TMIoOqjVG0vxuqVjTiSOBAE5W0TR85hwWsGIpKvc7VC5eXE/s16000/Screenshot%202025-12-04%20at%2010.24.00%E2%80%AFPM.png" alt="" loading="lazy" /></span><span class="article__meta">Archivo · <time datetime="2025-12-05T03:24:00.005Z">2025-12-05</time></span><h3 class="card__title">Perspectiva de Tiempo Peligroso | Viernes 05 DIC 2025</h3><p class="card__text">PERSPECTIVA DE TIEMPO PELIGROSO TIEMPO SEVERO CARIBE CREADO EL JUEVES 04 DE DICIEMBRE DEL 2025 VÁLIDO PARA ESTE VIERNES 05 DE DICIEMBRE DEL 2025 RESUMEN --</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/2025/12/perspectiva-general-del-tiempo-tiempo.html"><span class="article__media"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh5lVgcPqRioXzQfGWNoE8YPeBT-v4tcMnnc6VItSkg5-YmuP-v_grN8c-3cxVkxunsGsetfx7i-ecCpZ3sVlFDNPeCsFuT5dqVHqHqxQlMcY9nJgqAU1gXhksipHpM0HITdt1ZzxTJZ70VL0S2mx_S_lX2ZT2nGeOqcjd0fSG4zlUWKAJjr-Lz06h181Y/s16000/COD-GOES-East-regional-prregional.truecolor.20251203.202021-over=map-bars=none.gif" alt="" loading="lazy" /></span><span class="article__meta">Archivo · <time datetime="2025-12-03T23:43:00.006Z">2025-12-03</time></span><h3 class="card__title">Perspectiva del Tiempo | Jueves 04 DIC 2025</h3><p class="card__text">PERSPECTIVA GENERAL DEL TIEMPO TIEMPO SEVERO CARIBE CREADO EL MIERCOLES 03 DE DICIEMBRE DEL 2025 VÁLIDO PARA ESTE JUEVES 04 DE DICIEMBRE DEL 2025 SINOPSIS </p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/2025/12/perspectiva-del-tiempo-miercoles.html"><span class="article__media"></span><span class="article__meta">Archivo · <time datetime="2025-12-03T01:32:00.023Z">2025-12-03</time></span><h3 class="card__title">Perspectiva del Tiempo | Miércoles 03/12/2025</h3><p class="card__text">PERSPECTIVA GENERAL DEL TIEMPO TIEMPO SEVERO CARIBE CREADO EL MARTES 02 DE DICIEMBRE DEL 2025 VÁLIDO PARA ESTE MIÉRCOLES 03 DE DICIEMBRE DEL 2025 RESUMEN S</p><span class="card__link">Leer más →</span></a></li>
+</ul>
 
           <div class="catalog__empty" id="home-articles-empty">
             <ion-icon name="newspaper-outline"></ion-icon>
@@ -1074,16 +1054,6 @@
     <button class="to-top" id="to-top" aria-label="Volver arriba">
       <ion-icon name="arrow-up-outline"></ion-icon>
     </button>
-
-    <!-- Watchdog: si el SDK remoto no llega a cargar, no dejes esqueletos -->
-    <script>
-      setTimeout(function () {
-        if (window.__fdcModuleOk) return;
-        var grid = document.getElementById("home-articles");
-        var empty = document.getElementById("home-articles-empty");
-        if (grid) grid.textContent = "";
-        if (empty) empty.classList.add("is-visible");
-      }, 10000);
-    </script>
+  <script id="initial-articles" type="application/json">[{"id": "archive:/2025/12/perspectiva-de-tiempo-peligroso-rep.html", "archivePath": "/2025/12/perspectiva-de-tiempo-peligroso-rep.html", "isArchive": true, "title": "Perspectiva de Tiempo Peligroso | Sábado 13 DIC 2025", "excerpt": "TIEMPO SEVERO CARIBE PERSPECTIVA DE TIEMPO PELIGROSO CREADO EL SABADO 13 DE DICIEMBRE DEL 2025 VÁLIDO PAR EL DOMINGO 14 DE DICIEMBRE DEL 2025 REGIÓN DEL CA", "publishedAt": "2025-12-12T23:13:00.010Z", "cover": "", "tags": ["Archivo"], "categories": []}, {"id": "archive:/2025/12/perspectiva-de-tiempo-peligroso-viernes.html", "archivePath": "/2025/12/perspectiva-de-tiempo-peligroso-viernes.html", "isArchive": true, "title": "Perspectiva de Tiempo Peligroso | Viernes 05 DIC 2025", "excerpt": "PERSPECTIVA DE TIEMPO PELIGROSO TIEMPO SEVERO CARIBE CREADO EL JUEVES 04 DE DICIEMBRE DEL 2025 VÁLIDO PARA ESTE VIERNES 05 DE DICIEMBRE DEL 2025 RESUMEN --", "publishedAt": "2025-12-05T03:24:00.005Z", "cover": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4vaE0crl9-M4Ft-tF1c1A05TcGDMEpeEqN-EZ8fnqocQNkMyp37_eOV4XKGx38dB4-K6C3weKKmfG3LvoZ3fiA6SxeuGdrRzCSdvLKMs00pfBajmn958yIzKcZgpyLWj7YqcIkajGfIe8TMIoOqjVG0vxuqVjTiSOBAE5W0TR85hwWsGIpKvc7VC5eXE/s16000/Screenshot%202025-12-04%20at%2010.24.00%E2%80%AFPM.png", "tags": ["Archivo", "Pronósticos", "Tiempo Severo"], "categories": []}, {"id": "archive:/2025/12/perspectiva-general-del-tiempo-tiempo.html", "archivePath": "/2025/12/perspectiva-general-del-tiempo-tiempo.html", "isArchive": true, "title": "Perspectiva del Tiempo | Jueves 04 DIC 2025", "excerpt": "PERSPECTIVA GENERAL DEL TIEMPO TIEMPO SEVERO CARIBE CREADO EL MIERCOLES 03 DE DICIEMBRE DEL 2025 VÁLIDO PARA ESTE JUEVES 04 DE DICIEMBRE DEL 2025 SINOPSIS ", "publishedAt": "2025-12-03T23:43:00.006Z", "cover": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh5lVgcPqRioXzQfGWNoE8YPeBT-v4tcMnnc6VItSkg5-YmuP-v_grN8c-3cxVkxunsGsetfx7i-ecCpZ3sVlFDNPeCsFuT5dqVHqHqxQlMcY9nJgqAU1gXhksipHpM0HITdt1ZzxTJZ70VL0S2mx_S_lX2ZT2nGeOqcjd0fSG4zlUWKAJjr-Lz06h181Y/s16000/COD-GOES-East-regional-prregional.truecolor.20251203.202021-over=map-bars=none.gif", "tags": ["Archivo"], "categories": []}, {"id": "archive:/2025/12/perspectiva-del-tiempo-miercoles.html", "archivePath": "/2025/12/perspectiva-del-tiempo-miercoles.html", "isArchive": true, "title": "Perspectiva del Tiempo | Miércoles 03/12/2025", "excerpt": "PERSPECTIVA GENERAL DEL TIEMPO TIEMPO SEVERO CARIBE CREADO EL MARTES 02 DE DICIEMBRE DEL 2025 VÁLIDO PARA ESTE MIÉRCOLES 03 DE DICIEMBRE DEL 2025 RESUMEN S", "publishedAt": "2025-12-03T01:32:00.023Z", "cover": "", "tags": ["Archivo", "Pronósticos"], "categories": []}]</script>
   </body>
 </html>
