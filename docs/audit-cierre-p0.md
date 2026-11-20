@@ -2,7 +2,7 @@
 
 Fecha: 2026-11-20  
 Rama: `codex/p0-ssr-sitemap`  
-Base local: `d6887d8` (`main` / `origin/main`) con cambios sin subir.
+Commits locales: `5f2a8ed` (automatización SSR) y `e45af6b` (dominio objetivo). El árbol de trabajo está limpio; ninguno se ha subido.
 
 ## Resultado ejecutivo
 
