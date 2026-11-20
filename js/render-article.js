@@ -260,6 +260,8 @@ export function renderArticle(root, article, { headingTag = "h1" } = {}) {
   );
   const when = formatDate(article.publishedAt || article.updatedAt || article.createdAt);
   if (when) meta.appendChild(el("span", "post__date", when));
+  const author = typeof article.author === "string" ? article.author : article.author?.name;
+  if (author) meta.appendChild(el("span", "post__author", "Por " + author));
   meta.appendChild(el("span", "post__read", readMinutes(article) + " min de lectura"));
   header.appendChild(meta);
 
@@ -311,6 +313,27 @@ export function renderArticle(root, article, { headingTag = "h1" } = {}) {
       foot.appendChild(paragraphs(article.footer, "post__footer-text"));
     }
     root.appendChild(foot);
+  }
+
+  const sources = Array.isArray(article.sources) ? article.sources : [];
+  if (sources.length) {
+    const box = el("section", "post__sources");
+    box.appendChild(el("h2", null, "Fuentes"));
+    const list = document.createElement("ul");
+    sources.forEach((source) => {
+      const label = typeof source === "string" ? source : source.name || source.label || source.url;
+      if (!label) return;
+      const li = document.createElement("li");
+      if (typeof source === "object" && source.url) {
+        const a = document.createElement("a");
+        a.href = source.url;
+        a.rel = "noopener";
+        a.textContent = label;
+        li.appendChild(a);
+      } else li.textContent = label;
+      list.appendChild(li);
+    });
+    if (list.children.length) { box.appendChild(list); root.appendChild(box); }
   }
 }
 

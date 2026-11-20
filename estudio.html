@@ -197,6 +197,19 @@
 
               <div class="editor__row editor__row--even">
                 <div class="field">
+                  <label class="field__label" for="f-author">Autor</label>
+                  <input type="text" id="f-author" class="field__input" maxlength="120" placeholder="Nombre real del autor" />
+                  <span class="field__hint">Escribe solo una atribución verificada; no se completa automáticamente.</span>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="f-sources">Fuentes</label>
+                  <textarea id="f-sources" class="field__input" rows="3" placeholder="Una fuente por línea; incluye URL cuando exista"></textarea>
+                  <span class="field__hint">Declara las fuentes utilizadas. No publiques sin revisarlas.</span>
+                </div>
+              </div>
+
+              <div class="editor__row editor__row--even">
+                <div class="field">
                   <span class="field__label">Etiquetas (meta tags)</span>
                   <div class="picker">
                     <div class="picker__chips" id="chips-tags"></div>

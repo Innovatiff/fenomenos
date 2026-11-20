@@ -1,0 +1,26 @@
+{
+  "targetOrigin": "https://fenomenosmedia.org",
+  "legacyOrigin": "https://fenomenosdelcaribe.org",
+  "articleRoutePattern": "/articulos/<slug>/",
+  "publishedSource": "firestore:fenomenos-61255/articles where status == published",
+  "deployment": "manual-after-validation",
+  "allowProductionDeploy": false,
+  "allowDnsChanges": false,
+  "allowAdsenseSubmission": false,
+  "legacyArticleResolver": "/articulo.html?id=<firestore-id> or ?slug=<slug>",
+  "archivePolicy": "preserve-existing-local-html",
+  "duplicateReviewScope": "Fenómenos imported archive only",
+  "excluded": [
+    "huracanescaribe.blogspot.com",
+    "Huracanes Caribe Blogger",
+    "domain renewal or redirect changes outside Fenómenos"
+  ],
+  "readinessGate": [
+    "run scripts/publish_firestore_articles.py",
+    "run scripts/test_ssr_publication.py",
+    "run scripts/test_initial_articles.py",
+    "run node --test scripts/test_article_fallback.cjs",
+    "review mobile and desktop rendering",
+    "validate the target domain before production deployment"
+  ]
+}
