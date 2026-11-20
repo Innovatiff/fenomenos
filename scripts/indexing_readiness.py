@@ -6,7 +6,7 @@ import urllib.parse as U
 import xml.etree.ElementTree as ET
 from migration_audit import Doc,csv_write,norm,robots
 ROOT=Path(__file__).resolve().parents[1]
-ORIGIN='https://fenomenosdelcaribe.org'
+ORIGIN='https://fenomenosmedia.org'
 
 def parse_headers(raw):
     chain=[]
@@ -74,7 +74,7 @@ def inspect(url,r,in_sitemap,robot,robots_http,local=None,article=True):
     return {'url':url,'status':'BLOCKED' if blocked else 'WARNING' if warnings else 'INDEXABLE','http':r['http'],'final_url':r['final_url'],'redirect_count':len(redirects),'redirect_chain':redirects,'canonical':canonical,'expected_canonical':url,'in_sitemap':in_sitemap,'robots_http':robots_http,'googlebot_allowed':allowed,'meta_robots':meta,'x_robots_tag':x,'static_content_accessible':bool(text),'words':len(text.split()),'content_matches_release':matches,'html_matches_release':r['sha256']==hashlib.sha256(local.read_bytes()).hexdigest() if local and local.exists() else None,'blocked_reasons':blocked,'warnings':warnings,'checked_at':r['checked_at']}
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,default=ROOT.parents[1]/'outputs/indexing-readiness');parser.add_argument('--offline',action='store_true');args=parser.parse_args();out=args.output;out.mkdir(parents=True,exist_ok=True)
+    parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,default=ROOT/'outputs/indexing-readiness');parser.add_argument('--offline',action='store_true');args=parser.parse_args();out=args.output;out.mkdir(parents=True,exist_ok=True)
     saved=json.loads((out/'http-evidence.json').read_text()) if args.offline else {}
     get=(lambda u:saved['robots'] if u==ORIGIN+'/robots.txt' else saved['sitemap'] if u==ORIGIN+'/sitemap.xml' else saved['responses'][u]) if args.offline else fetch
     catalog=json.loads((ROOT/'archivo/catalog.json').read_text());urls=[ORIGIN+e['path'] for e in catalog]
@@ -84,7 +84,7 @@ def main():
         root=ET.fromstring(sm['body']);assert root.tag=='{http://www.sitemaps.org/schemas/sitemap/0.9}urlset'
         sitemap=[n.text for n in root.findall('{*}url/{*}loc')]
     except (ET.ParseError,AssertionError) as e:sm_error=str(e) or 'Unsupported sitemap root'
-    invalid=[u for u in sitemap if not u or U.urlsplit(u).scheme!='https' or U.urlsplit(u).netloc!='fenomenosdelcaribe.org']
+    invalid=[u for u in sitemap if not u or U.urlsplit(u).scheme!='https' or U.urlsplit(u).netloc!='fenomenosmedia.org']
     extra=['/p/acerca-de.html','/p/privacy.html','/p/contacto.html','/index.html','/archivo/','/css/articles.css','/css/archive.css','/ads.txt']
     targets=sorted(set(urls+[u for u in sitemap if u not in invalid]+[ORIGIN+p for p in extra]));responses={}
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
@@ -117,6 +117,6 @@ def main():
     lines+=['','[Google: robots y X-Robots-Tag](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag). [Google: enviar un sitemap no garantiza indexación](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).']
     representatives=['/2015/04/condiciones-muy-calurosas-sobre-el.html','/2017/05/como-se-forman-los-huracanes.html','/2019/01/gobernador-de-nueva-york-emite-aviso.html','/2020/07/invest-92l-podria-afectar-puerto-rico.html','/2025/02/situacion-actual-del-clima-tropical-feb.html','/archivo/','/p/acerca-de.html','/p/privacy.html']
     lines+=['','## Comprobación manual en Search Console','']+['- '+ORIGIN+p for p in representatives]
-    lines+=['','En Inspección de URLs, comparar el estado del índice con Probar URL publicada. Revisar acceso del rastreador, indexación permitida, HTML renderizado, canonical declarado y canonical seleccionado por Google (si ya está disponible). Una prueba en vivo correcta no confirma inclusión en el índice. En Sitemaps enviar https://fenomenosdelcaribe.org/sitemap.xml. No se envió automáticamente.','', 'Reproducción: `python3 scripts/indexing_readiness.py`; evidencia guardada: `python3 scripts/indexing_readiness.py --offline`.']
+    lines+=['','En Inspección de URLs, comparar el estado del índice con Probar URL publicada. Revisar acceso del rastreador, indexación permitida, HTML renderizado, canonical declarado y canonical seleccionado por Google (si ya está disponible). Una prueba en vivo correcta no confirma inclusión en el índice. En Sitemaps enviar https://fenomenosmedia.org/sitemap.xml. No se envió automáticamente.','', 'Reproducción: `python3 scripts/indexing_readiness.py`; evidencia guardada: `python3 scripts/indexing_readiness.py --offline`.']
     (out/'indexing-readiness.md').write_text('\n'.join(lines)+'\n');print(json.dumps({k:report[k] for k in ['counts','sitemap','deployment_checks']},ensure_ascii=False,indent=2))
 if __name__=='__main__':main()

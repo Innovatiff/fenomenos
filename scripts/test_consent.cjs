@@ -3,7 +3,7 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const code = fs.readFileSync(require('node:path').join(__dirname,'../js/analytics.js'),'utf8');
 const ids = ['G-92SH61163V', 'G-XNMZEKJHQ9'];
-function setup(hostname='fenomenosdelcaribe.org') {
+function setup(hostname='fenomenosmedia.org') {
   const scripts=[],buttons=[],updates=[];
   const context={location:{protocol:'https:',hostname},document:{head:{appendChild:s=>scripts.push(s)},createElement:()=>({style:{},addEventListener(type,fn){this[type]=fn;}}),getElementById:()=>null,querySelector:()=>({appendChild:b=>buttons.push(b)})}};
   context.window=context;

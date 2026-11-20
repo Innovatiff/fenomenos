@@ -41,8 +41,8 @@ class CatalogTest(unittest.TestCase):
             self.assertTrue(any(img['src']==p['image'] and img.get('alt') for img in self.visible.images))
     def test_indexability_and_semantics(self):
         self.assertIn('name="robots" content="index, follow"',self.html)
-        self.assertIn('rel="canonical" href="https://fenomenosdelcaribe.org/tienda/"',self.html)
+        self.assertIn('rel="canonical" href="https://fenomenosmedia.org/tienda/"',self.html)
         self.assertEqual(self.html.count('<h1>'),1)
-        self.assertIn('https://fenomenosdelcaribe.org/tienda/',(ROOT/'sitemap.xml').read_text())
+        self.assertIn('https://fenomenosmedia.org/tienda/',(ROOT/'sitemap.xml').read_text())
         self.assertNotIn('Est 2017',' '.join(self.visible.text))
 if __name__=='__main__':unittest.main()
