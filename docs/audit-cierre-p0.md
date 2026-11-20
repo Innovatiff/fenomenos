@@ -60,3 +60,13 @@ python3 scripts/test_shop_catalog.py
 python3 scripts/adsense_readiness_check.py
 git diff --check
 ```
+
+## Revisión independiente del 20 de noviembre
+
+Se verificaron los commits 5f2a8ed, e45af6b y 41ea35b. La conexión de GitHub mostró lectura para Innovatiff/fenomenos y permisos de escritura y administración desactivados. Un administrador debe conceder escritura a la cuenta o instalación que subirá la rama. La transferencia no quedó acreditada.
+
+Se detectó noindex en los 20 HTML prerenderizados. Se corrigió su generación y se añadió una comprobación por artículo. La ruta /articulos/ cuenta con una regla de hosting y canonical coherentes. También se corrigieron la pérdida de redirecciones en la siguiente generación, la limpieza de rutas ajenas al manifiesto, la restauración al encontrar un artículo inválido y el retorno prematuro al abrir un enlace antiguo con el parámetro slug.
+
+Se inspeccionó localmente el artículo sobre cambio climático en ventanas de 360, 390 y 768 px. Los anchos del documento fueron 345, 375 y 753 px respectivamente, sin desbordamiento horizontal. Es una muestra de la plantilla de lectura. El índice, los controles interactivos y las herramientas meteorológicas requieren comprobación visual adicional.
+
+El inventario de decisiones por pieza figura en revision-editorial-p0.md. Para el lanzamiento siguen pendientes la acreditación editorial y una prueba de extremo a extremo desde el Estudio hasta una URL pública en el dominio definitivo. El comportamiento HTTP de las reglas depende del proveedor que sirva el dominio.

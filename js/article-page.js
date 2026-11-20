@@ -67,7 +67,7 @@ function hasCategory(article, category) {
   const legacySlug = new URLSearchParams(location.search).get("slug");
   let catArticles = [];
 
-  if (!id && !PAGE_CATEGORY && !staticArticleId) {
+  if (!id && !legacySlug && !PAGE_CATEGORY && !staticArticleId) {
     showState(
       "help-circle-outline",
       "Artículo no especificado",

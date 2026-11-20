@@ -27,6 +27,7 @@ class SSRPublication(unittest.TestCase):
             text = page.read_text()
             self.assertIn(f'data-article-id="{article["id"]}"', text)
             self.assertIn("application/ld+json", text)
+            self.assertNotIn('name="robots" content="noindex', text)
             self.assertIn(f'https://fenomenosmedia.org/articulos/{article["slug"]}/', text)
             self.assertNotIn("googlesyndication.com/pagead/js/adsbygoogle.js", text)
             self.assertRegex(text, r'<h1\b[^>]*>[^<\n].*</h1>')

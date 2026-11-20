@@ -278,6 +278,7 @@ def render_page(template: str, article: dict, slug: str) -> str:
     if article.get("cover"):
         schema["image"] = article["cover"]
     head = f'<link rel="canonical" href="{canonical}"><meta property="og:type" content="article"><meta property="og:title" content="{html.escape(title, quote=True)}"><meta property="og:url" content="{canonical}"><script type="application/ld+json">{json.dumps(schema, ensure_ascii=False)}</script>'
+    page = page.replace('    <meta name="robots" content="noindex, follow" />\n', '')
     page = page.replace('</head>', head + '</head>', 1)
     page = page.replace('<div id="post-root">', f'<div id="post-root" data-article-id="{html.escape(article["id"], quote=True)}">', 1)
     page = re.sub(r'<div id="post-root"[^>]*>.*?</div>\s*<!-- ═══════════════════ COMENTARIOS', lambda m: m.group(0).split('<!-- ═══════════════════ COMENTARIOS')[0].rsplit('</div>', 1)[0] + static_root(article) + '</div>\n\n            <!-- ═══════════════════ COMENTARIOS', page, count=1, flags=re.S)
@@ -289,11 +290,19 @@ def render_page(template: str, article: dict, slug: str) -> str:
 
 def update_slug_redirects(previous_routes, manifest):
     current_by_id = {article["id"]: article["slug"] for article in manifest}
-    redirects = []
+    history = ROOT / "data/article-redirects.json"
+    previous = json.loads(history.read_text()) if history.exists() else []
+    aliases = {row["from"]: row["id"] for row in previous}
+    live_paths = {f"/articulos/{slug}/" for slug in current_by_id.values()}
     for article_id, old_slug in previous_routes.items():
         new_slug = current_by_id.get(article_id)
         if new_slug and new_slug != old_slug:
-            redirects.append({"from": f"/articulos/{old_slug}/", "to": f"/articulos/{new_slug}/", "status": 301, "id": article_id})
+            aliases[f"/articulos/{old_slug}/"] = article_id
+    redirects = [
+        {"from": path, "to": f"/articulos/{current_by_id[article_id]}/", "status": 301, "id": article_id}
+        for path, article_id in sorted(aliases.items())
+        if path not in live_paths and article_id in current_by_id
+    ]
     (ROOT / "data/article-redirects.json").write_text(json.dumps(redirects, ensure_ascii=False, indent=2) + "\n")
     redirects_file = ROOT / "_redirects"
     text = redirects_file.read_text() if redirects_file.exists() else ""
@@ -332,7 +341,7 @@ def _generate():
     manifest = []
     for article in articles:
         if not plain(article.get("title") or article.get("titleHtml")) or not plain(article_body(article)):
-            raise SystemExit(f"Published article {article.get('id')} has no truthful title/body; refusing to publish it")
+            raise ValueError(f"Published article {article.get('id')} has no truthful title/body; refusing to publish it")
         base = slugify(article.get("slug") or article.get("title") or article["id"])
         slug = base
         if slug in used:
@@ -344,8 +353,9 @@ def _generate():
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(render_page((ROOT / "articulo.html").read_text(), article, slug))
     generated_root = ROOT / "articulos"
+    obsolete = set(previous_routes.values()) - used
     for old_page in generated_root.glob("*/index.html"):
-        if old_page.parent.name not in used:
+        if old_page.parent.name in obsolete:
             old_page.unlink()
             try:
                 old_page.parent.rmdir()
