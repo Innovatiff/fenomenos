@@ -1,0 +1,12 @@
+[build]
+  command = "python3 scripts/publish_firestore_articles.py"
+  publish = "."
+  functions = "netlify/functions"
+
+[build.environment]
+  SITE_ORIGIN = "https://fenomenosmedia.org"
+
+[[redirects]]
+  from = "/api/publish-articles"
+  to = "/.netlify/functions/publish-articles"
+  status = 200
