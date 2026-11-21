@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://fenomenosdelcaribe.org/sitemap.xml
+Sitemap: https://fenomenosmedia.org/sitemap.xml

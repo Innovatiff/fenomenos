@@ -26,6 +26,7 @@ import {
 window.__fdcModuleOk = true;
 
 const root = document.getElementById("post-root");
+const staticArticleId = root?.dataset.articleId || null;
 
 function showState(icon, title, text) {
   root.textContent = "";
@@ -63,9 +64,10 @@ function hasCategory(article, category) {
 
 (async () => {
   let id = new URLSearchParams(location.search).get("id");
+  const legacySlug = new URLSearchParams(location.search).get("slug");
   let catArticles = [];
 
-  if (!id && !PAGE_CATEGORY) {
+  if (!id && !legacySlug && !PAGE_CATEGORY && !staticArticleId) {
     showState(
       "help-circle-outline",
       "Artículo no especificado",
@@ -77,7 +79,21 @@ function hasCategory(article, category) {
   try {
     let article;
 
-    if (PAGE_CATEGORY) {
+    if (!staticArticleId && !PAGE_CATEGORY && (id || legacySlug)) {
+      const routes = await fetch("/data/article-routes.json", { cache: "no-store" }).then((r) => r.ok ? r.json() : []);
+      const match = routes.find((route) => route.id === id || route.slug === id || route.slug === legacySlug);
+      if (match) {
+        location.replace("/articulos/" + encodeURIComponent(match.slug) + "/");
+        return;
+      }
+    }
+
+    if (staticArticleId) {
+      const manifest = await fetch("/data/published-articles.json", { cache: "no-store" }).then((r) => r.ok ? r.json() : []);
+      article = manifest.find((item) => item.id === staticArticleId) || null;
+      if (!article) throw new Error("Artículo estático ausente en el manifiesto");
+      id = article.id;
+    } else if (PAGE_CATEGORY) {
       catArticles = (await fetchPublished()).filter((a) =>
         hasCategory(a, PAGE_CATEGORY)
       );

@@ -1,0 +1,48 @@
+name: Publish Firestore articles
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Firestore has no native GitHub Actions event; poll the public published
+    # collection so editor changes converge without a production deploy here.
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-firestore-articles
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Generate static publication
+        env:
+          SITE_ORIGIN: https://fenomenosmedia.org
+        run: |
+          set -o pipefail
+          python3 scripts/publish_firestore_articles.py 2>&1 | tee publish.log
+      - name: Upload publication log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firestore-publication-log
+          path: publish.log
+          if-no-files-found: ignore
+      - name: Commit publication when changed
+        run: |
+          if git diff --quiet; then
+            echo "No published article changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish Firestore articles"
+          git push

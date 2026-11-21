@@ -1011,6 +1011,8 @@ function resetEditor() {
   setRichField("f-title", "");
   setRichField("f-excerpt", "");
   setRichField("f-footer", "");
+  $("f-author").value = "";
+  $("f-sources").value = "";
   $("f-cover-url").value = "";
   setCover("");
   selTags = [];
@@ -1034,6 +1036,8 @@ function openEditor(article) {
   setRichField("f-title", article.titleHtml, article.title);
   setRichField("f-excerpt", article.excerptHtml, article.excerpt);
   setRichField("f-footer", article.footerHtml, article.footer);
+  $("f-author").value = typeof article.author === "string" ? article.author : article.author?.name || "";
+  $("f-sources").value = (Array.isArray(article.sources) ? article.sources : []).map((source) => typeof source === "string" ? source : source.url || source.name || "").filter(Boolean).join("\n");
   selTags = Array.isArray(article.tags)
     ? [...article.tags]
     : article.tag
@@ -1871,6 +1875,8 @@ function collectArticle() {
   const title = richFieldValue("f-title");
   const excerpt = richFieldValue("f-excerpt");
   const footer = richFieldValue("f-footer");
+  const author = $("f-author").value.trim();
+  const sources = $("f-sources").value.split("\n").map((line) => line.trim()).filter(Boolean);
 
   return {
     title: title.plain,
@@ -1883,6 +1889,8 @@ function collectArticle() {
     cover,
     footer: footer.plain,
     footerHtml: footer.html,
+    author,
+    sources,
     sections: cleanSections,
   };
 }
@@ -1895,6 +1903,16 @@ function validate(data, { publishing }) {
   }
   if (publishing && !data.sections.length) {
     toast("Añade al menos una sección con contenido antes de publicar.", "error");
+    return false;
+  }
+  if (publishing && !data.author) {
+    toast("Añade el autor verificado antes de publicar.", "error");
+    $("f-author").focus();
+    return false;
+  }
+  if (publishing && !data.sources.length) {
+    toast("Añade al menos una fuente antes de publicar.", "error");
+    $("f-sources").focus();
     return false;
   }
   if (JSON.stringify(data).length > MAX_DOC_BYTES) {

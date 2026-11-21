@@ -4,8 +4,8 @@ import json,re,urllib.parse as U
 from pathlib import Path
 from migration_audit import Doc,Node,site_path
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT.parents[1]/'outputs/adsense-readiness'
-ORIGIN='https://fenomenosdelcaribe.org'
+OUT=ROOT/'outputs/adsense-readiness'
+ORIGIN='https://fenomenosmedia.org'
 def visible_nodes(node,hidden=False):
     hidden=hidden or 'hidden' in node.attrs or 'hidden' in node.attrs.get('class','').split() or node.tag in {'script','style','template'}
     if not hidden:yield node
@@ -24,7 +24,7 @@ def audit():
             href=a.attrs.get('href','')
             if not href or href=='#':empty.append({'page':path,'label':a.text()});continue
             url=U.urljoin(ORIGIN+path,href);parts=U.urlsplit(url)
-            if parts.netloc!='fenomenosdelcaribe.org':continue
+            if parts.netloc!='fenomenosmedia.org':continue
             target=site_path(ROOT,rewrites.get(parts.path,parts.path))
             if not target:broken.append({'page':path,'href':href,'kind':'missing_target'})
             elif parts.fragment and target.suffix=='.html' and not any(n.attrs.get('id')==U.unquote(parts.fragment) or n.attrs.get('name')==U.unquote(parts.fragment) for n in Doc(target.read_text()).all()):broken.append({'page':path,'href':href,'kind':'missing_fragment'})

@@ -3,6 +3,11 @@ import json,re
 from pathlib import Path
 from html import escape as e
 ROOT=Path(__file__).resolve().parents[1]
+# The Firestore publication step owns the public indexes when a live manifest
+# exists.  Do not let the archive-only compatibility generator erase them.
+if (ROOT/'data/published-articles.json').exists():
+ print('Firestore publication manifest present; indexes already owned by publish_firestore_articles.py')
+ raise SystemExit(0)
 rows=sorted(json.loads((ROOT/'archivo/catalog.json').read_text()),key=lambda x:x['date'],reverse=True)
 for filename,grid_id,limit in [('articulos.html','articles-grid',48),('index.html','home-articles',4)]:
  selected=rows[:limit];cards=[];seed=[]

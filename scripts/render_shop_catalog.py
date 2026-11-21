@@ -41,7 +41,7 @@ for i, p in enumerate(products, 1):
             <a class="shop-product-link" href="{escape(p['url'])}" target="_blank" rel="noopener noreferrer">Ver en Spreadshop ↗</a>
           </li>''')
 schema = {'@context': 'https://schema.org', '@type': 'ItemList',
-          '@id': 'https://fenomenosdelcaribe.org/tienda/#catalogo',
+          '@id': 'https://fenomenosmedia.org/tienda/#catalogo',
           'name': 'Productos de Huracanes Caribe — Tienda Fenómenos Media',
           'numberOfItems': len(items), 'itemListElement': items}
 markup = '''      <section class="shop-catalog" id="catalogo" aria-labelledby="shop-collection-title">
