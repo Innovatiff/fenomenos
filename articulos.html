@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
   <head>
+    <base href="/articulos.html" />
+    <script>
+      // Keep the index previewable when opened directly from the repository.
+      if (location.protocol === "file:") document.querySelector("base").href = location.href;
+    </script>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5012752012707398" crossorigin="anonymous"></script>
     <script>
       document.documentElement.classList.add("js");
@@ -35,7 +40,7 @@
     <script type="module" src="js/articles-page.js"></script>
     <script src="js/analytics.js" defer></script>
 <link rel="canonical" href="https://fenomenosmedia.org/articulos/" />
-<link rel="stylesheet" href="/css/brand.css" />
+<link rel="stylesheet" href="css/brand.css" />
 </head>
 
   <body>
@@ -61,7 +66,7 @@
             width="44"
             height="44"
           />
-          <span class="header__wordmark"><span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span>
+          <span class="header__wordmark" role="img" aria-label="Fenómenos Media"><span class="header__wordmark-name"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span>
         </a>
 
         <div class="header__right">
@@ -512,7 +517,7 @@
                 height="44"
                 loading="lazy"
               />
-              <span class="header__wordmark"><span class="header__wordmark-name" aria-label="Fenómenos"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="/img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span>
+              <span class="header__wordmark" role="img" aria-label="Fenómenos Media"><span class="header__wordmark-name"><span aria-hidden="true">Fen</span><img class="header__wordmark-spiral" src="img/regions/huracanes.png" alt="" width="32" height="32" /><span aria-hidden="true">menos</span></span><span class="header__wordmark-media">Media</span></span>
             </a>
             <p class="footer__tagline">
               Fenómenos Media. Vigilancia y análisis de tiempo
