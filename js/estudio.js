@@ -77,7 +77,7 @@ async function requestStaticPublication() {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!response.ok) {
+    if (response.status !== 202 || (await response.json()).accepted !== true) {
       console.warn("Static publication trigger was not accepted", response.status);
       return false;
     }

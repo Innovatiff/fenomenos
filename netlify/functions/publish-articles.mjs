@@ -1,11 +1,7 @@
-const json = (statusCode, body) => ({
-  statusCode,
-  headers: { "content-type": "application/json; charset=utf-8" },
-  body: JSON.stringify(body),
-});
+const json = (status, body) => Response.json(body, { status });
 
 export default async function handler(event) {
-  if (event.httpMethod !== "POST") {
+  if (event.method !== "POST") {
     return json(405, { error: "method_not_allowed" });
   }
 
@@ -15,8 +11,9 @@ export default async function handler(event) {
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  const token = (event.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  if (!hook || !apiKey || !token || !allowedEmails.length) {
+  const token = /^Bearer\s+(\S+)$/i.exec(event.headers.get("authorization") || "")?.[1];
+  if (!token) return json(401, { error: "firebase_token_required" });
+  if (!hook || !apiKey || !allowedEmails.length) {
     return json(503, { error: "publication_trigger_not_configured" });
   }
 
@@ -32,15 +29,14 @@ export default async function handler(event) {
     if (!identity.ok) return json(401, { error: "invalid_firebase_token" });
     const account = await identity.json();
     const email = String(account.users?.[0]?.email || "").toLowerCase();
-    if (!email || !allowedEmails.includes(email)) {
+    if (!account.users?.[0]?.emailVerified || !allowedEmails.includes(email)) {
       return json(403, { error: "editor_not_allowed" });
     }
 
     const build = await fetch(hook, { method: "POST" });
     if (!build.ok) return json(502, { error: "netlify_build_hook_failed" });
     return json(202, { accepted: true });
-  } catch (error) {
-    console.error("publication trigger failed", error);
+  } catch {
     return json(502, { error: "publication_trigger_failed" });
   }
 }
