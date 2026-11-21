@@ -68,6 +68,26 @@ const SECTION_META = {
 /* Límite práctico de un documento de Firestore (1 MiB) con margen. */
 const MAX_DOC_BYTES = 900_000;
 
+async function requestStaticPublication() {
+  const user = auth.currentUser;
+  if (!user) return false;
+  try {
+    const token = await user.getIdToken();
+    const response = await fetch("/api/publish-articles", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.status !== 202 || (await response.json()).accepted !== true) {
+      console.warn("Static publication trigger was not accepted", response.status);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.warn("Static publication trigger failed", error);
+    return false;
+  }
+}
+
 /* ── Estado ──────────────────────────────────────────────────────────── */
 
 let tags = []; // etiquetas (meta tags) administradas
@@ -972,7 +992,15 @@ async function togglePublish(article) {
     };
     if (publishing && !article.publishedAt) patch.publishedAt = serverTimestamp();
     await updateDoc(doc(db, "articles", article.id), patch);
-    toast(publishing ? "Artículo publicado." : "Artículo pasado a borrador.");
+    const buildRequested = await requestStaticPublication();
+    toast(
+      publishing
+        ? buildRequested
+          ? "Artículo publicado; se está regenerando la página pública."
+          : "Artículo publicado; la regeneración automática quedó pendiente."
+        : "Artículo pasado a borrador.",
+      publishing && !buildRequested ? "error" : "ok",
+    );
     await loadArticles();
     if (editing && editing.id === article.id) {
       editing.status = patch.status;
@@ -987,7 +1015,13 @@ async function togglePublish(article) {
 async function removeArticle(article) {
   try {
     await deleteDoc(doc(db, "articles", article.id));
-    toast("Artículo eliminado.");
+    const buildRequested = await requestStaticPublication();
+    toast(
+      buildRequested
+        ? "Artículo eliminado; se está actualizando la publicación."
+        : "Artículo eliminado; la actualización automática quedó pendiente.",
+      buildRequested ? "ok" : "error",
+    );
     if (editing && editing.id === article.id) resetEditor();
     await loadArticles();
   } catch (err) {
@@ -1952,13 +1986,19 @@ async function persist(status, btn, busyText) {
       $("editor-title").textContent = "Editar artículo";
     }
 
+    const buildRequested =
+      status === "published" ? await requestStaticPublication() : true;
+
     editing.status = status;
     dirty = false;
     updateEditorStatus();
     toast(
       status === "published"
-        ? "Artículo publicado. Ya está visible en la página de artículos."
-        : "Borrador guardado."
+        ? buildRequested
+          ? "Artículo guardado; se está regenerando la página pública."
+          : "Artículo guardado; la regeneración automática quedó pendiente."
+        : "Borrador guardado.",
+      status === "published" && !buildRequested ? "error" : "ok",
     );
     await loadArticles();
   } catch (err) {

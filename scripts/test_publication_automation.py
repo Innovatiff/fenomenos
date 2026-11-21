@@ -15,6 +15,17 @@ class PublicationAutomation(unittest.TestCase):
         self.assertIn("git push", workflow)
         self.assertIn("permissions:\n  contents: write", workflow)
 
+    def test_netlify_build_generates_publication_and_keeps_hook_server_side(self):
+        config = (ROOT / "netlify.toml").read_text()
+        function = (ROOT / "netlify/functions/publish-articles.mjs").read_text()
+        editor = (ROOT / "js/estudio.js").read_text()
+        self.assertIn('command = "python3 scripts/publish_firestore_articles.py"', config)
+        self.assertIn('functions = "netlify/functions"', config)
+        self.assertIn("NETLIFY_BUILD_HOOK_URL", function)
+        self.assertIn("identitytoolkit.googleapis.com", function)
+        self.assertIn('fetch("/api/publish-articles"', editor)
+        self.assertNotIn("NETLIFY_BUILD_HOOK_URL", editor)
+
     def test_generator_prunes_obsolete_generated_routes(self):
         generator = (ROOT / "scripts/publish_firestore_articles.py").read_text()
         self.assertIn("generated_root.glob(\"*/index.html\")", generator)
