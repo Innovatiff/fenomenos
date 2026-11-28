@@ -8,7 +8,7 @@ function withDeadline(promise) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("Fuente lenta")), 8000))]);
 }
 const liveDB = import("./db.js");
-import { fetchArchive, newestFirst } from "./archive-catalog.js";
+import { fetchArchive, newestFirst, preferStaticCovers } from "./archive-catalog.js";
 import { articleCard, articleTagList, normalizeText } from "./render-article.js";
 
 const grid = document.getElementById("articles-grid");
@@ -147,7 +147,7 @@ renderFilters([]);
     if (liveResult.status === "rejected" && archiveResult.status === "rejected") {
       throw new Error("No se pudo cargar ninguna fuente de artículos");
     }
-    const published = liveResult.status === "fulfilled" ? liveResult.value : [];
+    const published = preferStaticCovers(initialArticles, liveResult.status === "fulfilled" ? liveResult.value : []);
     const archive = archiveResult.status === "fulfilled" ? archiveResult.value : [];
     const tags = tagsResult.status === "fulfilled" ? tagsResult.value : [];
     const labels = new Map(tags.map((tag) => [normalizeText(tag), tag]));

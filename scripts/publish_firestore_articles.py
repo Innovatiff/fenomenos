@@ -8,8 +8,10 @@ Firestore or deploys anything.
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import fcntl
+import hashlib
 import html
 import json
 import os
@@ -30,6 +32,13 @@ CONFIG = ROOT / "config/site-migration.json"
 CONFIG_ORIGIN = json.loads(CONFIG.read_text()).get("targetOrigin", "https://fenomenosmedia.org") if CONFIG.exists() else "https://fenomenosmedia.org"
 ORIGIN = os.environ.get("SITE_ORIGIN", CONFIG_ORIGIN).rstrip("/")
 ALLOWED = {"p", "div", "br", "b", "strong", "i", "em", "u", "mark", "span"}
+# The Studio stores uploaded images as base64 data URIs inside Firestore.
+# Inlined in HTML they made every page weigh hundreds of KB, so the build
+# writes each one once to a content-addressed file and links to it instead.
+IMAGE_DIR = ROOT / "img/articulos"
+IMAGE_URL = "/img/articulos"
+DATA_URI = re.compile(r"data:image/(jpeg|jpg|png|webp|gif);base64,([A-Za-z0-9+/=\s]+)", re.I)
+IMAGE_NAME = re.compile(r"[0-9a-f]{20}\.(?:jpg|png|webp|gif)")
 
 
 class SafeHTML(HTMLParser):
@@ -126,6 +135,42 @@ def fetch_firestore() -> list[dict]:
         if item.get("status") == "published":
             articles.append(item)
     return articles
+
+
+def externalize_image(value, written: set):
+    """Return a file URL for a base64 data URI; leave every other value as is."""
+    match = DATA_URI.fullmatch(str(value or "").strip()) if isinstance(value, str) else None
+    if not match:
+        return value
+    data = base64.b64decode(re.sub(r"\s+", "", match.group(2)), validate=True)
+    ext = {"jpeg": "jpg"}.get(match.group(1).lower(), match.group(1).lower())
+    name = f"{hashlib.sha256(data).hexdigest()[:20]}.{ext}"
+    target = IMAGE_DIR / name
+    if not target.exists():
+        IMAGE_DIR.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    written.add(name)
+    return f"{IMAGE_URL}/{name}"
+
+
+def externalize_article_images(article: dict, written: set) -> dict:
+    sections = [
+        dict(section, src=externalize_image(section.get("src"), written)) if isinstance(section, dict) and section.get("type") == "image" else section
+        for section in article.get("sections") or []
+    ]
+    return dict(article, cover=externalize_image(article.get("cover"), written), sections=sections)
+
+
+def prune_images(written: set):
+    if not IMAGE_DIR.exists():
+        return
+    for old in IMAGE_DIR.iterdir():
+        if IMAGE_NAME.fullmatch(old.name) and old.name not in written:
+            old.unlink()
+
+
+def absolute_url(value: str) -> str:
+    return urljoin(ORIGIN + "/", value)
 
 
 def slugify(value: str) -> str:
@@ -229,7 +274,7 @@ def card(article, href):
     title = article.get("title") or plain(article.get("titleHtml"))
     excerpt = article.get("excerpt") or plain(article.get("excerptHtml"))
     date = date_text(article.get("publishedAt") or article.get("createdAt"))
-    cover = f'<img src="{html.escape(str(article["cover"]), quote=True)}" alt="" loading="lazy">' if article.get("cover") else ""
+    cover = f'<img src="{html.escape(str(article["cover"]), quote=True)}" alt="" loading="lazy" decoding="async">' if article.get("cover") else ""
     tag = (article.get("tags") or [article.get("tag")] or [""])[0]
     return f'<li class="card card--article"><a class="card__inner" href="{html.escape(href, quote=True)}"><span class="article__media">{cover}</span><span class="article__meta">{html.escape(str(tag))} · <time datetime="{date}">{date}</time></span><h3 class="card__title">{html.escape(str(title))}</h3><p class="card__text">{html.escape(str(excerpt))}</p><span class="card__link">Leer más →</span></a></li>'
 
@@ -275,9 +320,11 @@ def render_page(template: str, article: dict, slug: str) -> str:
         schema["dateModified"] = date_value(article["updatedAt"]).isoformat().replace("+00:00", "Z")
     if author_name(article):
         schema["author"] = {"@type": "Person", "name": author_name(article)}
-    if article.get("cover"):
-        schema["image"] = article["cover"]
-    head = f'<link rel="canonical" href="{canonical}"><meta property="og:type" content="article"><meta property="og:title" content="{html.escape(title, quote=True)}"><meta property="og:url" content="{canonical}"><script type="application/ld+json">{json.dumps(schema, ensure_ascii=False)}</script>'
+    og_image = ""
+    if article.get("cover") and not str(article["cover"]).startswith("data:"):
+        schema["image"] = absolute_url(article["cover"])
+        og_image = f'<meta property="og:image" content="{html.escape(schema["image"], quote=True)}">'
+    head = f'<link rel="canonical" href="{canonical}"><meta property="og:type" content="article"><meta property="og:title" content="{html.escape(title, quote=True)}"><meta property="og:url" content="{canonical}">{og_image}<script type="application/ld+json">{json.dumps(schema, ensure_ascii=False)}</script>'
     page = page.replace('    <meta name="robots" content="noindex, follow" />\n', '')
     page = page.replace('</head>', head + '</head>', 1)
     page = page.replace('<div id="post-root">', f'<div id="post-root" data-article-id="{html.escape(article["id"], quote=True)}">', 1)
@@ -338,8 +385,10 @@ def _generate():
     articles = [x for x in raw if x.get("status") == "published"]
     articles.sort(key=lambda x: date_value(x.get("publishedAt") or x.get("createdAt")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=True)
     used = set()
+    images = set()
     manifest = []
     for article in articles:
+        article = externalize_article_images(article, images)
         if not plain(article.get("title") or article.get("titleHtml")) or not plain(article_body(article)):
             raise ValueError(f"Published article {article.get('id')} has no truthful title/body; refusing to publish it")
         base = slugify(article.get("slug") or article.get("title") or article["id"])
@@ -361,6 +410,7 @@ def _generate():
                 old_page.parent.rmdir()
             except OSError:
                 pass
+    prune_images(images)
     (ROOT / "data/published-articles.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     static = [{"id": x["id"], "slug": x["slug"], "title": x.get("title", ""), "publishedAt": x.get("publishedAt") or x.get("createdAt"), "author": author_name(x)} for x in manifest]
     (ROOT / "data/article-routes.json").write_text(json.dumps(static, ensure_ascii=False, indent=2) + "\n")
@@ -404,6 +454,9 @@ def main():
             generated_backup = backup_path / "articulos"
             if (ROOT / "articulos").exists():
                 shutil.copytree(ROOT / "articulos", generated_backup)
+            images_backup = backup_path / "img-articulos"
+            if IMAGE_DIR.exists():
+                shutil.copytree(IMAGE_DIR, images_backup)
             try:
                 _generate()
             except Exception:
@@ -418,6 +471,10 @@ def main():
                     shutil.rmtree(ROOT / "articulos")
                 if generated_backup.exists():
                     shutil.copytree(generated_backup, ROOT / "articulos")
+                if IMAGE_DIR.exists():
+                    shutil.rmtree(IMAGE_DIR)
+                if images_backup.exists():
+                    shutil.copytree(images_backup, IMAGE_DIR)
                 raise
         fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
 
