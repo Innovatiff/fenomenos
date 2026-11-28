@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#000b33" />
     <meta
       name="description"
-      content="Sala Fenómenos México"
+      content="Guía del tiempo en México: ciclones del Pacífico y del Atlántico, frentes fríos, monzón y ondas de calor, con las fuentes oficiales para seguirlos."
       id="meta-description"
     />
 
@@ -251,8 +251,40 @@
 
     <div class="read-progress" id="read-progress" aria-hidden="true"></div>
 
-    <main id="contenido" class="post-page" style="min-height:65vh">
-      <div class="container"><h1 class="heading__primary">Sala Fenómenos México</h1></div>
+    <main id="contenido" class="post-page sala">
+      <div class="post-shell">
+        <header class="post__head">
+          <p class="sala__eyebrow">Sala de pronóstico</p>
+          <h1 class="heading__primary post__title">Sala Fenómenos México</h1>
+          <p class="post__excerpt">Guía del tiempo en México: ciclones del Pacífico y del Atlántico, frentes fríos, monzón y ondas de calor, con las fuentes oficiales para seguirlos.</p>
+        </header>
+
+        <!-- Pronósticos finales (imágenes de Muse). Se muestra cuando exista el
+             flujo de publicación de imágenes; mientras tanto queda oculto. -->
+        <section class="sala-forecast" id="sala-pronosticos" aria-labelledby="sala-pronosticos-title" hidden>
+          <h2 class="region-list__title" id="sala-pronosticos-title">Pronósticos vigentes</h2>
+          <div class="sala-forecast__grid" id="sala-forecast-grid"></div>
+        </section>
+
+        <!-- Guía editorial: borrador pendiente de revisión del propietario. -->
+        <article class="post sala-guide">
+          <div class="post__body">
+            <h2 class="post__heading">Un país con varias temporadas</h2><div class="post__paragraph"><p>México está entre dos océanos y abarca desde el trópico hasta zonas desérticas. Eso hace que, en un mismo día, una costa esté bajo un ciclón y el norte del país tenga una helada.</p></div><ul class="post__list"><li><strong>Ciclones tropicales:</strong> la temporada del Pacífico nororiental empieza el 15 de mayo y la del Atlántico el 1 de junio; ambas terminan el 30 de noviembre. Los dos litorales pueden recibir impactos.</li><li><strong>Monzón de Norteamérica:</strong> entre julio y septiembre aumentan las tormentas en el noroeste y el occidente del país.</li><li><strong>Frentes fríos y «nortes»:</strong> de octubre a abril. El Servicio Meteorológico Nacional los numera en cada temporada; traen descenso de temperatura, lluvias y rachas fuertes en el Golfo de México y el istmo de Tehuantepec.</li><li><strong>Ondas de calor:</strong> sobre todo entre abril y junio, antes de que se establezcan las lluvias.</li></ul><h2 class="post__heading">Cómo leer las alertas</h2><div class="post__paragraph"><p>Para ciclones, México usa el Sistema de Alerta Temprana para Ciclones Tropicales (SIAT-CT), que indica con colores, de azul a rojo, qué tan cerca está el peligro y qué acciones tomar. Para la lluvia, conviene mirar los acumulados esperados por estado y la duración del evento: varios días de lluvia moderada pueden ser más peligrosos que una tormenta corta.</p></div><h2 class="post__heading">Fuentes oficiales</h2><ul class="post__list"><li><a href="https://smn.conagua.gob.mx/" rel="noopener" target="_blank">Servicio Meteorológico Nacional (SMN, Conagua)</a>, con pronósticos, avisos de ciclón y el seguimiento de frentes fríos.</li><li><a href="https://www.nhc.noaa.gov/?lang=es" rel="noopener" target="_blank">Centro Nacional de Huracanes (NHC)</a>, para la trayectoria y los avisos de los ciclones.</li><li>La Coordinación Nacional de Protección Civil y las unidades estatales, que emiten las indicaciones de evacuación.</li></ul><h2 class="post__heading">Qué hacer</h2><ul class="post__list"><li>Ante un ciclón, sigue el color del SIAT-CT en tu zona y las indicaciones de Protección Civil.</li><li>Durante un norte, asegura techos ligeros y objetos sueltos, y evita salir al mar.</li><li>En ondas de calor, hidrátate, evita el sol del mediodía y cuida a personas mayores y niños.</li></ul>
+          </div>
+          <p class="sala-guide__note">Esta guía es informativa y no sustituye los avisos de los servicios meteorológicos ni las indicaciones de protección civil de tu país.</p>
+        </article>
+
+        <section class="region-list" aria-labelledby="sala-articles-title">
+          <h2 class="region-list__title" id="sala-articles-title">Últimos artículos de Fenómenos México</h2>
+          <ul class="grid catalog__grid grid--3" id="sala-articles">
+<li class="card card--article"><a class="card__inner" href="/articulos/huracan-polo-el-segundo-mas-intenso-del-pacifico-este-se-mantiene-como-categoria-4-y-apunta-a-baja-california-sur/"><span class="article__media"><img src="/img/articulos/8527e01f23bd0b0c9ba9.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-09-26">2026-09-26</time></span><h3 class="card__title">Huracán Polo: el segundo más intenso del Pacífico este se mantiene como categoría 4 y apunta a Baja California Sur</h3><p class="card__text">El huracán Polo, que llegó a ser el segundo ciclón más intenso jamás registrado en el Pacífico este, se mantiene como un poderoso categoría 4 frente a las costas de México. El Centro Nacional de Huracanes (NHC) pronostica que girará hacia Baja California Sur el lunes, con lluvias torrenciales, oleaje peligroso y corrientes de resaca.</p><span class="card__link">Leer más →</span></a></li>
+</ul>
+          <nav class="sala-links" aria-label="Más de Fenómenos México">
+            <a class="btn btn--primary" href="/fenomenos-mexico">Ver todos los artículos de Fenómenos México</a>
+            <a class="btn btn--ghost" href="https://www.facebook.com/FenomenosMexico" rel="noopener" target="_blank">Síguenos en Facebook ↗</a>
+          </nav>
+        </section>
+      </div>
     </main>
     <footer class="footer">
       <div class="container footer__container">

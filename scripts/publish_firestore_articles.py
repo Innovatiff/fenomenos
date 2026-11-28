@@ -8,6 +8,7 @@ Firestore or deploys anything.
 from __future__ import annotations
 
 import argparse
+import ast
 import base64
 import datetime as dt
 import fcntl
@@ -29,6 +30,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT = "fenomenos-61255"
 CONFIG = ROOT / "config/site-migration.json"
+REGIONS = ROOT / "config/regions.json"
 CONFIG_ORIGIN = json.loads(CONFIG.read_text()).get("targetOrigin", "https://fenomenosmedia.org") if CONFIG.exists() else "https://fenomenosmedia.org"
 ORIGIN = os.environ.get("SITE_ORIGIN", CONFIG_ORIGIN).rstrip("/")
 ALLOWED = {"p", "div", "br", "b", "strong", "i", "em", "u", "mark", "span"}
@@ -141,6 +143,9 @@ def externalize_image(value, written: set):
     """Return a file URL for a base64 data URI; leave every other value as is."""
     match = DATA_URI.fullmatch(str(value or "").strip()) if isinstance(value, str) else None
     if not match:
+        # An image already published as a file is still in use: keep it.
+        if isinstance(value, str) and value.startswith(IMAGE_URL + "/") and IMAGE_NAME.fullmatch(value.removeprefix(IMAGE_URL + "/")):
+            written.add(value.removeprefix(IMAGE_URL + "/"))
         return value
     data = base64.b64decode(re.sub(r"\s+", "", match.group(2)), validate=True)
     ext = {"jpeg": "jpg"}.get(match.group(1).lower(), match.group(1).lower())
@@ -275,17 +280,90 @@ def card(article, href):
     excerpt = article.get("excerpt") or plain(article.get("excerptHtml"))
     date = date_text(article.get("publishedAt") or article.get("createdAt"))
     cover = f'<img src="{html.escape(str(article["cover"]), quote=True)}" alt="" loading="lazy" decoding="async">' if article.get("cover") else ""
-    tag = (article.get("tags") or [article.get("tag")] or [""])[0]
-    return f'<li class="card card--article"><a class="card__inner" href="{html.escape(href, quote=True)}"><span class="article__media">{cover}</span><span class="article__meta">{html.escape(str(tag))} · <time datetime="{date}">{date}</time></span><h3 class="card__title">{html.escape(str(title))}</h3><p class="card__text">{html.escape(str(excerpt))}</p><span class="card__link">Leer más →</span></a></li>'
+    tag = next((str(x) for x in (article.get("tags") or [article.get("tag")]) if x), "")
+    label = f'{html.escape(tag)} · ' if tag else ""
+    return f'<li class="card card--article"><a class="card__inner" href="{html.escape(href, quote=True)}"><span class="article__media">{cover}</span><span class="article__meta">{label}<time datetime="{date}">{date}</time></span><h3 class="card__title">{html.escape(str(title))}</h3><p class="card__text">{html.escape(str(excerpt))}</p><span class="card__link">Leer más →</span></a></li>'
+
+
+def archive_tags(row):
+    """Blogger tags arrive either as a list or as a stringified Python list."""
+    value = row.get("tags") or []
+    if isinstance(value, str):
+        try:
+            value = ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            value = [value]
+    return [str(x) for x in value if str(x).strip()] if isinstance(value, (list, tuple)) else []
+
+
+def load_archive_rows():
+    archive = json.loads((ROOT / "archivo/catalog.json").read_text())
+    return [{**x, "tags": archive_tags(x), "publishedAt": x.get("publishedAt") or x.get("date"), "excerpt": x.get("excerpt") or x.get("description", ""), "isArchive": True, "archivePath": x["path"]} for x in archive]
+
+
+def live_rows_from(manifest):
+    return [{"id": article["id"], "slug": article["slug"], "title": article.get("title") or plain(article.get("titleHtml")), "excerpt": article.get("excerpt") or plain(article.get("excerptHtml")), "publishedAt": article.get("publishedAt") or article.get("createdAt"), "cover": article.get("cover", ""), "tags": article.get("tags") or ([article.get("tag")] if article.get("tag") else []), "categories": article.get("categories", [])} for article in manifest]
+
+
+def newest_first(rows):
+    return sorted(rows, key=lambda x: date_value(x.get("publishedAt")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=True)
+
+
+def row_href(row):
+    return row["path"] if row.get("isArchive") else f'/articulos/{row["slug"]}/'
+
+
+def norm_label(value) -> str:
+    value = unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"\s+", " ", value).strip()
+
+
+ADS_TAG = '<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5012752012707398" crossorigin="anonymous"></script>'
+
+
+def set_indexable(text: str, indexable: bool) -> str:
+    """Index and monetize a region page only when it has enough real content."""
+    text = re.sub(r'\n?[ \t]*<script async src="https://pagead2\.googlesyndication\.com/pagead/js/adsbygoogle\.js[^"]*"[^>]*></script>', "", text, flags=re.I)
+    text = re.sub(r'\n?[ \t]*<meta name="robots"[^>]*>', "", text, flags=re.I)
+    marker = ADS_TAG if indexable else '<meta name="robots" content="noindex, follow" />'
+    return text.replace("<head>", f"<head>\n    {marker}", 1)
+
+
+def replace_list(text: str, list_id: str, items: str, page: Path) -> str:
+    text, count = re.subn(rf'(<ul[^>]*id="{list_id}"[^>]*>).*?(</ul>)', lambda m: m.group(1) + "\n" + items + "\n" + m.group(2), text, count=1, flags=re.S)
+    if count != 1:
+        raise ValueError(f"{page.name} has no #{list_id} list")
+    return text
+
+
+def update_regions(manifest):
+    """Render each region page and its sala from the build, without Firestore at runtime."""
+    config = json.loads(REGIONS.read_text())
+    minimum, sala_limit = config.get("minIndexable", 3), config.get("salaArticles", 6)
+    live, archive = live_rows_from(manifest), load_archive_rows()
+    indexable = {}
+    for region in config["regions"]:
+        wanted = {norm_label(region["category"])} | {norm_label(x) for x in region.get("aliases", [])}
+        archive_wanted = {norm_label(x) for x in region.get("archiveTags", [])}
+        rows = [x for x in live if wanted & {norm_label(c) for c in x.get("categories") or []}]
+        rows += [x for x in archive if archive_wanted & {norm_label(t) for t in x["tags"]}]
+        rows = newest_first(rows)
+        empty = f'<li class="region-list__empty">Aún no hay artículos de {html.escape(region["name"])}. En cuanto se publique el primero aparecerá aquí.</li>'
+        cards = "\n".join(card(x, row_href(x)) for x in rows) or empty
+        sala_cards = "\n".join(card(x, row_href(x)) for x in rows[:sala_limit]) or empty
+        ok = len(rows) >= minimum
+        indexable[region["page"]] = ok
+        page = ROOT / f'{region["page"]}.html'
+        page.write_text(set_indexable(replace_list(page.read_text(), "region-articles", cards, page), ok))
+        sala = ROOT / f'{region["sala"]}.html'
+        sala.write_text(replace_list(sala.read_text(), "sala-articles", sala_cards, sala))
+    return indexable
 
 
 def update_indexes(manifest):
-    archive = json.loads((ROOT / "archivo/catalog.json").read_text())
-    live_rows = []
-    for article in manifest:
-        live_rows.append({"id": article["id"], "slug": article["slug"], "title": article.get("title") or plain(article.get("titleHtml")), "excerpt": article.get("excerpt") or plain(article.get("excerptHtml")), "publishedAt": article.get("publishedAt") or article.get("createdAt"), "cover": article.get("cover", ""), "tags": article.get("tags") or ([article.get("tag")] if article.get("tag") else []), "categories": article.get("categories", [])})
-    archive_rows = [{**x, "isArchive": True, "archivePath": x["path"]} for x in archive]
-    rows = sorted(live_rows + archive_rows, key=lambda x: str(x.get("publishedAt") or ""), reverse=True)
+    live_rows = live_rows_from(manifest)
+    archive_rows = load_archive_rows()
+    rows = newest_first(live_rows + archive_rows)
     page = ROOT / "articulos.html"
     text = page.read_text()
     chosen = rows
@@ -416,6 +494,7 @@ def _generate():
     (ROOT / "data/article-routes.json").write_text(json.dumps(static, ensure_ascii=False, indent=2) + "\n")
     update_slug_redirects(previous_routes, manifest)
     update_indexes(manifest)
+    region_indexable = update_regions(manifest)
     # Keep existing app/maps/archive URLs, replace any previous generated article routes.
     sitemap = ROOT / "sitemap.xml"
     old = ET.parse(sitemap).getroot() if sitemap.exists() else ET.Element("urlset", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
@@ -427,7 +506,10 @@ def _generate():
             loc = node.findtext(f"{ns}loc") or ""
         if "/articulos/" in loc or loc.rstrip("/").endswith("/articulos"):
             old.remove(node)
-    for path in ["/articulos/"] + [f"/articulos/{x['slug']}/" for x in manifest]:
+        elif loc.removeprefix(ORIGIN + "/") in region_indexable:
+            old.remove(node)
+    region_paths = [f"/{page}" for page, ok in region_indexable.items() if ok]
+    for path in region_paths + ["/articulos/"] + [f"/articulos/{x['slug']}/" for x in manifest]:
         node = ET.SubElement(old, f"{ns}url")
         ET.SubElement(node, f"{ns}loc").text = ORIGIN + path
     ET.register_namespace("", "http://www.sitemaps.org/schemas/sitemap/0.9")
@@ -444,6 +526,8 @@ def main():
         except BlockingIOError as exc:
             raise SystemExit("Another Firestore publication is already running") from exc
         targets = [ROOT / "articulos.html", ROOT / "index.html", ROOT / "sitemap.xml", ROOT / "_redirects", ROOT / "data/published-articles.json", ROOT / "data/article-routes.json", ROOT / "data/article-redirects.json"]
+        for region in json.loads(REGIONS.read_text())["regions"]:
+            targets += [ROOT / f'{region["page"]}.html', ROOT / f'{region["sala"]}.html']
         with tempfile.TemporaryDirectory(prefix="firestore-publish-backup-") as backup:
             backup_path = Path(backup)
             for target in targets:

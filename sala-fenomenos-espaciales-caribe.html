@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#000b33" />
     <meta
       name="description"
-      content="Sala Fenómenos Espaciales Caribe"
+      content="Guía de fenómenos espaciales observables desde el Caribe: lluvias de meteoros, eclipses, planetas y clima espacial, con consejos para observar de forma segura."
       id="meta-description"
     />
 
@@ -251,8 +251,40 @@
 
     <div class="read-progress" id="read-progress" aria-hidden="true"></div>
 
-    <main id="contenido" class="post-page" style="min-height:65vh">
-      <div class="container"><h1 class="heading__primary">Sala Fenómenos Espaciales Caribe</h1></div>
+    <main id="contenido" class="post-page sala">
+      <div class="post-shell">
+        <header class="post__head">
+          <p class="sala__eyebrow">Sala de pronóstico</p>
+          <h1 class="heading__primary post__title">Sala Fenómenos Espaciales Caribe</h1>
+          <p class="post__excerpt">Guía de fenómenos espaciales observables desde el Caribe: lluvias de meteoros, eclipses, planetas y clima espacial, con consejos para observar de forma segura.</p>
+        </header>
+
+        <!-- Pronósticos finales (imágenes de Muse). Se muestra cuando exista el
+             flujo de publicación de imágenes; mientras tanto queda oculto. -->
+        <section class="sala-forecast" id="sala-pronosticos" aria-labelledby="sala-pronosticos-title" hidden>
+          <h2 class="region-list__title" id="sala-pronosticos-title">Pronósticos vigentes</h2>
+          <div class="sala-forecast__grid" id="sala-forecast-grid"></div>
+        </section>
+
+        <!-- Guía editorial: borrador pendiente de revisión del propietario. -->
+        <article class="post sala-guide">
+          <div class="post__body">
+            <h2 class="post__heading">Un buen lugar para mirar el cielo</h2><div class="post__paragraph"><p>Por su latitud tropical, desde el Caribe se ve casi toda la bóveda celeste: constelaciones del norte y también parte del cielo del sur, como la Cruz del Sur, que en primavera asoma baja sobre el horizonte sur. Las mayores dificultades son la contaminación lumínica de las ciudades y la nubosidad de la temporada lluviosa.</p></div><h2 class="post__heading">Lluvias de meteoros del año</h2><ul class="post__list"><li><strong>Cuadrántidas:</strong> a principios de enero.</li><li><strong>Líridas:</strong> hacia el 22 de abril.</li><li><strong>Eta Acuáridas:</strong> a principios de mayo; se ven mejor en latitudes tropicales que más al norte.</li><li><strong>Perseidas:</strong> hacia el 12 y 13 de agosto, una de las más conocidas.</li><li><strong>Oriónidas:</strong> hacia el 21 de octubre.</li><li><strong>Leónidas:</strong> hacia el 17 de noviembre.</li><li><strong>Gemínidas:</strong> hacia el 13 y 14 de diciembre, normalmente la más intensa del año.</li></ul><div class="post__paragraph"><p>La mejor hora suele ser de madrugada, lejos de las luces y sin Luna brillante. No hace falta telescopio: basta con dejar que la vista se acostumbre a la oscuridad durante unos 20 minutos.</p></div><h2 class="post__heading">Eclipses: cómo observarlos sin riesgo</h2><div class="post__paragraph"><p>Nunca mires el Sol directamente, ni con gafas de sol normales, ni con binoculares o cámaras sin filtro. Para un eclipse solar usa gafas que cumplan la norma ISO 12312-2 o un método de proyección. Los eclipses de Luna, en cambio, se pueden mirar a simple vista sin peligro.</p></div><h2 class="post__heading">Clima espacial</h2><div class="post__paragraph"><p>Las tormentas solares pueden afectar satélites, señales de radio y GPS. A la latitud del Caribe las auroras son excepcionales, pero conviene seguir los avisos cuando hay una tormenta geomagnética fuerte.</p></div><h2 class="post__heading">Fuentes</h2><ul class="post__list"><li><a href="https://science.nasa.gov/sky-at-night/" rel="noopener" target="_blank">NASA, el cielo nocturno</a>.</li><li><a href="https://www.imo.net/" rel="noopener" target="_blank">Organización Internacional de Meteoros (IMO)</a>, con el calendario de lluvias de meteoros.</li><li><a href="https://www.swpc.noaa.gov/" rel="noopener" target="_blank">Centro de Predicción del Clima Espacial de la NOAA (SWPC)</a>.</li><li>Las sociedades astronómicas de tu país, que organizan observaciones públicas.</li></ul>
+          </div>
+          <p class="sala-guide__note">Esta guía es informativa y no sustituye los avisos de los servicios meteorológicos ni las indicaciones de protección civil de tu país.</p>
+        </article>
+
+        <section class="region-list" aria-labelledby="sala-articles-title">
+          <h2 class="region-list__title" id="sala-articles-title">Últimos artículos de Fenómenos Espaciales Caribe</h2>
+          <ul class="grid catalog__grid grid--3" id="sala-articles">
+<li class="region-list__empty">Aún no hay artículos de Fenómenos Espaciales Caribe. En cuanto se publique el primero aparecerá aquí.</li>
+</ul>
+          <nav class="sala-links" aria-label="Más de Fenómenos Espaciales Caribe">
+            <a class="btn btn--primary" href="/fenomenos-espaciales-caribe">Ver todos los artículos de Fenómenos Espaciales Caribe</a>
+            <a class="btn btn--ghost" href="https://www.facebook.com/FenomenosCaribe" rel="noopener" target="_blank">Síguenos en Facebook ↗</a>
+          </nav>
+        </section>
+      </div>
     </main>
     <footer class="footer">
       <div class="container footer__container">
