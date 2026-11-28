@@ -26,6 +26,23 @@ import {
 window.__fdcModuleOk = true;
 
 const root = document.getElementById("post-root");
+
+/* The build publishes Firestore's base64 images as files. When this page was
+   pre-rendered, reuse those file URLs instead of re-inlining the base64. */
+const isDataUri = (value) => String(value || "").startsWith("data:");
+const staticCover = root?.querySelector(".post__cover img")?.getAttribute("src") || "";
+const staticFigures = [...(root?.querySelectorAll(".post__figure img") || [])].map((img) => img.getAttribute("src") || "");
+function keepStaticImages(article) {
+  if (!article || root?.dataset.articleId !== article.id) return article;
+  let figure = 0;
+  const sections = (article.sections || []).map((section) => {
+    if (section?.type !== "image" || !section.src) return section;
+    const file = staticFigures[figure++];
+    return isDataUri(section.src) && file && !isDataUri(file) ? { ...section, src: file } : section;
+  });
+  const cover = isDataUri(article.cover) && staticCover && !isDataUri(staticCover) ? staticCover : article.cover;
+  return { ...article, cover, sections };
+}
 const staticArticleId = root?.dataset.articleId || null;
 
 function showState(icon, title, text) {
@@ -119,6 +136,7 @@ function hasCategory(article, category) {
       }
     }
 
+    article = keepStaticImages(article);
     renderArticle(root, article, { headingTag: PAGE_CATEGORY ? "h2" : "h1" });
     if (PAGE_CATEGORY) addCategoryExtras(catArticles);
 

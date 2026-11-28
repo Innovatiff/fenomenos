@@ -18,6 +18,13 @@ export async function fetchArchive() {
   }));
 }
 
+/* Firestore covers are base64 data URIs; the build already published them as
+   image files. Keep the static file URL so live cards do not inline them. */
+export function preferStaticCovers(initial, live) {
+  const covers = new Map(initial.filter(a => a.id && a.cover && !String(a.cover).startsWith('data:')).map(a => [a.id, a.cover]));
+  return live.map(a => (String(a.cover || '').startsWith('data:') && covers.has(a.id) ? { ...a, cover: covers.get(a.id) } : a));
+}
+
 export function newestFirst(articles) {
   const timestamp = (value) => {
     const date = typeof value?.toDate === 'function' ? value.toDate() : new Date(value || 0);
