@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#000b33" />
     <meta
       name="description"
-      content="Sala Fenómenos México"
+      content="El tiempo en México: ciclones de dos océanos, frentes fríos, monzón y calor."
       id="meta-description"
     />
 
@@ -251,8 +251,40 @@
 
     <div class="read-progress" id="read-progress" aria-hidden="true"></div>
 
-    <main id="contenido" class="post-page" style="min-height:65vh">
-      <div class="container"><h1 class="heading__primary">Sala Fenómenos México</h1></div>
+    <main id="contenido" class="post-page sala">
+      <div class="post-shell">
+        <header class="post__head">
+          <p class="sala__eyebrow">Sala de pronóstico</p>
+          <h1 class="heading__primary post__title">Sala Fenómenos México</h1>
+          <p class="post__excerpt">El tiempo en México: ciclones de dos océanos, frentes fríos, monzón y calor.</p>
+        </header>
+
+        <!-- Pronósticos finales (imágenes de Muse). Se muestra cuando exista el
+             flujo de publicación de imágenes; mientras tanto queda oculto. -->
+        <section class="sala-forecast" id="sala-pronosticos" aria-labelledby="sala-pronosticos-title" hidden>
+          <h2 class="region-list__title" id="sala-pronosticos-title">Pronósticos vigentes</h2>
+          <div class="sala-forecast__grid" id="sala-forecast-grid"></div>
+        </section>
+
+        <!-- Guía breve de la región. -->
+        <article class="post sala-guide">
+          <div class="post__body">
+            <h2 class="post__heading">Qué vigilar</h2><ul class="post__list"><li><strong>Mayo a noviembre:</strong> ciclones en el Pacífico y en el Atlántico.</li><li><strong>Julio a septiembre:</strong> monzón, con tormentas en el noroeste y el occidente.</li><li><strong>Octubre a abril:</strong> frentes fríos y «nortes» en el Golfo y el istmo de Tehuantepec.</li><li><strong>Abril a junio:</strong> ondas de calor.</li></ul><h2 class="post__heading">Fuentes oficiales</h2><ul class="post__list"><li><a href="https://smn.conagua.gob.mx/" rel="noopener" target="_blank">Servicio Meteorológico Nacional (SMN)</a>.</li><li><a href="https://www.nhc.noaa.gov/?lang=es" rel="noopener" target="_blank">Centro Nacional de Huracanes (NHC)</a>.</li><li>Protección Civil y el semáforo de alerta para ciclones (SIAT-CT).</li></ul>
+          </div>
+          <p class="sala-guide__note">Esta guía no sustituye los avisos oficiales de tu país.</p>
+        </article>
+
+        <section class="region-list" aria-labelledby="sala-articles-title">
+          <h2 class="region-list__title" id="sala-articles-title">Últimos artículos de Fenómenos México</h2>
+          <ul class="grid catalog__grid grid--3" id="sala-articles">
+<li class="card card--article"><a class="card__inner" href="/articulos/huracan-polo-el-segundo-mas-intenso-del-pacifico-este-se-mantiene-como-categoria-4-y-apunta-a-baja-california-sur/"><span class="article__media"><img src="/img/articulos/8527e01f23bd0b0c9ba9.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-09-26">2026-09-26</time></span><h3 class="card__title">Huracán Polo: el segundo más intenso del Pacífico este se mantiene como categoría 4 y apunta a Baja California Sur</h3><p class="card__text">El huracán Polo, que llegó a ser el segundo ciclón más intenso jamás registrado en el Pacífico este, se mantiene como un poderoso categoría 4 frente a las costas de México. El Centro Nacional de Huracanes (NHC) pronostica que girará hacia Baja California Sur el lunes, con lluvias torrenciales, oleaje peligroso y corrientes de resaca.</p><span class="card__link">Leer más →</span></a></li>
+</ul>
+          <nav class="sala-links" aria-label="Más de Fenómenos México">
+            <a class="btn btn--primary" href="/fenomenos-mexico">Ver todos los artículos de Fenómenos México</a>
+            <a class="btn btn--ghost" href="https://www.facebook.com/FenomenosMexico" rel="noopener" target="_blank">Síguenos en Facebook ↗</a>
+          </nav>
+        </section>
+      </div>
     </main>
     <footer class="footer">
       <div class="container footer__container">

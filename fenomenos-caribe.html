@@ -8,7 +8,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#000b33" />
-    <meta name="fdc-category" content="Fenómenos del Caribe" />
+    <meta name="fdc-category" content="Fenómenos Caribe" />
     <meta
       name="description"
       content="Información actualizada sobre todos los fenómenos significativos para la región del Caribe, así como sus impactos y riesgos asociados. Cubrimos República Dominicana, Cuba, Puerto Rico, entre otros."
@@ -34,7 +34,6 @@
       src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"
     ></script>
     <script defer src="js/script.js"></script>
-    <script type="module" src="js/article-page.js"></script>
     <script src="js/analytics.js" defer></script>
 <link rel="canonical" href="https://fenomenosmedia.org/fenomenos-caribe" />
 <link rel="stylesheet" href="/css/brand.css" />
@@ -265,85 +264,26 @@
           <h1 class="heading__primary post__title">Fenómenos Caribe</h1>
           <p class="post__excerpt">Información actualizada sobre todos los fenómenos significativos para la región del Caribe, así como sus impactos y riesgos asociados. Cubrimos República Dominicana, Cuba, Puerto Rico, entre otros.</p>
           <aside class="category-note" aria-label="Sobre este listado">
-            <span class="category-note__label">Última publicación</span>
-            <p>A continuación encontrarás el artículo más reciente de esta categoría.</p>
+            <span class="category-note__label">En esta página</span>
+            <p>Todos los artículos de Fenómenos Caribe, del más reciente al más antiguo. Para la guía de la región y los pronósticos, visita la sala.</p>
             <nav class="category-note__links" aria-label="Explorar publicaciones">
-              <a href="articulos.html">Todos los artículos <span aria-hidden="true">→</span></a>
+              <a href="/sala-caribe.html">Sala Fenómenos Caribe <span aria-hidden="true">→</span></a>
+              <a href="/articulos/">Todos los artículos <span aria-hidden="true">→</span></a>
               <a href="/archivo/">Archivo histórico <span aria-hidden="true">→</span></a>
+              <a href="https://www.facebook.com/FenomenosCaribe" rel="noopener" target="_blank">Facebook <span aria-hidden="true">↗</span></a>
             </nav>
           </aside>
         </header>
-        <div class="post-layout">
-          <article class="post">
-            <div id="post-root">
-              <div class="post-state" id="post-loading">
-                <ion-icon name="hourglass-outline"></ion-icon>
-                <strong>Cargando artículo…</strong>
-              </div>
-            </div>
-
-            <!-- ═══════════════════ COMENTARIOS ═══════════════════ -->
-            <section class="comments" id="comments" hidden>
-              <div class="comments__head">
-                <h2 class="comments__title">
-                  <ion-icon name="chatbubbles-outline"></ion-icon>
-                  Comentarios <span id="comments-count"></span>
-                </h2>
-                <button class="btn btn--primary btn--sm" id="btn-comment">
-                  <ion-icon name="create-outline"></ion-icon> Comentar
-                </button>
-              </div>
-
-              <div id="own-pending"></div>
-              <div class="comments__list" id="comments-list"></div>
-
-              <p class="comments__empty" id="comments-empty" hidden>
-                Todavía no hay comentarios. Sé la primera persona en comentar.
-              </p>
-
-              <div class="comments__more">
-                <button class="btn btn--ghost btn--sm" id="comments-more" hidden>
-                  Mostrar más
-                </button>
-              </div>
-            </section>
-          </article>
-
-          <!-- Barra lateral: cajas fijas que acompañan el scroll -->
-          <aside class="post-aside" id="post-aside" hidden>
-            <div class="post-aside__sticky">
-              <nav class="aside-box" id="toc-box" hidden aria-label="Índice del artículo">
-                <h2 class="aside-box__title">
-                  <ion-icon name="list-outline"></ion-icon> En este artículo
-                </h2>
-                <ol class="toc" id="toc-list"></ol>
-              </nav>
-
-              <div class="aside-box" id="share-box" hidden>
-                <h2 class="aside-box__title">
-                  <ion-icon name="share-social-outline"></ion-icon> Comparte este
-                  artículo
-                </h2>
-                <div class="share" id="share-buttons"></div>
-              </div>
-
-              <div class="aside-box" id="react-box" hidden>
-                <h2 class="aside-box__title">
-                  <ion-icon name="heart-outline"></ion-icon> ¿Te gustó el
-                  artículo?
-                </h2>
-                <div class="aside-reacts" id="react-side"></div>
-              </div>
-
-              <div class="aside-box" id="more-box" hidden>
-                <h2 class="aside-box__title">
-                  <ion-icon name="newspaper-outline"></ion-icon> Más artículos
-                </h2>
-                <div class="aside-more" id="more-list"></div>
-              </div>
-            </div>
-          </aside>
-        </div>
+        <section class="region-list" aria-labelledby="region-list-title">
+          <h2 class="region-list__title" id="region-list-title">Artículos de Fenómenos Caribe</h2>
+          <ul class="grid catalog__grid grid--3" id="region-articles">
+<li class="card card--article"><a class="card__inner" href="/articulos/cambio-climatico-y-el-caribe-lo-que-esta-cambiando/"><span class="article__media"><img src="/img/articulos/915cf4b5aa165adbff47.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Cambio climático · <time datetime="2026-10-08">2026-10-08</time></span><h3 class="card__title">Cambio climático y el Caribe: lo que está cambiando</h3><p class="card__text">El cambio climático intensifica huracanes, sube el nivel del mar y altera las lluvias en el Caribe. Entiende qué pasa y cómo prepararte.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/kit-de-emergencia-para-huracanes-guia-completa-de-preparacion/"><span class="article__media"><img src="/img/articulos/7ed9e81ae1559c839ecf.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Prevención · <time datetime="2026-10-07">2026-10-07</time></span><h3 class="card__title">Kit de emergencia para huracanes: guía completa de preparación</h3><p class="card__text">Todo lo que tu familia necesita tener lista antes de que llegue un huracán: agua, alimentos, documentos, medicamentos y el plan que puede salvar vidas. Guía práctica para el Caribe.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/preocupacion-en-el-caribe-y-centroamerica-por-poca-actividad-en-el-atlantico/"><span class="article__media"><img src="/img/articulos/ba0303ecae5b730b0136.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Cambio climático · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Preocupación en el Caribe y Centroamérica por poca actividad en el atlántico.</h3><p class="card__text">Las ondas y sistemas tropicales débiles ayudan a reducir la sequedad sobre la región, pero no se ve ningún sistema a corto plazo.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/intensas-tormentas-electricas-en-cuba-este-sabado/"><span class="article__media"><img src="/img/articulos/55bc3722bc1761df7521.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Tiempo severo · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Intensas tormentas eléctricas en Cuba este sábado.</h3><p class="card__text">Las tormentas continuarán por varios días en varias regiones de la isla.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/onda-tropical-saliendo-de-africa-con-algo-de-probabilidades/"><span class="article__media"><img src="/img/articulos/04ca46be415e3d54606b.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-07-15">2026-07-15</time></span><h3 class="card__title">Onda tropical Saliendo de Africa con algo de Probabilidades</h3><p class="card__text">¡Esta onda que acaba de salir de África posee algo de probabilidades!</p><span class="card__link">Leer más →</span></a></li>
+</ul>
+        </section>
 
         <div class="post__more">
           <a href="articulos.html" class="btn btn--ghost"

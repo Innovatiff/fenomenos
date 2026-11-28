@@ -1,0 +1,69 @@
+{
+  "minIndexable": 3,
+  "salaArticles": 6,
+  "regions": [
+    {
+      "page": "fenomenos-caribe",
+      "sala": "sala-caribe",
+      "name": "Fenómenos Caribe",
+      "category": "Fenómenos Caribe",
+      "aliases": ["Fenómenos del Caribe"],
+      "archiveTags": [],
+      "facebook": "https://www.facebook.com/FenomenosCaribe"
+    },
+    {
+      "page": "fenomenos-centroamerica",
+      "sala": "sala-centroamerica",
+      "name": "Fenómenos Centroamérica",
+      "category": "Fenómenos Centroamérica",
+      "aliases": [],
+      "archiveTags": [],
+      "facebook": "https://www.facebook.com/FenomenosCAmerica"
+    },
+    {
+      "page": "fenomenos-mexico",
+      "sala": "sala-mexico",
+      "name": "Fenómenos México",
+      "category": "Fenómenos México",
+      "aliases": [],
+      "archiveTags": [],
+      "facebook": "https://www.facebook.com/FenomenosMexico"
+    },
+    {
+      "page": "fenomenos-usa",
+      "sala": "sala-usa",
+      "name": "Fenómenos USA",
+      "category": "Fenómenos USA",
+      "aliases": [],
+      "archiveTags": [],
+      "facebook": "https://www.facebook.com/fenomenosusa"
+    },
+    {
+      "page": "huracanes-caribe",
+      "sala": "sala-huracanes-caribe",
+      "name": "Huracanes Caribe",
+      "category": "Huracanes Caribe",
+      "aliases": [],
+      "archiveTags": ["Tiempo Tropical"],
+      "facebook": "https://www.facebook.com/HuracanesCaribe"
+    },
+    {
+      "page": "terremotos-caribe",
+      "sala": "sala-terremotos-caribe",
+      "name": "Terremotos Caribe",
+      "category": "Terremotos Caribe",
+      "aliases": [],
+      "archiveTags": ["Temblores"],
+      "facebook": "https://www.facebook.com/terremotoscaribe"
+    },
+    {
+      "page": "fenomenos-espaciales-caribe",
+      "sala": "sala-fenomenos-espaciales-caribe",
+      "name": "Fenómenos Espaciales Caribe",
+      "category": "Fenómenos Espaciales Caribe",
+      "aliases": [],
+      "archiveTags": [],
+      "facebook": "https://www.facebook.com/FenomenosCaribe"
+    }
+  ]
+}

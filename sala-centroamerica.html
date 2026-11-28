@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#000b33" />
     <meta
       name="description"
-      content="Sala Fenómenos Centroamérica"
+      content="El tiempo en Guatemala, Belice, El Salvador, Honduras, Nicaragua, Costa Rica y Panamá."
       id="meta-description"
     />
 
@@ -251,8 +251,42 @@
 
     <div class="read-progress" id="read-progress" aria-hidden="true"></div>
 
-    <main id="contenido" class="post-page" style="min-height:65vh">
-      <div class="container"><h1 class="heading__primary">Sala Fenómenos Centroamérica</h1></div>
+    <main id="contenido" class="post-page sala">
+      <div class="post-shell">
+        <header class="post__head">
+          <p class="sala__eyebrow">Sala de pronóstico</p>
+          <h1 class="heading__primary post__title">Sala Fenómenos Centroamérica</h1>
+          <p class="post__excerpt">El tiempo en Guatemala, Belice, El Salvador, Honduras, Nicaragua, Costa Rica y Panamá.</p>
+        </header>
+
+        <!-- Pronósticos finales (imágenes de Muse). Se muestra cuando exista el
+             flujo de publicación de imágenes; mientras tanto queda oculto. -->
+        <section class="sala-forecast" id="sala-pronosticos" aria-labelledby="sala-pronosticos-title" hidden>
+          <h2 class="region-list__title" id="sala-pronosticos-title">Pronósticos vigentes</h2>
+          <div class="sala-forecast__grid" id="sala-forecast-grid"></div>
+        </section>
+
+        <!-- Guía breve de la región. -->
+        <article class="post sala-guide">
+          <div class="post__body">
+            <h2 class="post__heading">Qué vigilar</h2><ul class="post__list"><li><strong>Mayo a octubre:</strong> temporada lluviosa, con la canícula entre julio y agosto.</li><li><strong>Mayo a noviembre:</strong> ciclones del Pacífico y del Atlántico.</li><li><strong>Noviembre a marzo:</strong> frentes fríos y «nortes» en la costa caribeña.</li><li><strong>Siempre:</strong> varios días de lluvia pueden causar deslizamientos e inundaciones, aunque el sistema sea débil.</li></ul><h2 class="post__heading">Fuentes oficiales</h2><ul class="post__list"><li><a href="https://www.nhc.noaa.gov/?lang=es" rel="noopener" target="_blank">Centro Nacional de Huracanes (NHC)</a>.</li><li>INSIVUMEH (Guatemala), MARN (El Salvador), COPECO (Honduras), INETER (Nicaragua), IMN (Costa Rica) e IMHPA (Panamá).</li></ul>
+          </div>
+          <p class="sala-guide__note">Esta guía no sustituye los avisos oficiales de tu país.</p>
+        </article>
+
+        <section class="region-list" aria-labelledby="sala-articles-title">
+          <h2 class="region-list__title" id="sala-articles-title">Últimos artículos de Fenómenos Centroamérica</h2>
+          <ul class="grid catalog__grid grid--3" id="sala-articles">
+<li class="card card--article"><a class="card__inner" href="/articulos/preocupacion-en-el-caribe-y-centroamerica-por-poca-actividad-en-el-atlantico/"><span class="article__media"><img src="/img/articulos/ba0303ecae5b730b0136.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Cambio climático · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Preocupación en el Caribe y Centroamérica por poca actividad en el atlántico.</h3><p class="card__text">Las ondas y sistemas tropicales débiles ayudan a reducir la sequedad sobre la región, pero no se ve ningún sistema a corto plazo.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/regresan-las-lluvias-a-centroamerica-esta-semana/"><span class="article__media"><img src="/img/articulos/1ea367fe79c398d56b44.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Pronósticos · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Regresan las lluvias a Centroamérica esta semana</h3><p class="card__text">Regresarán las lluvias a desde este domingo especialmente a Costa Rica y Panamá!</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/continuaran-las-lluvias-en-centroamerica/"><span class="article__media"><img src="/img/articulos/3db4d7f7775756e5033a.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Pronósticos · <time datetime="2026-07-16">2026-07-16</time></span><h3 class="card__title">Continuarán las lluvias en Centroamérica</h3><p class="card__text">¡Aun se esperan varios milimetros adicionales este jueves!</p><span class="card__link">Leer más →</span></a></li>
+</ul>
+          <nav class="sala-links" aria-label="Más de Fenómenos Centroamérica">
+            <a class="btn btn--primary" href="/fenomenos-centroamerica">Ver todos los artículos de Fenómenos Centroamérica</a>
+            <a class="btn btn--ghost" href="https://www.facebook.com/FenomenosCAmerica" rel="noopener" target="_blank">Síguenos en Facebook ↗</a>
+          </nav>
+        </section>
+      </div>
     </main>
     <footer class="footer">
       <div class="container footer__container">

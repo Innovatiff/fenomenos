@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#000b33" />
     <meta
       name="description"
-      content="Sala Fenómenos Caribe"
+      content="El tiempo en República Dominicana, Cuba, Puerto Rico y las Antillas."
       id="meta-description"
     />
 
@@ -251,8 +251,44 @@
 
     <div class="read-progress" id="read-progress" aria-hidden="true"></div>
 
-    <main id="contenido" class="post-page" style="min-height:65vh">
-      <div class="container"><h1 class="heading__primary">Sala Fenómenos Caribe</h1></div>
+    <main id="contenido" class="post-page sala">
+      <div class="post-shell">
+        <header class="post__head">
+          <p class="sala__eyebrow">Sala de pronóstico</p>
+          <h1 class="heading__primary post__title">Sala Fenómenos Caribe</h1>
+          <p class="post__excerpt">El tiempo en República Dominicana, Cuba, Puerto Rico y las Antillas.</p>
+        </header>
+
+        <!-- Pronósticos finales (imágenes de Muse). Se muestra cuando exista el
+             flujo de publicación de imágenes; mientras tanto queda oculto. -->
+        <section class="sala-forecast" id="sala-pronosticos" aria-labelledby="sala-pronosticos-title" hidden>
+          <h2 class="region-list__title" id="sala-pronosticos-title">Pronósticos vigentes</h2>
+          <div class="sala-forecast__grid" id="sala-forecast-grid"></div>
+        </section>
+
+        <!-- Guía breve de la región. -->
+        <article class="post sala-guide">
+          <div class="post__body">
+            <h2 class="post__heading">Qué vigilar</h2><ul class="post__list"><li><strong>Junio a noviembre:</strong> ondas tropicales, tormentas y huracanes.</li><li><strong>Junio a agosto:</strong> polvo del Sahara, con cielos brumosos y menos lluvia.</li><li><strong>Noviembre a abril:</strong> frentes fríos y vaguadas, con lluvias en la costa norte y oleaje.</li><li><strong>Todo el año:</strong> crecidas repentinas de ríos y cañadas tras aguaceros fuertes.</li></ul><h2 class="post__heading">Fuentes oficiales</h2><ul class="post__list"><li><a href="https://www.nhc.noaa.gov/?lang=es" rel="noopener" target="_blank">Centro Nacional de Huracanes (NHC)</a>.</li><li><a href="https://www.weather.gov/sju/" rel="noopener" target="_blank">Servicio Nacional de Meteorología en San Juan</a>, para Puerto Rico.</li><li>INDOMET en República Dominicana e INSMET en Cuba.</li></ul>
+          </div>
+          <p class="sala-guide__note">Esta guía no sustituye los avisos oficiales de tu país.</p>
+        </article>
+
+        <section class="region-list" aria-labelledby="sala-articles-title">
+          <h2 class="region-list__title" id="sala-articles-title">Últimos artículos de Fenómenos Caribe</h2>
+          <ul class="grid catalog__grid grid--3" id="sala-articles">
+<li class="card card--article"><a class="card__inner" href="/articulos/cambio-climatico-y-el-caribe-lo-que-esta-cambiando/"><span class="article__media"><img src="/img/articulos/915cf4b5aa165adbff47.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Cambio climático · <time datetime="2026-10-08">2026-10-08</time></span><h3 class="card__title">Cambio climático y el Caribe: lo que está cambiando</h3><p class="card__text">El cambio climático intensifica huracanes, sube el nivel del mar y altera las lluvias en el Caribe. Entiende qué pasa y cómo prepararte.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/kit-de-emergencia-para-huracanes-guia-completa-de-preparacion/"><span class="article__media"><img src="/img/articulos/7ed9e81ae1559c839ecf.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Prevención · <time datetime="2026-10-07">2026-10-07</time></span><h3 class="card__title">Kit de emergencia para huracanes: guía completa de preparación</h3><p class="card__text">Todo lo que tu familia necesita tener lista antes de que llegue un huracán: agua, alimentos, documentos, medicamentos y el plan que puede salvar vidas. Guía práctica para el Caribe.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/preocupacion-en-el-caribe-y-centroamerica-por-poca-actividad-en-el-atlantico/"><span class="article__media"><img src="/img/articulos/ba0303ecae5b730b0136.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Cambio climático · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Preocupación en el Caribe y Centroamérica por poca actividad en el atlántico.</h3><p class="card__text">Las ondas y sistemas tropicales débiles ayudan a reducir la sequedad sobre la región, pero no se ve ningún sistema a corto plazo.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/intensas-tormentas-electricas-en-cuba-este-sabado/"><span class="article__media"><img src="/img/articulos/55bc3722bc1761df7521.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Tiempo severo · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Intensas tormentas eléctricas en Cuba este sábado.</h3><p class="card__text">Las tormentas continuarán por varios días en varias regiones de la isla.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/onda-tropical-saliendo-de-africa-con-algo-de-probabilidades/"><span class="article__media"><img src="/img/articulos/04ca46be415e3d54606b.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-07-15">2026-07-15</time></span><h3 class="card__title">Onda tropical Saliendo de Africa con algo de Probabilidades</h3><p class="card__text">¡Esta onda que acaba de salir de África posee algo de probabilidades!</p><span class="card__link">Leer más →</span></a></li>
+</ul>
+          <nav class="sala-links" aria-label="Más de Fenómenos Caribe">
+            <a class="btn btn--primary" href="/fenomenos-caribe">Ver todos los artículos de Fenómenos Caribe</a>
+            <a class="btn btn--ghost" href="https://www.facebook.com/FenomenosCaribe" rel="noopener" target="_blank">Síguenos en Facebook ↗</a>
+          </nav>
+        </section>
+      </div>
     </main>
     <footer class="footer">
       <div class="container footer__container">

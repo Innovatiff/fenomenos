@@ -1538,3 +1538,49 @@
 }
 .category-note__links a:hover { text-decoration: underline; }
 .category-note__links a:focus-visible { outline: 2px solid #f4c542; outline-offset: 3px; }
+
+/* Salas y páginas regionales: listados generados en el build. */
+.region-list { margin-top: 4.8rem; }
+.region-list__title {
+  margin: 0 0 2.4rem;
+  color: #e8edf6;
+  font-size: 2.2rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.region-list__empty {
+  grid-column: 1 / -1;
+  list-style: none;
+  color: #acb9cf;
+  font-size: 1.5rem;
+}
+.sala__eyebrow {
+  margin: 0 0 .8rem;
+  color: #f4c542;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.sala-forecast { margin-top: 3.2rem; }
+.sala-forecast__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+  gap: 2rem;
+}
+.sala-guide { margin-top: 3.2rem; }
+.sala-guide a { color: #f4c542; }
+.sala-guide__note {
+  margin-top: 2.4rem;
+  padding: 1.2rem 1.6rem;
+  border-left: 2px solid #f4c542;
+  color: #acb9cf;
+  font-size: 1.35rem;
+  line-height: 1.6;
+}
+.sala-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin-top: 2.8rem;
+}

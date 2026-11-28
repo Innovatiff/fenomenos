@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#000b33" />
     <meta
       name="description"
-      content="Sala Fenómenos Espaciales Caribe"
+      content="Lluvias de meteoros, eclipses y otros fenómenos del cielo, vistos desde el Caribe."
       id="meta-description"
     />
 
@@ -251,8 +251,40 @@
 
     <div class="read-progress" id="read-progress" aria-hidden="true"></div>
 
-    <main id="contenido" class="post-page" style="min-height:65vh">
-      <div class="container"><h1 class="heading__primary">Sala Fenómenos Espaciales Caribe</h1></div>
+    <main id="contenido" class="post-page sala">
+      <div class="post-shell">
+        <header class="post__head">
+          <p class="sala__eyebrow">Sala de pronóstico</p>
+          <h1 class="heading__primary post__title">Sala Fenómenos Espaciales Caribe</h1>
+          <p class="post__excerpt">Lluvias de meteoros, eclipses y otros fenómenos del cielo, vistos desde el Caribe.</p>
+        </header>
+
+        <!-- Pronósticos finales (imágenes de Muse). Se muestra cuando exista el
+             flujo de publicación de imágenes; mientras tanto queda oculto. -->
+        <section class="sala-forecast" id="sala-pronosticos" aria-labelledby="sala-pronosticos-title" hidden>
+          <h2 class="region-list__title" id="sala-pronosticos-title">Pronósticos vigentes</h2>
+          <div class="sala-forecast__grid" id="sala-forecast-grid"></div>
+        </section>
+
+        <!-- Guía breve de la región. -->
+        <article class="post sala-guide">
+          <div class="post__body">
+            <h2 class="post__heading">Fechas para anotar</h2><ul class="post__list"><li><strong>Perseidas:</strong> hacia el 12 y 13 de agosto.</li><li><strong>Gemínidas:</strong> hacia el 13 y 14 de diciembre.</li><li><strong>Eta Acuáridas:</strong> a principios de mayo, muy buenas desde el trópico.</li></ul><div class="post__paragraph"><p>Nunca mires el Sol sin un filtro que cumpla la norma ISO 12312-2.</p></div><h2 class="post__heading">Fuentes</h2><ul class="post__list"><li><a href="https://science.nasa.gov/sky-at-night/" rel="noopener" target="_blank">NASA</a>.</li><li><a href="https://www.imo.net/" rel="noopener" target="_blank">Organización Internacional de Meteoros (IMO)</a>.</li></ul>
+          </div>
+          <p class="sala-guide__note">Esta guía no sustituye los avisos oficiales de tu país.</p>
+        </article>
+
+        <section class="region-list" aria-labelledby="sala-articles-title">
+          <h2 class="region-list__title" id="sala-articles-title">Últimos artículos de Fenómenos Espaciales Caribe</h2>
+          <ul class="grid catalog__grid grid--3" id="sala-articles">
+<li class="region-list__empty">Aún no hay artículos de Fenómenos Espaciales Caribe. En cuanto se publique el primero aparecerá aquí.</li>
+</ul>
+          <nav class="sala-links" aria-label="Más de Fenómenos Espaciales Caribe">
+            <a class="btn btn--primary" href="/fenomenos-espaciales-caribe">Ver todos los artículos de Fenómenos Espaciales Caribe</a>
+            <a class="btn btn--ghost" href="https://www.facebook.com/FenomenosCaribe" rel="noopener" target="_blank">Síguenos en Facebook ↗</a>
+          </nav>
+        </section>
+      </div>
     </main>
     <footer class="footer">
       <div class="container footer__container">

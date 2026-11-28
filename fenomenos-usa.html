@@ -34,7 +34,6 @@
       src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"
     ></script>
     <script defer src="js/script.js"></script>
-    <script type="module" src="js/article-page.js"></script>
     <script src="js/analytics.js" defer></script>
 <link rel="canonical" href="https://fenomenosmedia.org/fenomenos-usa" />
 <link rel="stylesheet" href="/css/brand.css" />
@@ -265,85 +264,29 @@
           <h1 class="heading__primary post__title">Fenómenos USA</h1>
           <p class="post__excerpt">Información actualizada sobre todos los fenómenos significativos para la región de Estados Unidos, así como sus impactos y riesgos asociados.</p>
           <aside class="category-note" aria-label="Sobre este listado">
-            <span class="category-note__label">Última publicación</span>
-            <p>A continuación encontrarás el artículo más reciente de esta categoría.</p>
+            <span class="category-note__label">En esta página</span>
+            <p>Todos los artículos de Fenómenos USA, del más reciente al más antiguo. Para la guía de la región y los pronósticos, visita la sala.</p>
             <nav class="category-note__links" aria-label="Explorar publicaciones">
-              <a href="articulos.html">Todos los artículos <span aria-hidden="true">→</span></a>
+              <a href="/sala-usa.html">Sala Fenómenos USA <span aria-hidden="true">→</span></a>
+              <a href="/articulos/">Todos los artículos <span aria-hidden="true">→</span></a>
               <a href="/archivo/">Archivo histórico <span aria-hidden="true">→</span></a>
+              <a href="https://www.facebook.com/fenomenosusa" rel="noopener" target="_blank">Facebook <span aria-hidden="true">↗</span></a>
             </nav>
           </aside>
         </header>
-        <div class="post-layout">
-          <article class="post">
-            <div id="post-root">
-              <div class="post-state" id="post-loading">
-                <ion-icon name="hourglass-outline"></ion-icon>
-                <strong>Cargando artículo…</strong>
-              </div>
-            </div>
-
-            <!-- ═══════════════════ COMENTARIOS ═══════════════════ -->
-            <section class="comments" id="comments" hidden>
-              <div class="comments__head">
-                <h2 class="comments__title">
-                  <ion-icon name="chatbubbles-outline"></ion-icon>
-                  Comentarios <span id="comments-count"></span>
-                </h2>
-                <button class="btn btn--primary btn--sm" id="btn-comment">
-                  <ion-icon name="create-outline"></ion-icon> Comentar
-                </button>
-              </div>
-
-              <div id="own-pending"></div>
-              <div class="comments__list" id="comments-list"></div>
-
-              <p class="comments__empty" id="comments-empty" hidden>
-                Todavía no hay comentarios. Sé la primera persona en comentar.
-              </p>
-
-              <div class="comments__more">
-                <button class="btn btn--ghost btn--sm" id="comments-more" hidden>
-                  Mostrar más
-                </button>
-              </div>
-            </section>
-          </article>
-
-          <!-- Barra lateral: cajas fijas que acompañan el scroll -->
-          <aside class="post-aside" id="post-aside" hidden>
-            <div class="post-aside__sticky">
-              <nav class="aside-box" id="toc-box" hidden aria-label="Índice del artículo">
-                <h2 class="aside-box__title">
-                  <ion-icon name="list-outline"></ion-icon> En este artículo
-                </h2>
-                <ol class="toc" id="toc-list"></ol>
-              </nav>
-
-              <div class="aside-box" id="share-box" hidden>
-                <h2 class="aside-box__title">
-                  <ion-icon name="share-social-outline"></ion-icon> Comparte este
-                  artículo
-                </h2>
-                <div class="share" id="share-buttons"></div>
-              </div>
-
-              <div class="aside-box" id="react-box" hidden>
-                <h2 class="aside-box__title">
-                  <ion-icon name="heart-outline"></ion-icon> ¿Te gustó el
-                  artículo?
-                </h2>
-                <div class="aside-reacts" id="react-side"></div>
-              </div>
-
-              <div class="aside-box" id="more-box" hidden>
-                <h2 class="aside-box__title">
-                  <ion-icon name="newspaper-outline"></ion-icon> Más artículos
-                </h2>
-                <div class="aside-more" id="more-list"></div>
-              </div>
-            </div>
-          </aside>
-        </div>
+        <section class="region-list" aria-labelledby="region-list-title">
+          <h2 class="region-list__title" id="region-list-title">Artículos de Fenómenos USA</h2>
+          <ul class="grid catalog__grid grid--3" id="region-articles">
+<li class="card card--article"><a class="card__inner" href="/articulos/tormenta-tropical-isaias-se-intensifica-rapidamente-hacia-la-costa-norte-del-golfo/"><span class="article__media"><img src="/img/articulos/44d079721fa431a4efb8.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-10-07">2026-10-07</time></span><h3 class="card__title">Tormenta Tropical Isaias: se intensifica rápidamente hacia la costa norte del Golfo</h3><p class="card__text">Isaias pasó de 45 a 65 mph en seis horas y será huracán el jueves. Vigilancias de huracán, tormenta tropical y marejada ciclónica para la costa norte del Golfo de EE.UU.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/huracan-polo-el-segundo-mas-intenso-del-pacifico-este-se-mantiene-como-categoria-4-y-apunta-a-baja-california-sur/"><span class="article__media"><img src="/img/articulos/8527e01f23bd0b0c9ba9.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-09-26">2026-09-26</time></span><h3 class="card__title">Huracán Polo: el segundo más intenso del Pacífico este se mantiene como categoría 4 y apunta a Baja California Sur</h3><p class="card__text">El huracán Polo, que llegó a ser el segundo ciclón más intenso jamás registrado en el Pacífico este, se mantiene como un poderoso categoría 4 frente a las costas de México. El Centro Nacional de Huracanes (NHC) pronostica que girará hacia Baja California Sur el lunes, con lluvias torrenciales, oleaje peligroso y corrientes de resaca.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/huracan-nolo-se-mantiene-como-categoria-2-al-sur-de-hawai-la-isla-grande-se-prepara-para-lluvias-catastroficas/"><span class="article__media"><img src="https://files.catbox.moe/ieo10o.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-09-26">2026-09-26</time></span><h3 class="card__title">Huracán Nolo se mantiene como categoría 2 al sur de Hawái: la Isla Grande se prepara para lluvias catastróficas</h3><p class="card__text">El huracán Nolo, categoría 2 con vientos de 105 mph, se mantiene casi detenido al sur de Hawái. La Isla Grande podría recibir de 10 a 15 pulgadas de lluvia, con hasta 25 pulgadas aisladas e inundaciones catastróficas este fin de semana.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/la-posible-tormenta-bertha-estara-afectando-a-las-costas-americanas-del-golfo-de-mexico/"><span class="article__media"><img src="/img/articulos/5ab77502ea8eee36f3d1.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Huracanes · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">La posible tormenta Bertha estará afectando a las costas americanas del Golfo de México.</h3><p class="card__text">¡El desarrollo de este sistema esta casi garantizado a que ocurra este domingo o lunes según NHC!</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/varios-de-dias-de-lluvia-podria-producir-algunas-inundaciones-en-carolina-del-norte-usa/"><span class="article__media"><img src="/img/articulos/78c81f514fca1ccd1d69.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Inundaciones · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Varios de días de lluvia podría producir algunas inundaciones en Carolina del Norte, USA.</h3><p class="card__text">Se espera que varios sistemas frontales se muevan a través de esta zona dentro de los próximos días.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/una-densa-capa-de-humo-aun-se-mueve-sobre-algunas-regiones-de-usa-y-canada/"><span class="article__media"><img src="/img/articulos/41bb9a5a601a8ee00dd3.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Prevención · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Una densa capa de humo aún se mueve sobre algunas regiones de USA y Canada.</h3><p class="card__text">¡Esta masa de humo continuará durante este sábado en Nueva York, Boston y demás ciudades del noreste!</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/disturbio-en-florida-ya-tiene-40-30-de-chance-en-7-y-2-dias-respectivamente/"><span class="article__media"><img src="/img/articulos/a5e98f069816f1cc28af.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Pronósticos · <time datetime="2026-07-19">2026-07-19</time></span><h3 class="card__title">Disturbio en Florida ya tiene 40/30% de chance en 7 y 2 días respectivamente.</h3><p class="card__text">¡Este disturbio continúa aumentando su rotación! Centro de Huracanes espera una depresión este Domingo o Lunes.</p><span class="card__link">Leer más →</span></a></li>
+<li class="card card--article"><a class="card__inner" href="/articulos/disturbio-tropical-en-florida-dejara-muchas-lluvias/"><span class="article__media"><img src="/img/articulos/26d588679d965a889712.jpg" alt="" loading="lazy" decoding="async"></span><span class="article__meta">Pronósticos · <time datetime="2026-07-17">2026-07-17</time></span><h3 class="card__title">Disturbio tropical en Florida dejará muchas lluvias.</h3><p class="card__text">¡Ya se percibe algo de rotación en este disturbo!</p><span class="card__link">Leer más →</span></a></li>
+</ul>
+        </section>
 
         <div class="post__more">
           <a href="articulos.html" class="btn btn--ghost"
